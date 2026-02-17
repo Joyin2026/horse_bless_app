@@ -16,7 +16,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev autoconf-archive
 
       - name: Install Buildozer
         run: |
@@ -29,11 +29,9 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      - name: Set ACLOCAL_PATH for libtool macros
-        run: echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
-
       - name: Build with buildozer
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/local/share/aclocal
           yes | buildozer android debug --log_level=2
 
       - name: Upload APK
