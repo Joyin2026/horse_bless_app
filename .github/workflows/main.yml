@@ -4,7 +4,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # 关键修改：使用 20.04 版本
     steps:
       - uses: actions/checkout@v4
 
@@ -38,16 +38,10 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      - name: Fix libtool macros for aclocal
-        run: |
-          # Ensure aclocal can find libtool macros
-          sudo mkdir -p /usr/local/share/aclocal
-          sudo ln -sf /usr/share/aclocal/libtool.m4 /usr/local/share/aclocal/libtool.m4
-          sudo ln -sf /usr/share/aclocal/ltdl.m4 /usr/local/share/aclocal/ltdl.m4
-          echo "ACLOCAL_PATH=/usr/share/aclocal:/usr/local/share/aclocal" >> $GITHUB_ENV
-
       - name: Build with buildozer
         run: |
+          # 设置宏路径（兼容性设置）
+          export ACLOCAL_PATH="/usr/share/aclocal:/usr/local/share/aclocal"
           yes | buildozer android debug --log_level=2
 
       - name: Upload APK
