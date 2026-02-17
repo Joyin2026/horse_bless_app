@@ -1,29 +1,43 @@
-steps:
-  - uses: actions/checkout@v4
-  - name: Set up Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: '3.10'
-  - name: Install system dependencies
-    run: |
-      sudo apt update
-      sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
-  - name: Install Buildozer
-    run: |
-      pip install --upgrade pip
-      pip install buildozer cython
-  - name: Cache buildozer
-    uses: actions/cache@v4
-    with:
-      path: ~/.buildozer
-      key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-  - name: Set ACLOCAL_PATH for libtool macros
-    run: echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
-  - name: Build with buildozer
-    run: |
-      yes | buildozer android debug --log_level=2
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: app-debug
-      path: bin/*.apk
+name: Build Kivy APK
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Cache buildozer
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+
+      - name: Set ACLOCAL_PATH for libtool macros
+        run: echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
+
+      - name: Build with buildozer
+        run: |
+          yes | buildozer android debug --log_level=2
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: bin/*.apk
