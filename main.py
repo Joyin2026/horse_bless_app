@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用
-版本：v1.0.7
+版本：v1.0.8
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -13,6 +13,7 @@ from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.carousel import Carousel
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -183,20 +184,106 @@ FESTIVALS = ['春节祝福', '元宵节祝福']
 
 
 class StartScreen(Screen):
-    """启动画面，全屏显示start.png，无圆角无黑边"""
+    """可滑动开屏广告页，带跳过按钮和底部指示点"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
-        img = Image(source='images/start.png', allow_stretch=True, keep_ratio=False,
-                    size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
-        layout.add_widget(img)
-        btn = Button(background_color=(0,0,0,0), on_press=self.go_main,
-                     size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
-        layout.add_widget(btn)
+
+        # 轮播图片列表（请将图片放在 images 文件夹，命名如 splash1.png, splash2.png, splash3.png）
+        splash_images = [
+            'images/splash1.png',
+            'images/splash2.png',
+            'images/splash3.png',
+            # 'images/splash4.png',  # 如果需要第四张，取消注释并确保文件存在
+        ]
+
+        # 轮播控件
+        self.carousel = Carousel(direction='right', loop=True)
+        for img_path in splash_images:
+            img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+            self.carousel.add_widget(img)
+        self.carousel.bind(current_slide=self.on_slide_changed)
+        layout.add_widget(self.carousel)
+
+        # 底部指示器（3-4个圆点）
+        indicator_layout = BoxLayout(
+            size_hint=(None, None),
+            size=(dp(len(splash_images)*30), dp(30)),
+            pos_hint={'center_x': 0.5, 'y': 0.05},
+            spacing=dp(5)
+        )
+        self.indicators = []
+        for i in range(len(splash_images)):
+            lbl = Label(
+                text='○',
+                font_size=sp(20),
+                color=(1, 1, 1, 1),
+                size_hint=(None, None),
+                size=(dp(20), dp(20))
+            )
+            self.indicators.append(lbl)
+            indicator_layout.add_widget(lbl)
+        self.update_indicator(0)
+        layout.add_widget(indicator_layout)
+
+        # 跳过按钮（右上角）
+        skip_btn = Button(
+            text='跳过',
+            size_hint=(None, None),
+            size=(dp(80), dp(40)),
+            pos_hint={'right': 1, 'top': 1},
+            background_color=get_color_from_hex('#80000000'),  # 半透明黑
+            color=(1, 1, 1, 1),
+            bold=True
+        )
+        skip_btn.bind(on_press=self.skip_to_main)
+        layout.add_widget(skip_btn)
+
+        # 倒计时标签（右上角，跳过按钮下方）
+        self.countdown_label = Label(
+            text='3 秒',
+            size_hint=(None, None),
+            size=(dp(80), dp(30)),
+            pos_hint={'right': 1, 'top': 0.9},
+            color=(1, 1, 1, 1),
+            bold=True
+        )
+        layout.add_widget(self.countdown_label)
+
         self.add_widget(layout)
+
+        # 倒计时设置
+        self.countdown = 3
+        self.update_countdown()
+        Clock.schedule_interval(self.update_countdown, 1)
         Clock.schedule_once(self.go_main, 3)
 
+    def update_countdown(self, dt=None):
+        """更新倒计时显示"""
+        if self.countdown > 0:
+            self.countdown_label.text = f'{self.countdown} 秒'
+            self.countdown -= 1
+        else:
+            self.countdown_label.text = '进入'
+            return False
+
+    def on_slide_changed(self, carousel, index):
+        """轮播滑动时更新指示点"""
+        self.update_indicator(index)
+
+    def update_indicator(self, index):
+        """根据当前索引更新指示点的实心/空心"""
+        for i, lbl in enumerate(self.indicators):
+            lbl.text = '●' if i == index else '○'
+
+    def skip_to_main(self, instance):
+        """点击跳过，立即进入主页面"""
+        Clock.unschedule(self.update_countdown)
+        Clock.unschedule(self.go_main)
+        self.manager.current = 'main'
+
     def go_main(self, *args):
+        """自动跳转主页面"""
         self.manager.current = 'main'
 
 
@@ -457,7 +544,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.7\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.8\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
