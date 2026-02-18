@@ -2,11 +2,11 @@
 
 title = 马年新春祝福
 package.name = horsebless
-package.domain = org.example
+package.domain = www.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
-version = 1.0.9
+version = v1.1.1
 
 requirements = python3,kivy,plyer,pyjnius
 
