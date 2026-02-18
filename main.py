@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 """
-main.py - 马年春节元宵祝福
-版本：v1.0.2
+main.py - 马年元宵祝福应用
+版本：v1.0.4
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -8,6 +9,7 @@ import kivy
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -19,9 +21,10 @@ from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 
-# 设置基础窗口尺寸（以小米15Pro的1440x3200为设计基准）
-Window.size = (1440, 3200)
+# 设置窗口背景色为喜庆的暖黄色
+Window.clearcolor = get_color_from_hex('#FFF5E6')
 
 # 尝试导入plyer toast和分享功能
 try:
@@ -30,8 +33,8 @@ except ImportError:
     toast = None
     share = None
 
-# --------------------------------- 祝福语数据 ---------------------------------
-# 春节祝福语（原有5类）
+# -------------------------------- 祝福语数据 --------------------------------
+# 春节祝福语（5类，每类10条）
 BLESSINGS_SPRING = {
     '幽默搞怪': [
         "马年到，好运“马”不停蹄向你奔来！2026年，祝你搞钱速度堪比千里马，摸鱼技术练得炉火纯青。不做职场牛马，只做快乐野马，钱包鼓鼓，烦恼全无，咱们继续相爱相杀！🐴",
@@ -95,7 +98,7 @@ BLESSINGS_SPRING = {
     ]
 }
 
-# 元宵节祝福语（5类）
+# 元宵节祝福语（5类，每类10条）
 BLESSINGS_LANTERN = {
     '温馨团圆·家人亲友': [
         "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
@@ -159,17 +162,19 @@ BLESSINGS_LANTERN = {
     ]
 }
 
-# 节日选项
 FESTIVALS = ['春节祝福', '元宵节祝福']
 
+
 class StartScreen(Screen):
-    """启动画面，显示start.png，点击或等待3秒进入主页面"""
+    """启动画面，全屏显示start.png"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout = BoxLayout(orientation='vertical')
-        img = Image(source='images/start.png', allow_stretch=True, keep_ratio=False)
+        layout = FloatLayout()
+        img = Image(source='images/start.png', allow_stretch=True, keep_ratio=False,
+                    size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
         layout.add_widget(img)
-        btn = Button(background_color=(0,0,0,0), on_press=self.go_main)
+        btn = Button(background_color=(0,0,0,0), on_press=self.go_main,
+                     size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
         layout.add_widget(btn)
         self.add_widget(layout)
         Clock.schedule_once(self.go_main, 3)
@@ -188,27 +193,49 @@ class MainScreen(Screen):
 
         self.update_category_list()
 
-        # 主布局
-        main_layout = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(10))
+        # 主布局 - 使用垂直BoxLayout，顶部、中间内容、底部状态栏
+        main_layout = BoxLayout(orientation='vertical', spacing=dp(8), padding=[dp(10), dp(10), dp(10), dp(0)])
 
-        # 顶部图片
+        # 顶部图片容器（含“关于”按钮）
+        top_container = FloatLayout(size_hint_y=None, height=dp(200))
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
-                        size_hint_y=None, height=dp(200))
-        main_layout.add_widget(top_img)
-
-        # 节日选择 Spinner
-        self.festival_spinner = Spinner(
-            text=self.current_festival,
-            values=FESTIVALS,
-            size_hint=(1, None),
-            height=dp(45),
-            background_color=get_color_from_hex('#DAA520'),
-            color=(1,1,1,1)
+                        size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
+        top_container.add_widget(top_img)
+        about_btn = Button(
+            text='关于',
+            size_hint=(None, None),
+            size=(dp(80), dp(40)),
+            pos_hint={'right': 1, 'top': 1},
+            background_color=get_color_from_hex('#CCCCCC'),
+            color=(0,0,0,1),
+            bold=True,
+            opacity=0.8
         )
-        self.festival_spinner.bind(text=self.on_festival_change)
-        main_layout.add_widget(self.festival_spinner)
+        about_btn.bind(on_press=self.show_about_popup)
+        top_container.add_widget(about_btn)
+        main_layout.add_widget(top_container)
 
-        # 分类 Spinner
+        # 节日切换按钮 - 水平排列
+        festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(10))
+        self.spring_btn = Button(
+            text='春节祝福',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1),
+            bold=True
+        )
+        self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
+        self.lantern_btn = Button(
+            text='元宵节祝福',
+            background_color=get_color_from_hex('#8B4513'),
+            color=(1,1,1,1),
+            bold=True
+        )
+        self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
+        festival_layout.add_widget(self.spring_btn)
+        festival_layout.add_widget(self.lantern_btn)
+        main_layout.add_widget(festival_layout)
+
+        # 分类选择 Spinner
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
@@ -223,22 +250,22 @@ class MainScreen(Screen):
         # 翻页区域
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40))
         self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True)
-        self.page_label = Label(text='第1页/共2页')
+        self.page_label = Label(text='第1页/共2页', color=(0.2,0.2,0.2,1))
         self.next_btn = Button(text='下一页', on_press=self.next_page)
         page_layout.add_widget(self.prev_btn)
         page_layout.add_widget(self.page_label)
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # 祝福语列表
+        # 祝福语列表区域（可滚动）
         self.scroll_view = ScrollView()
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(6))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部按钮行
-        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
+        # 底部两个功能按钮（上移）
+        bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
         send_btn = Button(
             text='发送祝福',
             background_color=get_color_from_hex('#DAA520'),
@@ -251,20 +278,51 @@ class MainScreen(Screen):
             color=(1,1,1,1)
         )
         share_btn.bind(on_press=self.share_blessings)
-        about_btn = Button(
-            text='关于马年祝福',
-            background_color=get_color_from_hex('#CCCCCC'),
-            color=(0,0,0,1),
-            bold=True,
-            size_hint_x=0.25
+        bottom_buttons.add_widget(send_btn)
+        bottom_buttons.add_widget(share_btn)
+        main_layout.add_widget(bottom_buttons)
+
+        # 底部状态栏（版权信息）
+        status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=[dp(10), 0])
+        with status_bar.canvas.before:
+            Color(0.2, 0.2, 0.2, 1)  # 深灰色背景
+            self.status_rect = Rectangle(size=status_bar.size, pos=status_bar.pos)
+        status_bar.bind(size=self._update_status_rect, pos=self._update_status_rect)
+        copyright_label = Label(
+            text='Copyright © 2026 卓影工作室·瑾煜. All Rights Reserved',
+            color=get_color_from_hex('#DAA520'),  # 金色文字
+            font_size=sp(8),
+            halign='center',
+            valign='middle'
         )
-        about_btn.bind(on_press=self.show_about_popup)
-        bottom_layout.add_widget(send_btn)
-        bottom_layout.add_widget(share_btn)
-        bottom_layout.add_widget(about_btn)
-        main_layout.add_widget(bottom_layout)
+        status_bar.add_widget(copyright_label)
+        main_layout.add_widget(status_bar)
 
         self.add_widget(main_layout)
+        self.show_current_page()
+
+    def _update_status_rect(self, instance, value):
+        self.status_rect.pos = instance.pos
+        self.status_rect.size = instance.size
+
+    def switch_festival(self, festival):
+        """切换节日"""
+        if festival == self.current_festival:
+            return
+        self.current_festival = festival
+        # 更新按钮颜色（可选）
+        if festival == '春节祝福':
+            self.spring_btn.background_color = get_color_from_hex('#DAA520')
+            self.lantern_btn.background_color = get_color_from_hex('#8B4513')
+        else:
+            self.spring_btn.background_color = get_color_from_hex('#8B4513')
+            self.lantern_btn.background_color = get_color_from_hex('#DAA520')
+        self.update_category_list()
+        self.category_spinner.values = self.category_list
+        self.current_category = self.category_list[0]
+        self.category_spinner.text = self.current_category
+        self.current_page = 0
+        self.update_page_buttons()
         self.show_current_page()
 
     def update_category_list(self):
@@ -278,16 +336,6 @@ class MainScreen(Screen):
             return BLESSINGS_SPRING
         else:
             return BLESSINGS_LANTERN
-
-    def on_festival_change(self, spinner, text):
-        self.current_festival = text
-        self.update_category_list()
-        self.category_spinner.values = self.category_list
-        self.current_category = self.category_list[0]
-        self.category_spinner.text = self.current_category
-        self.current_page = 0
-        self.update_page_buttons()
-        self.show_current_page()
 
     def on_category_change(self, spinner, text):
         self.current_category = text
@@ -304,7 +352,13 @@ class MainScreen(Screen):
         page_items = blessings[start:end]
 
         for text in page_items:
+            # 每个条目添加白色半透明背景
             item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
+            with item_box.canvas.before:
+                Color(1, 1, 1, 0.9)  # 白色半透明
+                self.rect = Rectangle(size=item_box.size, pos=item_box.pos)
+            item_box.bind(size=self._update_item_rect, pos=self._update_item_rect)
+
             label = Label(
                 text=text,
                 size_hint_x=0.8,
@@ -332,6 +386,10 @@ class MainScreen(Screen):
             item_box.add_widget(copy_btn)
             label.bind(height=lambda *x, box=item_box: setattr(box, 'height', label.height + dp(8)))
             self.list_layout.add_widget(item_box)
+
+    def _update_item_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
 
     def copy_to_clipboard(self, text):
         Clipboard.copy(text)
@@ -396,7 +454,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.2\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.4\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -417,8 +475,7 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        # 以小米15Pro的1440x3200为设计基准，实际运行时窗口会全屏，布局自动缩放
-        Window.size = (1440, 3200)
+        Window.size = (1440, 3200)  # 设计基准
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
@@ -427,4 +484,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
