@@ -1,47 +1,25 @@
-name: Build Kivy APK
+name: Build Kivy APK with Docker
 
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: kivy/buildozer:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip \
-            openjdk-17-jdk \
-            autoconf automake libtool \
-            pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            cmake \
-            libffi-dev libssl-dev \
-            autoconf-archive \
-            libtool-bin
-      - name: Install Buildozer
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
+
       - name: Cache buildozer
         uses: actions/cache@v4
         with:
-          path: ~/.buildozer
+          path: /home/user/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-      - name: Fix libtool macros (ensure aclocal finds them)
-        run: |
-          sudo mkdir -p /usr/local/share/aclocal
-          sudo ln -sf /usr/share/aclocal/libtool.m4 /usr/local/share/aclocal/libtool.m4
-          sudo ln -sf /usr/share/aclocal/ltdl.m4 /usr/local/share/aclocal/ltdl.m4
-          echo "ACLOCAL_PATH=/usr/share/aclocal:/usr/local/share/aclocal" >> $GITHUB_ENV
+
       - name: Build with buildozer
         run: |
           yes | buildozer android debug --log_level=2
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
