@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用
-版本：v1.0.6
+版本：v1.0.7
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -183,6 +183,7 @@ FESTIVALS = ['春节祝福', '元宵节祝福']
 
 
 class StartScreen(Screen):
+    """启动画面，全屏显示start.png，无圆角无黑边"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -197,6 +198,7 @@ class StartScreen(Screen):
 
     def go_main(self, *args):
         self.manager.current = 'main'
+
 
 class MainScreen(Screen):
     def __init__(self, **kwargs):
@@ -220,17 +222,25 @@ class MainScreen(Screen):
 
         # 节日切换按钮
         festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        self.spring_btn = Button(text='春节祝福', background_color=get_color_from_hex('#DAA520'),
-                                  color=(1,1,1,1), bold=True)
+        self.spring_btn = Button(
+            text='春节祝福',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1),
+            bold=True
+        )
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
-        self.lantern_btn = Button(text='元宵节祝福', background_color=get_color_from_hex('#8B4513'),
-                                   color=(1,1,1,1), bold=True)
+        self.lantern_btn = Button(
+            text='元宵节祝福',
+            background_color=get_color_from_hex('#8B4513'),
+            color=(1,1,1,1),
+            bold=True
+        )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类选择
+        # 分类选择 Spinner
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
@@ -261,11 +271,17 @@ class MainScreen(Screen):
 
         # 底部两个功能按钮
         bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        send_btn = Button(text='发送祝福', background_color=get_color_from_hex('#DAA520'),
-                          color=(1,1,1,1))
+        send_btn = Button(
+            text='发送祝福',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1)
+        )
         send_btn.bind(on_press=self.send_blessings)
-        share_btn = Button(text='发给微信好友', background_color=get_color_from_hex('#4CAF50'),
-                           color=(1,1,1,1))
+        share_btn = Button(
+            text='发给微信好友',
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1)
+        )
         share_btn.bind(on_press=self.share_blessings)
         bottom_buttons.add_widget(send_btn)
         bottom_buttons.add_widget(share_btn)
@@ -441,7 +457,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.6\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.7\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -459,13 +475,15 @@ class MainScreen(Screen):
         )
         popup.open()
 
+
 class BlessApp(App):
     def build(self):
-        Window.size = (1440, 3200)
+        Window.size = (1440, 3200)  # 设计基准
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         return sm
+
 
 if __name__ == '__main__':
     BlessApp().run()
