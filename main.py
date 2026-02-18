@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用
-版本：v1.0.5
+版本：v1.0.6
 开发团队：卓影工作室 · 瑾 煜
 """
 
 import kivy
+import sys
+import os
+import traceback
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -22,31 +25,32 @@ from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle
-from kivy.core.text import LabelBase
 
-# 注册中文字体（Android 系统自带）
-try:
-    LabelBase.register(name='Chinese', fn_regular='DroidSansFallback.ttf')
-except:
-    pass
+# ---------- 全局异常捕获 ----------
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    try:
+        log_path = os.path.join(os.getenv('EXTERNAL_STORAGE', '/sdcard'), 'crash.log')
+        with open(log_path, 'a') as f:
+            f.write(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+    except:
+        pass
 
-# 创建支持中文的标签类
-class ChineseLabel(Label):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_name = 'Chinese'  # 使用注册的字体
+sys.excepthook = handle_exception
 
-# 设置窗口背景色为喜庆的暖黄色
+# ---------- 设置窗口背景色 ----------
 Window.clearcolor = get_color_from_hex('#FFF5E6')
 
-# 尝试导入plyer toast和分享功能
+# ---------- 导入plyer ----------
 try:
     from plyer import toast, share
 except ImportError:
     toast = None
     share = None
 
-# -------------------------------- 祝福语数据 --------------------------------
+# ---------- 祝福语数据 ----------
 # 春节祝福语（5类，每类10条）
 BLESSINGS_SPRING = {
     '幽默搞怪': [
@@ -179,7 +183,6 @@ FESTIVALS = ['春节祝福', '元宵节祝福']
 
 
 class StartScreen(Screen):
-    """启动画面，全屏显示start.png，无圆角无黑边"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -195,7 +198,6 @@ class StartScreen(Screen):
     def go_main(self, *args):
         self.manager.current = 'main'
 
-
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -209,36 +211,26 @@ class MainScreen(Screen):
         # 主布局 - 全屏无边距
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
-        # 顶部图片（无边框）
+        # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(200))
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
                         size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
-        # 节日切换按钮 - 水平排列
+        # 节日切换按钮
         festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        self.spring_btn = Button(
-            text='春节祝福',
-            background_color=get_color_from_hex('#DAA520'),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
+        self.spring_btn = Button(text='春节祝福', background_color=get_color_from_hex('#DAA520'),
+                                  color=(1,1,1,1), bold=True)
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
-        self.lantern_btn = Button(
-            text='元宵节祝福',
-            background_color=get_color_from_hex('#8B4513'),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
+        self.lantern_btn = Button(text='元宵节祝福', background_color=get_color_from_hex('#8B4513'),
+                                   color=(1,1,1,1), bold=True)
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类选择 Spinner
+        # 分类选择
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
@@ -247,20 +239,20 @@ class MainScreen(Screen):
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1)
         )
-        # Spinner 的文字不支持直接设置字体，但它的内部 TextInput 会使用默认字体，我们已注册中文字体，应该可以
+        self.category_spinner.bind(text=self.on_category_change)
         main_layout.add_widget(self.category_spinner)
 
         # 翻页区域
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=0)
-        self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True, font_name='Chinese')
-        self.page_label = ChineseLabel(text='第1页/共2页', color=(0.2,0.2,0.2,1))
-        self.next_btn = Button(text='下一页', on_press=self.next_page, font_name='Chinese')
+        self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True)
+        self.page_label = Label(text='第1页/共2页', color=(0.2,0.2,0.2,1))
+        self.next_btn = Button(text='下一页', on_press=self.next_page)
         page_layout.add_widget(self.prev_btn)
         page_layout.add_widget(self.page_label)
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # 祝福语列表区域（可滚动）
+        # 祝福语列表
         self.scroll_view = ScrollView()
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(2))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
@@ -269,19 +261,11 @@ class MainScreen(Screen):
 
         # 底部两个功能按钮
         bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        send_btn = Button(
-            text='发送祝福',
-            background_color=get_color_from_hex('#DAA520'),
-            color=(1,1,1,1),
-            font_name='Chinese'
-        )
+        send_btn = Button(text='发送祝福', background_color=get_color_from_hex('#DAA520'),
+                          color=(1,1,1,1))
         send_btn.bind(on_press=self.send_blessings)
-        share_btn = Button(
-            text='发给微信好友',
-            background_color=get_color_from_hex('#4CAF50'),
-            color=(1,1,1,1),
-            font_name='Chinese'
-        )
+        share_btn = Button(text='发给微信好友', background_color=get_color_from_hex('#4CAF50'),
+                           color=(1,1,1,1))
         share_btn.bind(on_press=self.share_blessings)
         bottom_buttons.add_widget(send_btn)
         bottom_buttons.add_widget(share_btn)
@@ -290,16 +274,15 @@ class MainScreen(Screen):
         # 底部状态栏（版权信息，可点击）
         status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=0)
         with status_bar.canvas.before:
-            Color(0.2, 0.2, 0.2, 1)  # 深灰色背景
+            Color(0.2, 0.2, 0.2, 1)
             self.status_rect = Rectangle(size=status_bar.size, pos=status_bar.pos)
         status_bar.bind(size=self._update_status_rect, pos=self._update_status_rect)
         copyright_btn = Button(
             text='Copyright © 2026 卓影工作室·瑾煜. All Rights Reserved',
-            color=get_color_from_hex('#DAA520'),  # 金色文字
+            color=get_color_from_hex('#DAA520'),
             font_size=sp(8),
-            background_color=(0,0,0,0),  # 透明背景
-            bold=True,
-            font_name='Chinese'
+            background_color=(0,0,0,0),
+            bold=True
         )
         copyright_btn.bind(on_press=self.show_about_popup)
         status_bar.add_widget(copyright_btn)
@@ -316,7 +299,6 @@ class MainScreen(Screen):
         if festival == self.current_festival:
             return
         self.current_festival = festival
-        # 更新按钮颜色
         if festival == '春节祝福':
             self.spring_btn.background_color = get_color_from_hex('#DAA520')
             self.lantern_btn.background_color = get_color_from_hex('#8B4513')
@@ -358,14 +340,13 @@ class MainScreen(Screen):
         page_items = blessings[start:end]
 
         for text in page_items:
-            # 每个条目添加白色半透明背景
             item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=0)
             with item_box.canvas.before:
-                Color(1, 1, 1, 0.9)  # 白色半透明
+                Color(1, 1, 1, 0.9)
                 self.rect = Rectangle(size=item_box.size, pos=item_box.pos)
             item_box.bind(size=self._update_item_rect, pos=self._update_item_rect)
 
-            label = ChineseLabel(
+            label = Label(
                 text=text,
                 size_hint_x=0.8,
                 size_hint_y=None,
@@ -384,8 +365,7 @@ class MainScreen(Screen):
                 size_hint_y=None,
                 height=dp(40),
                 background_normal='',
-                background_color=(0.2,0.6,1,1),
-                font_name='Chinese'
+                background_color=(0.2,0.6,1,1)
             )
             copy_btn.bind(on_press=lambda btn, t=text: self.copy_to_clipboard(t))
 
@@ -460,36 +440,32 @@ class MainScreen(Screen):
 
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
-        content.add_widget(ChineseLabel(
-            text='马年祝福APP\n版本：v1.0.5\n开发团队：卓影工作室 · 瑾 煜',
+        content.add_widget(Label(
+            text='马年祝福APP\n版本：v1.0.6\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
             height=dp(120)
         ))
-        close_btn = Button(text='关闭', size_hint=(None, None), size=(dp(100), dp(40)), font_name='Chinese')
+        close_btn = Button(text='关闭', size_hint=(None, None), size=(dp(100), dp(40)))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         content.add_widget(close_btn)
 
         popup = Popup(
             title='关于',
-            title_font='Chinese',
             content=content,
             size_hint=(0.8, 0.4),
             auto_dismiss=False
         )
         popup.open()
 
-
 class BlessApp(App):
     def build(self):
-        # 设计基准分辨率
         Window.size = (1440, 3200)
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         return sm
-
 
 if __name__ == '__main__':
     BlessApp().run()
