@@ -121,19 +121,19 @@ android.archs = arm64-v8a, armeabi-v7a
 android.keystore = ./my-release-key.keystore
 
 # (str) Keystore alias
-android.keystore_alias = my-key-alias
+android.keystore_alias = zhuoying_horse_bless
 
 # (str) Password for the keystore
-android.keystore_password = 123456
+android.keystore_password =470726.0
 
 # (str) Password for the key alias
-android.keyalias_password = 123456
+android.keyalias_password = 470726.0
 
 # (bool) If True, then the build will be a release build (not debug)
 #android.release = True
 
 # (str) Path to a custom private key to use when signing
-#android.private_key =
+#android.private_key = 
 
 # (str) Path to a custom certificate to use when signing
 #android.certificate =
