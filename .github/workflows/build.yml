@@ -1,6 +1,6 @@
 name: Build Kivy APK with Docker
 
-on: [push, workflow_dispatch]
+on: [workflow_dispatch]
 
 jobs:
   build:
