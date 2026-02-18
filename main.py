@@ -1,7 +1,14 @@
 """
-main.py - 马年祝福应用
-依赖：kivy, plyer
-打包：buildozer
+main.py - 马年元宵祝福应用
+新增功能：
+- 应用图标 (images/bless.png) 需在 buildozer.spec 中配置
+- 第二屏顶部图片 (images/top.jpg)
+- 节日选择：春节/元宵节，分别对应不同的祝福语数据
+- 元宵节祝福语（共50条，分5类）
+- 长按复制祝福（原有功能）
+- “发给微信好友”按钮，调用系统分享功能
+- “关于”版权信息：主界面右下角点击弹出浮窗
+- 响应式设计，自动适配各种安卓屏幕
 """
 
 import kivy
@@ -13,20 +20,23 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.image import Image
+from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 
-# 尝试导入plyer toast（安卓原生吐司），若失败则使用简易Popup
+# 尝试导入plyer toast和分享功能
 try:
-    from plyer import toast
+    from plyer import toast, share
 except ImportError:
     toast = None
+    share = None
 
-# 祝福语数据（按分类索引）
-BLESSINGS = {
+# --------------------------------- 祝福语数据 ---------------------------------
+# 春节祝福语（原有5类）
+BLESSINGS_SPRING = {
     '幽默搞怪': [
         "马年到，好运“马”不停蹄向你奔来！2026年，祝你搞钱速度堪比千里马，摸鱼技术练得炉火纯青。不做职场牛马，只做快乐野马，钱包鼓鼓，烦恼全无，咱们继续相爱相杀！🐴",
         "你的丙午马年专属好运已送达，请签收！新的一年，主打一个“马上”系列：马上暴富，马上变瘦，马上脱单。最重要的是，马上实现财务自由，带我一起飞！",
@@ -89,52 +99,133 @@ BLESSINGS = {
     ]
 }
 
-# 分类名称列表（与Spinner选项一致）
-CATEGORIES = list(BLESSINGS.keys())
+# 元宵节祝福语（5类）
+BLESSINGS_LANTERN = {
+    '温馨团圆·家人亲友': [
+        "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
+        "灯火映万家，团圆共此时，又是一年元宵节，愿春风吹走所有烦恼，月光照亮所有美好，家人闲坐，灯火可亲，所求皆如愿，所行皆坦途。",
+        "月圆人圆事事圆，花好灯好年年好，愿你在这个温暖的节日里，有家人陪伴，有朋友关心，有健康身体，有顺遂生活，幸福常在身边，平安岁岁年年。",
+        "一盏花灯寄深情，一碗汤圆暖人心，愿你走过山河万里，仍有人等你回家；历经人间烟火，依旧眼里有光、心中有爱，一生被温柔以待。",
+        "元宵之夜月色温柔，灯火璀璨，愿所有思念都有回应，所有牵挂都有归宿，愿家人平安健康，日子安稳舒心，生活有滋有味，岁岁无忧无愁。",
+        "月圆映团圆，灯火照心安，愿新的一年里，家庭和睦、笑语常伴，烦恼随风而去，好运步步靠近，生活如汤圆般圆满，日子如春夜般温柔。",
+        "花灯千盏送美好，圆月一轮照人间，愿你和家人在这个元宵佳节，平安相伴、喜乐相随，心中常怀希望，眼前皆是光明，余生皆有温暖。",
+        "良宵共度，团圆难得，愿时光慢一点，温柔多一点，幸福久一点，健康长一点，愿一家人平平安安，一年事顺顺利利，一生心欢欢喜喜。",
+        "元宵佳节，暖意融融，愿你三餐四季皆安稳，岁岁年年皆无忧，有人懂你悲欢，有人陪你朝夕，生活不慌不忙，幸福如约而至。",
+        "灯火阑珊处，最暖是人间，愿你此夜有团圆，此生有安稳，年年元宵年年喜，岁岁平安岁岁欢，福气常满，好运常伴，喜乐常存。"
+    ],
+    '喜庆吉利·通用祝福': [
+        "元宵花灯照前程，春风如意伴君行，愿你新岁财源广、福气多、好运长、万事顺，事业步步高升，生活顺心如意，日子红红火火，人生处处精彩。",
+        "月圆添吉庆，灯火送安康，愿你新的一年顺风顺水，所求皆所得，所想皆成真，出门遇贵人，在家听喜报，平安喜乐常相随，吉祥好运伴全年。",
+        "吃一碗香甜汤圆，盼一年万事圆满，愿你财运亨通、福运绵长、好运连连，工作不辛苦，生活不疲惫，心情常明媚，人生常欢喜。",
+        "元宵启新程，万事皆可期，愿你前路光明、万事顺遂、心想事成，所有努力不被辜负，所有梦想终会实现，所有美好如约而至。",
+        "花灯映福运，圆月照安康，愿你在新的一年里，福气满满、财气滔滔、喜气洋洋，事事有回音，件件有着落，处处有惊喜。",
+        "良宵美景庆元宵，欢歌笑语迎好兆，愿你日子有光、心中有梦、身边有爱，一路春暖花开，一生顺遂无忧，一年更比一年好。",
+        "月圆人安，岁岁吉祥，愿你无病无灾、平安自在，有钱有闲、喜乐开怀，忙时有动力，闲时有温馨，生活有期待，人生有光芒。",
+        "元宵佳节好运到，吉祥如意身边绕，愿你每一次付出都有收获，每一次期盼都有回应，每一次等待都有结果，万事顺心，皆得圆满。",
+        "灯火千盏，福满人间，愿你新岁多喜乐、长安宁、常安康，事业有起色，生活有奔头，家庭有欢笑，未来有希望。",
+        "月圆映好梦，灯火暖人心，愿你往后余生，风雨有伞，归途有灯，心中有梦，眼中有光，生活温柔以待，人生步步生花。"
+    ],
+    '温柔治愈·走心文艺': [
+        "月光温柔，灯火可亲，人间烟火，最抚人心。愿你在元宵良夜里，放下疲惫与焦虑，拥抱温暖与美好，愿生活善待你，岁月不辜负你。",
+        "一盏灯，照亮归途；一碗汤圆，甜满心头。愿你历经世事沧桑，依旧眼里有星光，心中有山海，笑里有坦荡，一生清澈明朗。",
+        "月色如水，灯影如梦，愿你在喧嚣人间，守住一份从容，留得一份心安，不慌不忙，静静成长，慢慢发光，平安喜乐，自在从容。",
+        "元宵之夜，愿所有烦恼随夜色消散，所有美好随灯火降临，愿你被世界温柔以待，被幸福紧紧包围，被平安时时守护。",
+        "人间最美是团圆，世间最暖是心安，愿这满城灯火，为你照亮前路；愿这一轮明月，为你带来温柔，愿你岁岁常欢愉，年年皆胜意。",
+        "花灯摇曳，春风轻拂，愿你心中有光，不管走到哪里，都能被温暖照亮；愿你心中有爱，不管经历什么，都能被善意环绕。",
+        "月圆映初心，温暖赴人生，愿你保持热爱，奔赴下一场山海；心存期待，迎接每一个清晨，生活温柔有趣，人生平安顺遂。",
+        "灯火映诗行，月色满心房，愿你日子清净，抬头皆是温柔，所见皆是美好，所念皆得所期，所想皆能成真，所爱皆可相守。",
+        "元宵月圆，愿所有奔赴都有意义，所有坚持都有回报，所有遗憾都能释怀，所有美好都不缺席，平安喜乐，万事胜意。",
+        "愿这一盏盏花灯，照亮你一整年的好运；愿这一碗碗汤圆，甜满你一整年的幸福，愿你眼里有笑、心中有暖、身边有爱。"
+    ],
+    '雅致大气·高级文案': [
+        "灯树千光照，明月逐人来，元宵良辰，愿山河无恙，人间皆安，家和国盛，万事顺遂，愿你此生尽兴，赤诚善良，平安喜乐。",
+        "华灯初上，夜色阑珊，月光如水，灯火如画。愿你于人间烟火中坚守初心，于岁月流转中保持从容，不负时光，不负自己，不负佳期。",
+        "月满元宵，灯映人间，愿你前路光明，万事圆满，心中有山海，眼底有星辰，行至水穷处，坐看云起时，一生安然，岁岁无忧。",
+        "一城灯火，一夜元宵，一轮明月，一份心安。愿你历经千帆，归来仍是少年；尝遍百味，依旧热爱生活，岁岁常安康，年年皆欢喜。",
+        "月色皎洁，花灯璀璨，人间良辰，喜乐平安。愿时光清浅，许你安然；愿岁月悠长，护你周全；愿人生圆满，伴你年年。",
+        "灯影摇红，夜暖风寒，元宵佳节，愿你以梦为马，不负韶华；以心为舟，不负流年，万事皆如意，余生皆安康。",
+        "月圆映良辰，花灯照好梦，愿世间所有美好，都与你不期而遇；愿人生所有圆满，都为你如约而至。",
+        "良宵一刻值千金，月圆花好庆新春。愿你有闲赏灯，有心团圆，有福安康，有梦追寻，生活有诗意，心中有光芒。",
+        "灯火照人间，吉祥伴流年，愿你平安向暖，喜乐从容，人生如花灯般绚烂，日子如月光般温柔，岁岁无忧，年年圆满。",
+        "元宵之夜，月色入怀，灯火入心。愿你眼中有光、笑里有糖、心中有爱，生活不拥挤，笑容不缺席，一生顺遂，一世安宁。"
+    ],
+    '商务得体·职场祝福': [
+        "元宵佳节，月圆人圆，祝您新的一年事业蒸蒸日上，前程似锦宏图展，万事顺心步步高，家庭和睦常幸福，平安喜乐常相伴。",
+        "灯火映新程，团圆赴佳期，感谢一路支持与信任，愿新的一年合作更加顺畅，前景更加广阔，事业更上一层楼，财源广进达四方。",
+        "月圆添吉庆，灯火启新章，祝您工作顺利、事事顺心、步步高升、前途光明，身体安康、家庭美满、福气常满、好运常临。",
+        "良宵共度，万象更新，愿您在新的一年里，目标清晰、步履坚定、事业有成、名利双收，所有努力皆有回报，所有付出皆有成果。",
+        "元宵送福，灯火传喜，祝您新岁大吉、万事亨通、生意兴隆、财源滚滚，团队同心，其利断金，携手共进，再创佳绩。",
+        "月圆人安，事业长安，愿您新的一年顺风顺水，机遇常在，贵人相助，平台更广，道路更宽，未来可期，前程无限。",
+        "佳节良宵，灯火璀璨，祝您工作舒心、生活暖心、家人安心、万事放心，愿所有美好如期而至，所有幸运不期而遇。",
+        "元宵启新岁，携手赴新程，感谢一路同行，愿我们在新的一年里同心同向、同力同行，攻坚克难，共赢未来，万事圆满。",
+        "月圆映初心，灯火照前程，祝您新的一年事业兴旺、家庭幸福、身体健康、万事顺遂，好运连连，福气绵绵。",
+        "元宵佳节，喜乐安康，愿您新岁多喜多福多好运，少烦少忧少疲惫，事业稳进，生活安稳，心境安然，万事圆满。"
+    ]
+}
+
+# 节日选项
+FESTIVALS = ['春节祝福', '元宵节祝福']
 
 class StartScreen(Screen):
     """启动画面，显示start.png，点击或等待3秒进入主页面"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 使用FloatLayout布局全屏
         layout = BoxLayout(orientation='vertical')
-        # 背景图片
         img = Image(source='images/start.png', allow_stretch=True, keep_ratio=False)
         layout.add_widget(img)
-        # 透明按钮覆盖全屏，用于点击跳转
         btn = Button(background_color=(0,0,0,0), on_press=self.go_main)
         layout.add_widget(btn)
         self.add_widget(layout)
-        # 3秒后自动跳转
         Clock.schedule_once(self.go_main, 3)
 
     def go_main(self, *args):
         self.manager.current = 'main'
 
+
 class MainScreen(Screen):
-    """主操作页面：分类下拉、分页浏览、复制祝福、发送祝福"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.current_category = CATEGORIES[0]   # 默认选中第一个分类
-        self.current_page = 0                    # 当前页码（每页5条）
-        self.total_pages = 2                      # 每个分类固定10条，分2页
+        self.current_festival = FESTIVALS[0]          # 当前节日
+        self.current_category = list(BLESSINGS_SPRING.keys())[0]   # 默认分类
+        self.current_page = 0
+        self.total_pages = 2      # 每个分类10条，分2页
 
-        # 主布局（垂直）
-        main_layout = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(15))
+        # 根据节日获取分类列表
+        self.update_category_list()
 
-        # 顶部：分类下拉选择
-        self.spinner = Spinner(
-            text=CATEGORIES[0],
-            values=CATEGORIES,
+        # 主布局
+        main_layout = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(10))
+
+        # --- 顶部图片 (top.jpg) ---
+        top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
+                        size_hint_y=None, height=dp(200))
+        main_layout.add_widget(top_img)
+
+        # --- 节日选择 Spinner ---
+        self.festival_spinner = Spinner(
+            text=self.current_festival,
+            values=FESTIVALS,
             size_hint=(1, None),
-            height=dp(50),
-            background_color=get_color_from_hex('#8B4513'),  # 马棕色
+            height=dp(45),
+            background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1)
         )
-        self.spinner.bind(text=self.on_category_change)
-        main_layout.add_widget(self.spinner)
+        self.festival_spinner.bind(text=self.on_festival_change)
+        main_layout.add_widget(self.festival_spinner)
 
-        # 中间区域：翻页指示 + 上一页/下一页按钮
+        # --- 分类 Spinner ---
+        self.category_spinner = Spinner(
+            text=self.current_category,
+            values=self.category_list,
+            size_hint=(1, None),
+            height=dp(45),
+            background_color=get_color_from_hex('#8B4513'),
+            color=(1,1,1,1)
+        )
+        self.category_spinner.bind(text=self.on_category_change)
+        main_layout.add_widget(self.category_spinner)
+
+        # --- 翻页区域 ---
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40))
         self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True)
         self.page_label = Label(text='第1页/共2页')
@@ -144,62 +235,102 @@ class MainScreen(Screen):
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # 祝福语列表区域（可滚动）
+        # --- 祝福语列表（可滚动）---
         self.scroll_view = ScrollView()
-        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
+        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(6))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部：发送祝福按钮（复制当前页所有祝福）
+        # --- 底部按钮行：发送祝福 + 分享到微信 + 关于 ---
+        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
         send_btn = Button(
             text='发送祝福',
-            size_hint=(1, None),
-            height=dp(50),
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1)
         )
         send_btn.bind(on_press=self.send_blessings)
-        main_layout.add_widget(send_btn)
+        share_btn = Button(
+            text='发给微信好友',
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1)
+        )
+        share_btn.bind(on_press=self.share_blessings)
+        about_btn = Button(
+            text='关于马年祝福',
+            background_color=get_color_from_hex('#CCCCCC'),   # 浅灰色
+            color=(0,0,0,1),        # 黑色文字
+            bold=True,               # 加粗
+            size_hint_x=0.25         # 占用较小宽度
+        )
+        about_btn.bind(on_press=self.show_about_popup)
+        bottom_layout.add_widget(send_btn)
+        bottom_layout.add_widget(share_btn)
+        bottom_layout.add_widget(about_btn)
+        main_layout.add_widget(bottom_layout)
 
         self.add_widget(main_layout)
 
         # 初始化显示第一页
         self.show_current_page()
 
+    def update_category_list(self):
+        """根据当前节日更新分类列表"""
+        if self.current_festival == '春节祝福':
+            self.category_list = list(BLESSINGS_SPRING.keys())
+        else:
+            self.category_list = list(BLESSINGS_LANTERN.keys())
+
+    def get_current_blessings_dict(self):
+        """获取当前节日对应的祝福语字典"""
+        if self.current_festival == '春节祝福':
+            return BLESSINGS_SPRING
+        else:
+            return BLESSINGS_LANTERN
+
+    def on_festival_change(self, spinner, text):
+        """切换节日时更新分类Spinner并重置页面"""
+        self.current_festival = text
+        self.update_category_list()
+        # 更新分类Spinner的values和默认值
+        self.category_spinner.values = self.category_list
+        self.current_category = self.category_list[0]
+        self.category_spinner.text = self.current_category
+        self.current_page = 0
+        self.update_page_buttons()
+        self.show_current_page()
+
     def on_category_change(self, spinner, text):
-        """分类切换时重置为第一页"""
+        """切换分类时重置为第一页"""
         self.current_category = text
         self.current_page = 0
         self.update_page_buttons()
         self.show_current_page()
 
     def show_current_page(self):
-        """根据当前分类和页码刷新祝福列表"""
         self.list_layout.clear_widgets()
-        blessings = BLESSINGS[self.current_category]
+        blessings_dict = self.get_current_blessings_dict()
+        blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
-        end = start + 5
+        end = min(start + 5, len(blessings))   # 防止超出
         page_items = blessings[start:end]
 
         for idx, text in enumerate(page_items):
-            # 每个祝福条目：水平布局，左侧文本（自动换行），右侧复制按钮
+            # 每个条目水平布局
             item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
-            # 文本标签（自动换行，高度自适应）
+            # 文本标签（自动换行）
             label = Label(
                 text=text,
                 size_hint_x=0.8,
                 size_hint_y=None,
-                text_size=(None, None),  # 稍后绑定宽度
                 halign='left',
                 valign='top',
                 color=(0.1,0.1,0.1,1),
                 markup=True
             )
-            # 关键：让标签自动换行且高度适应内容
             label.bind(
                 width=lambda *x: label.setter('text_size')(label, (label.width, None)),
-                texture_size=lambda *x: setattr(label, 'height', label.texture_size[1] + dp(10))
+                texture_size=lambda *x: setattr(label, 'height', label.texture_size[1] + dp(8))
             )
             # 复制按钮
             copy_btn = Button(
@@ -210,23 +341,18 @@ class MainScreen(Screen):
                 background_normal='',
                 background_color=(0.2,0.6,1,1)
             )
-            # 绑定复制功能，传递当前文本
             copy_btn.bind(on_press=lambda btn, t=text: self.copy_to_clipboard(t))
 
             item_box.add_widget(label)
             item_box.add_widget(copy_btn)
-
-            # 让item_box的高度与label一致（加上内边距）
-            label.bind(height=lambda *x: setattr(item_box, 'height', label.height + dp(10)))
+            label.bind(height=lambda *x: setattr(item_box, 'height', label.height + dp(8)))
             self.list_layout.add_widget(item_box)
 
     def copy_to_clipboard(self, text):
-        """复制文本到剪贴板并弹出提示"""
         Clipboard.copy(text)
         if toast:
-            toast('已复制到剪贴板')
+            toast('已复制')
         else:
-            # 简单弹窗（使用Popup太麻烦，这里用控制台代替，实际安卓会走plyer）
             print('复制成功:', text)
 
     def prev_page(self, instance):
@@ -242,32 +368,81 @@ class MainScreen(Screen):
             self.show_current_page()
 
     def update_page_buttons(self):
-        """更新翻页按钮状态和页码显示"""
         self.prev_btn.disabled = (self.current_page == 0)
         self.next_btn.disabled = (self.current_page == self.total_pages - 1)
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def send_blessings(self, instance):
-        """发送祝福：复制当前页所有祝福语（用换行分隔）并提示"""
-        blessings = BLESSINGS[self.current_category]
+        """复制当前页所有祝福到剪贴板"""
+        blessings_dict = self.get_current_blessings_dict()
+        blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
-        end = start + 5
+        end = min(start + 5, len(blessings))
         page_items = blessings[start:end]
-        full_text = '\n---\n'.join(page_items)  # 用分隔线连接
+        full_text = '\n---\n'.join(page_items)
         Clipboard.copy(full_text)
         if toast:
             toast('已复制当前页所有祝福')
         else:
             print('复制当前页所有祝福:\n', full_text)
 
+    def share_blessings(self, instance):
+        """分享当前页所有祝福（调用系统分享，可选择微信）"""
+        blessings_dict = self.get_current_blessings_dict()
+        blessings = blessings_dict[self.current_category]
+        start = self.current_page * 5
+        end = min(start + 5, len(blessings))
+        page_items = blessings[start:end]
+        full_text = '\n---\n'.join(page_items)
+
+        if share:
+            try:
+                share(full_text, title='分享祝福')
+            except Exception as e:
+                if toast:
+                    toast('分享失败')
+                else:
+                    print('分享失败:', e)
+        else:
+            # 降级处理：复制到剪贴板并提示
+            Clipboard.copy(full_text)
+            if toast:
+                toast('分享功能不可用，已复制到剪贴板')
+            else:
+                print('分享不可用，已复制到剪贴板')
+
+    def show_about_popup(self, instance):
+        """显示关于信息浮窗"""
+        content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
+        content.add_widget(Label(
+            text='马年祝福APP\n版本：v1.0.2\n开发团队：卓影工作室 · 瑾 煜',
+            halign='center',
+            valign='middle',
+            size_hint_y=None,
+            height=dp(120)
+        ))
+        close_btn = Button(text='关闭', size_hint=(None, None), size=(dp(100), dp(40)))
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        content.add_widget(close_btn)
+
+        popup = Popup(
+            title='关于',
+            content=content,
+            size_hint=(0.8, 0.4),
+            auto_dismiss=False
+        )
+        popup.open()
+
+
 class BlessApp(App):
     def build(self):
-        # 设置窗口初始大小（方便开发，不影响手机）
+        # 设置窗口初始大小（仅用于开发预览，打包后手机自动全屏）
         Window.size = (400, 800)
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         return sm
+
 
 if __name__ == '__main__':
     BlessApp().run()
