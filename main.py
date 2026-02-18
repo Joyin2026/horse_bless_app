@@ -1,5 +1,5 @@
 """
-main.py - 马年元宵祝福应用
+main.py - 马年春节元宵祝福
 版本：v1.0.2
 开发团队：卓影工作室 · 瑾 煜
 """
@@ -427,3 +427,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
