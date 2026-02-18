@@ -1,14 +1,7 @@
 """
 main.py - 马年元宵祝福应用
-新增功能：
-- 应用图标 (images/bless.png) 需在 buildozer.spec 中配置
-- 第二屏顶部图片 (images/top.jpg)
-- 节日选择：春节/元宵节，分别对应不同的祝福语数据
-- 元宵节祝福语（共50条，分5类）
-- 长按复制祝福（原有功能）
-- “发给微信好友”按钮，调用系统分享功能
-- “关于”版权信息：主界面右下角点击弹出浮窗
-- 响应式设计，自动适配各种安卓屏幕
+版本：v1.0.2
+开发团队：卓影工作室 · 瑾 煜
 """
 
 import kivy
@@ -26,6 +19,9 @@ from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
+
+# 设置基础窗口尺寸（以小米15Pro的1440x3200为设计基准）
+Window.size = (1440, 3200)
 
 # 尝试导入plyer toast和分享功能
 try:
@@ -185,23 +181,22 @@ class StartScreen(Screen):
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.current_festival = FESTIVALS[0]          # 当前节日
-        self.current_category = list(BLESSINGS_SPRING.keys())[0]   # 默认分类
+        self.current_festival = FESTIVALS[0]
+        self.current_category = list(BLESSINGS_SPRING.keys())[0]
         self.current_page = 0
-        self.total_pages = 2      # 每个分类10条，分2页
+        self.total_pages = 2
 
-        # 根据节日获取分类列表
         self.update_category_list()
 
         # 主布局
         main_layout = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(10))
 
-        # --- 顶部图片 (top.jpg) ---
+        # 顶部图片
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
                         size_hint_y=None, height=dp(200))
         main_layout.add_widget(top_img)
 
-        # --- 节日选择 Spinner ---
+        # 节日选择 Spinner
         self.festival_spinner = Spinner(
             text=self.current_festival,
             values=FESTIVALS,
@@ -213,7 +208,7 @@ class MainScreen(Screen):
         self.festival_spinner.bind(text=self.on_festival_change)
         main_layout.add_widget(self.festival_spinner)
 
-        # --- 分类 Spinner ---
+        # 分类 Spinner
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
@@ -225,7 +220,7 @@ class MainScreen(Screen):
         self.category_spinner.bind(text=self.on_category_change)
         main_layout.add_widget(self.category_spinner)
 
-        # --- 翻页区域 ---
+        # 翻页区域
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40))
         self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True)
         self.page_label = Label(text='第1页/共2页')
@@ -235,14 +230,14 @@ class MainScreen(Screen):
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # --- 祝福语列表（可滚动）---
+        # 祝福语列表
         self.scroll_view = ScrollView()
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(6))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # --- 底部按钮行：发送祝福 + 分享到微信 + 关于 ---
+        # 底部按钮行
         bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
         send_btn = Button(
             text='发送祝福',
@@ -258,10 +253,10 @@ class MainScreen(Screen):
         share_btn.bind(on_press=self.share_blessings)
         about_btn = Button(
             text='关于马年祝福',
-            background_color=get_color_from_hex('#CCCCCC'),   # 浅灰色
-            color=(0,0,0,1),        # 黑色文字
-            bold=True,               # 加粗
-            size_hint_x=0.25         # 占用较小宽度
+            background_color=get_color_from_hex('#CCCCCC'),
+            color=(0,0,0,1),
+            bold=True,
+            size_hint_x=0.25
         )
         about_btn.bind(on_press=self.show_about_popup)
         bottom_layout.add_widget(send_btn)
@@ -270,29 +265,23 @@ class MainScreen(Screen):
         main_layout.add_widget(bottom_layout)
 
         self.add_widget(main_layout)
-
-        # 初始化显示第一页
         self.show_current_page()
 
     def update_category_list(self):
-        """根据当前节日更新分类列表"""
         if self.current_festival == '春节祝福':
             self.category_list = list(BLESSINGS_SPRING.keys())
         else:
             self.category_list = list(BLESSINGS_LANTERN.keys())
 
     def get_current_blessings_dict(self):
-        """获取当前节日对应的祝福语字典"""
         if self.current_festival == '春节祝福':
             return BLESSINGS_SPRING
         else:
             return BLESSINGS_LANTERN
 
     def on_festival_change(self, spinner, text):
-        """切换节日时更新分类Spinner并重置页面"""
         self.current_festival = text
         self.update_category_list()
-        # 更新分类Spinner的values和默认值
         self.category_spinner.values = self.category_list
         self.current_category = self.category_list[0]
         self.category_spinner.text = self.current_category
@@ -301,7 +290,6 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def on_category_change(self, spinner, text):
-        """切换分类时重置为第一页"""
         self.current_category = text
         self.current_page = 0
         self.update_page_buttons()
@@ -312,13 +300,11 @@ class MainScreen(Screen):
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
-        end = min(start + 5, len(blessings))   # 防止超出
+        end = min(start + 5, len(blessings))
         page_items = blessings[start:end]
 
-        for idx, text in enumerate(page_items):
-            # 每个条目水平布局
+        for text in page_items:
             item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
-            # 文本标签（自动换行）
             label = Label(
                 text=text,
                 size_hint_x=0.8,
@@ -329,10 +315,9 @@ class MainScreen(Screen):
                 markup=True
             )
             label.bind(
-                width=lambda *x: label.setter('text_size')(label, (label.width, None)),
-                texture_size=lambda *x: setattr(label, 'height', label.texture_size[1] + dp(8))
+                width=lambda *x, lbl=label: lbl.setter('text_size')(lbl, (lbl.width, None)),
+                texture_size=lambda *x, lbl=label: setattr(lbl, 'height', lbl.texture_size[1] + dp(8))
             )
-            # 复制按钮
             copy_btn = Button(
                 text='📋',
                 size_hint_x=0.2,
@@ -345,7 +330,7 @@ class MainScreen(Screen):
 
             item_box.add_widget(label)
             item_box.add_widget(copy_btn)
-            label.bind(height=lambda *x: setattr(item_box, 'height', label.height + dp(8)))
+            label.bind(height=lambda *x, box=item_box: setattr(box, 'height', label.height + dp(8)))
             self.list_layout.add_widget(item_box)
 
     def copy_to_clipboard(self, text):
@@ -373,7 +358,6 @@ class MainScreen(Screen):
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def send_blessings(self, instance):
-        """复制当前页所有祝福到剪贴板"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -387,7 +371,6 @@ class MainScreen(Screen):
             print('复制当前页所有祝福:\n', full_text)
 
     def share_blessings(self, instance):
-        """分享当前页所有祝福（调用系统分享，可选择微信）"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -404,7 +387,6 @@ class MainScreen(Screen):
                 else:
                     print('分享失败:', e)
         else:
-            # 降级处理：复制到剪贴板并提示
             Clipboard.copy(full_text)
             if toast:
                 toast('分享功能不可用，已复制到剪贴板')
@@ -412,7 +394,6 @@ class MainScreen(Screen):
                 print('分享不可用，已复制到剪贴板')
 
     def show_about_popup(self, instance):
-        """显示关于信息浮窗"""
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
             text='马年祝福APP\n版本：v1.0.2\n开发团队：卓影工作室 · 瑾 煜',
@@ -436,8 +417,8 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        # 设置窗口初始大小（仅用于开发预览，打包后手机自动全屏）
-        Window.size = (400, 800)
+        # 以小米15Pro的1440x3200为设计基准，实际运行时窗口会全屏，布局自动缩放
+        Window.size = (1440, 3200)
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
