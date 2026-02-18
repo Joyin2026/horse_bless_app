@@ -1,6 +1,6 @@
 [app]
 
-title = 马年元宵祝福
+title = 马年新春祝福
 package.name = horsebless
 package.domain = org.example
 source.dir = .
