@@ -46,7 +46,7 @@ def write_debug(msg):
 
 # ---------- 注册中文字体 ----------
 try:
-    LabelBase.register(name='Chinese', fn_regular='fonts/chinese.ttf')
+    LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
     write_debug('Chinese font registered')
 except Exception as e:
     write_debug('Font registration failed: ' + str(e))
@@ -572,4 +572,5 @@ if __name__ == '__main__':
     write_debug('__main__ calling BlessApp().run()')
     BlessApp().run()
     write_debug('BlessApp().run() ended')
+
 
