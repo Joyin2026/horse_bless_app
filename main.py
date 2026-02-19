@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.3.0
+版本：v1.4.2
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时）
@@ -10,7 +10,7 @@ main.py - 马年元宵祝福应用（最终版）
 - 点击复制祝福（柠檬绿高亮 + Toast）
 - “发给微信好友”分享最近复制的单条祝福
 - 动态页数（每页5条，根据祝福语数量自动计算）
-- 关于弹窗右上角“X”关闭按钮
+- 关于弹窗（暗红标题栏、白色内容、圆角）
 """
 
 import kivy
@@ -32,7 +32,7 @@ from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 
 # ---------- 注册中文字体 ----------
@@ -394,10 +394,10 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        self.countdown = 6  # 改为6秒
+        self.countdown = 6
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
-        Clock.schedule_once(self.go_main, 6)  # 改为6秒
+        Clock.schedule_once(self.go_main, 6)
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
@@ -429,11 +429,11 @@ class MainScreen(Screen):
         self.current_festival = FESTIVALS[0]
         self.current_category = list(BLESSINGS_SPRING.keys())[0]
         self.current_page = 0
-        self.total_pages = 0  # 将在 show_current_page 中动态计算
+        self.total_pages = 0
         self.update_category_list()
 
-        self.selected_item = None  # 当前选中的条目
-        self.last_copied_text = None  # 最后复制的单条祝福
+        self.selected_item = None
+        self.last_copied_text = None
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
@@ -548,7 +548,6 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def update_category_buttons(self):
-        """根据当前节日更新分类按钮"""
         self.category_layout.clear_widgets()
         if self.current_festival == '春节祝福':
             categories = list(BLESSINGS_SPRING.keys())
@@ -585,7 +584,6 @@ class MainScreen(Screen):
             return
         self.current_festival = festival
 
-        # 更新节日按钮颜色
         if festival == '春节祝福':
             self.spring_btn.background_color = get_color_from_hex('#DAA520')
             self.lantern_btn.background_color = get_color_from_hex('#8B4513')
@@ -626,7 +624,7 @@ class MainScreen(Screen):
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         total = len(blessings)
-        self.total_pages = (total + 4) // 5  # 向上取整
+        self.total_pages = (total + 4) // 5
         start = self.current_page * 5
         end = min(start + 5, total)
         page_items = blessings[start:end]
@@ -637,7 +635,7 @@ class MainScreen(Screen):
                 size_hint_y=None,
                 height=dp(80),
                 background_normal='',
-                background_color=(1, 1, 1, 0.9),  # 默认白色半透明
+                background_color=(1, 1, 1, 0.9),
                 color=(0.1, 0.1, 0.1, 1),
                 halign='left',
                 valign='top',
@@ -648,7 +646,7 @@ class MainScreen(Screen):
                 width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
                 texture_size=lambda *x, b=btn: setattr(b, 'height', b.texture_size[1] + dp(10))
             )
-            btn.bind(on_press=self.on_copy)  # 点击直接复制
+            btn.bind(on_press=self.on_copy)
             btn.blessing_text = text
             btn.default_bg_color = (1, 1, 1, 0.9)
             self.list_layout.add_widget(btn)
@@ -656,18 +654,15 @@ class MainScreen(Screen):
         self.update_page_buttons()
 
     def on_copy(self, instance):
-        """点击复制祝福语"""
         text = instance.blessing_text
         Clipboard.copy(text)
         self.last_copied_text = text
         show_toast('祝福语已复制')
 
-        # 恢复上一个选中的条目背景色
         if self.selected_item and self.selected_item != instance:
             self.selected_item.background_color = self.selected_item.default_bg_color
 
-        # 设置当前条目为选中状态（柠檬绿）
-        instance.background_color = (0.5, 0.8, 0.2, 1)  # 柠檬绿
+        instance.background_color = (0.5, 0.8, 0.2, 1)
         self.selected_item = instance
 
     def prev_page(self, instance):
@@ -686,7 +681,6 @@ class MainScreen(Screen):
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def share_blessings(self, instance):
-        """分享最近复制的单条祝福"""
         if self.last_copied_text:
             if share_text(self.last_copied_text):
                 show_toast('分享已启动')
@@ -697,42 +691,69 @@ class MainScreen(Screen):
             show_toast('请先选择一条祝福')
 
     def show_about_popup(self, instance):
-        """显示关于弹窗，右上角带X关闭按钮"""
-        # 使用FloatLayout布局，内容居中，右上角X按钮
-        content = FloatLayout()
+        """显示关于弹窗，暗红标题栏、白色内容、圆角"""
+        # 内容容器，使用BoxLayout垂直布局
+        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                            size_hint=(None, None), size=(dp(320), dp(220)))
+        # 绘制整体白色背景圆角
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+        content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
+                     size=lambda *x: setattr(self.bg_rect, 'size', content.size))
 
-        # 版本信息标签
-        info_label = Label(
-            text='马年祝福APP\n版本：v1.3.0\n开发团队：卓影工作室 · 瑾 煜',
-            halign='center',
-            valign='middle',
-            size_hint=(None, None),
-            size=(dp(300), dp(120)),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            font_name='Chinese'
-        )
-        content.add_widget(info_label)
+        # 暗红色标题栏
+        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+        with title_bar.canvas.before:
+            Color(0.5, 0.1, 0.1, 1)  # 暗红色
+            self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+        title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
+                       size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-        # 右上角X按钮
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(40), dp(40)),
-            pos_hint={'right': 1, 'top': 1},
-            background_color=(0,0,0,0),
-            color=(0,0,0,1),
-            font_name='Chinese',
-            bold=True
-        )
+        # 标题文字
+        title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
+                            halign='left', valign='middle', size_hint_x=0.8)
+        title_bar.add_widget(title_label)
+
+        # 右上角关闭按钮
+        close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
+                           pos_hint={'right':1, 'center_y':0.5},
+                           background_color=(0,0,0,0), color=(1,1,1,1),
+                           font_name='Chinese', bold=True)
         close_btn.bind(on_press=lambda x: popup.dismiss())
-        content.add_widget(close_btn)
+        title_bar.add_widget(close_btn)
+
+        # 白色内容区域
+        content_area = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(5))
+        with content_area.canvas.before:
+            Color(1, 1, 1, 1)
+            self.content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+        content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
+                          size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
+
+        # 信息行
+        info_texts = [
+            '应用名称：马年新春祝福',
+            '应用版本：v1.4.2',
+            '应用开发：瑾 煜',
+            '反馈建议：contactme@sjinyu.com',
+            '版权所有，侵权必究！'
+        ]
+        for line in info_texts:
+            lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
+                        halign='left', valign='middle', size_hint_y=None, height=dp(25))
+            content_area.add_widget(lbl)
+
+        content.add_widget(title_bar)
+        content.add_widget(content_area)
 
         popup = Popup(
-            title='关于',
+            title='',
             content=content,
-            size_hint=(0.8, 0.4),
-            auto_dismiss=False,
-            title_font='Chinese'
+            size_hint=(None, None),
+            size=content.size,
+            background_color=(0,0,0,0),  # 透明背景
+            auto_dismiss=False
         )
         popup.open()
 
