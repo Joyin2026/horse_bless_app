@@ -26,7 +26,7 @@ jobs:
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
       - name: Build with buildozer
         run: |
-          yes | buildozer android debug
+           yes | buildozer android release   # 原来是 debug，改为 release
       - name: Upload APK
         uses: actions/upload-artifact@v3
       - name: Clean build cache
@@ -35,3 +35,4 @@ jobs:
           name: app-debug
 
           path: bin/*.apk
+
