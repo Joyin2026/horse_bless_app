@@ -29,6 +29,7 @@ android.keystore = ./my-release-key.keystore
 android.keystore_alias = zhuoying_horse_bless
 android.keystore_password = 123456
 android.keyalias_password = 123456
+android.release = True
 
 # 闪屏背景色（与图片背景一致）
 presplash.bg_color = #FFF5E6
