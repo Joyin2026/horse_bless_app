@@ -29,14 +29,20 @@ from kivy.core.text import LabelBase
 
 # ---------- 调试日志辅助函数 ----------
 def write_debug(msg):
-    """将调试信息写入外部存储的debug.txt"""
+    """将调试信息写入应用私有目录的debug.txt"""
     try:
-        with open('/sdcard/debug.txt', 'a') as f:
+        # 获取应用私有目录（例如 /data/user/0/bless.sjinyu.com.horsebless/files）
+        private_dir = os.getenv('ANDROID_PRIVATE', '/data/local/tmp')
+        debug_path = os.path.join(private_dir, 'debug.txt')
+        with open(debug_path, 'a') as f:
             f.write(msg + '\n')
-    except:
-        pass
-
-write_debug('=== APP START ===')
+    except Exception as e:
+        # 如果写入失败，尝试写入临时目录（调试用）
+        try:
+            with open('/data/local/tmp/debug.txt', 'a') as f:
+                f.write(msg + '\n')
+        except:
+            pass
 
 # ---------- 注册中文字体 ----------
 try:
@@ -566,3 +572,4 @@ if __name__ == '__main__':
     write_debug('__main__ calling BlessApp().run()')
     BlessApp().run()
     write_debug('BlessApp().run() ended')
+
