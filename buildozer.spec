@@ -1,12 +1,12 @@
 [app]
 
-title = 马年新春祝福-v1.5.5
+title = 马年送祝福-v1.6.0
 package.name = horsebless
 package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
-version = 1.5.5
+version = 1.6.0
 
 requirements = python3,kivy,plyer,pyjnius
 
