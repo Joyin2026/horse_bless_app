@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年元宵祝福应用
-版本：v1.0.11
+main.py - 马年元宵祝福应用（调试版）
+版本：v1.0.13
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -27,8 +27,23 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle
 from kivy.core.text import LabelBase
 
+# ---------- 调试日志辅助函数 ----------
+def write_debug(msg):
+    """将调试信息写入外部存储的debug.txt"""
+    try:
+        with open('/sdcard/debug.txt', 'a') as f:
+            f.write(msg + '\n')
+    except:
+        pass
+
+write_debug('=== APP START ===')
+
 # ---------- 注册中文字体 ----------
-LabelBase.register(name='Chinese', fn_regular='fonts/chinese.ttf')
+try:
+    LabelBase.register(name='Chinese', fn_regular='fonts/chinese.ttf')
+    write_debug('Chinese font registered')
+except Exception as e:
+    write_debug('Font registration failed: ' + str(e))
 
 # 创建支持中文的标签类
 class ChineseLabel(Label):
@@ -41,24 +56,21 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    try:
-        # 写入应用私有目录，无需权限
-        private_dir = os.getenv('ANDROID_PRIVATE', '/sdcard')
-        log_path = os.path.join(private_dir, 'crash.log')
-        with open(log_path, 'a') as f:
-            f.write(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-    except:
-        pass
+    error_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    write_debug('CRASH: ' + error_msg)
 
 sys.excepthook = handle_exception
 
 Window.clearcolor = get_color_from_hex('#FFF5E6')
+write_debug('Window color set')
 
 # ---------- 导入plyer和pyjnius ----------
 try:
     from plyer import toast
+    write_debug('plyer imported')
 except ImportError:
     toast = None
+    write_debug('plyer import failed')
 
 try:
     from jnius import autoclass
@@ -67,8 +79,10 @@ try:
     Uri = autoclass('android.net.Uri')
     context = PythonActivity.mActivity
     share_available = True
-except Exception:
+    write_debug('jnius imported, share available')
+except Exception as e:
     share_available = False
+    write_debug('jnius import failed: ' + str(e))
 
 # ---------- 祝福语数据 ----------
 # 春节祝福语（5类，每类10条）
@@ -206,6 +220,7 @@ class StartScreen(Screen):
     """简化开屏页面，带按钮和3秒自动跳转"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        write_debug('StartScreen init start')
         layout = FloatLayout()
         btn = Button(
             text='进入应用',
@@ -232,6 +247,7 @@ class StartScreen(Screen):
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
         Clock.schedule_once(self.go_main, 3)
+        write_debug('StartScreen init end')
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
@@ -242,6 +258,7 @@ class StartScreen(Screen):
             return False
 
     def go_main(self, *args):
+        write_debug('StartScreen.go_main called')
         Clock.unschedule(self.update_countdown)
         self.manager.current = 'main'
 
@@ -249,13 +266,16 @@ class StartScreen(Screen):
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        write_debug('MainScreen init start')
         self.current_festival = FESTIVALS[0]
         self.current_category = list(BLESSINGS_SPRING.keys())[0]
         self.current_page = 0
         self.total_pages = 2
         self.update_category_list()
+        write_debug('MainScreen basic vars set')
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
+        write_debug('MainLayout created')
 
         # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(200))
@@ -263,6 +283,7 @@ class MainScreen(Screen):
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
+        write_debug('Top image added')
 
         # 节日切换按钮
         festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
@@ -275,6 +296,7 @@ class MainScreen(Screen):
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
+        write_debug('Festival buttons added')
 
         # 分类 Spinner
         self.category_spinner = Spinner(
@@ -289,6 +311,7 @@ class MainScreen(Screen):
         # 延迟设置 Spinner 的字体，避免 textinput 未初始化
         Clock.schedule_once(lambda dt: setattr(self.category_spinner.textinput, 'font_name', 'Chinese'))
         main_layout.add_widget(self.category_spinner)
+        write_debug('Spinner added')
 
         # 翻页区域
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=0)
@@ -299,6 +322,7 @@ class MainScreen(Screen):
         page_layout.add_widget(self.page_label)
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
+        write_debug('Page buttons added')
 
         # 祝福语列表
         self.scroll_view = ScrollView()
@@ -306,6 +330,7 @@ class MainScreen(Screen):
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
+        write_debug('ScrollView added')
 
         # 底部功能按钮
         bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
@@ -318,6 +343,7 @@ class MainScreen(Screen):
         bottom_buttons.add_widget(send_btn)
         bottom_buttons.add_widget(share_btn)
         main_layout.add_widget(bottom_buttons)
+        write_debug('Bottom buttons added')
 
         # 底部状态栏（版权信息，可点击）
         status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=0)
@@ -336,15 +362,19 @@ class MainScreen(Screen):
         copyright_btn.bind(on_press=self.show_about_popup)
         status_bar.add_widget(copyright_btn)
         main_layout.add_widget(status_bar)
+        write_debug('Status bar added')
 
         self.add_widget(main_layout)
+        write_debug('MainScreen layout added, calling show_current_page')
         self.show_current_page()
+        write_debug('MainScreen init end')
 
     def _update_status_rect(self, instance, value):
         self.status_rect.pos = instance.pos
         self.status_rect.size = instance.size
 
     def switch_festival(self, festival):
+        write_debug(f'switch_festival called: {festival}')
         if festival == self.current_festival:
             return
         self.current_festival = festival
@@ -361,6 +391,7 @@ class MainScreen(Screen):
         self.current_page = 0
         self.update_page_buttons()
         self.show_current_page()
+        write_debug('switch_festival completed')
 
     def update_category_list(self):
         if self.current_festival == '春节祝福':
@@ -375,20 +406,23 @@ class MainScreen(Screen):
             return BLESSINGS_LANTERN
 
     def on_category_change(self, spinner, text):
+        write_debug(f'on_category_change: {text}')
         self.current_category = text
         self.current_page = 0
         self.update_page_buttons()
         self.show_current_page()
 
     def show_current_page(self):
+        write_debug('show_current_page start')
         self.list_layout.clear_widgets()
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
         end = min(start + 5, len(blessings))
         page_items = blessings[start:end]
+        write_debug(f'Page items count: {len(page_items)}')
 
-        for text in page_items:
+        for i, text in enumerate(page_items):
             item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=0)
             with item_box.canvas.before:
                 Color(1, 1, 1, 0.9)
@@ -423,6 +457,7 @@ class MainScreen(Screen):
             item_box.add_widget(copy_btn)
             label.bind(height=lambda *x, box=item_box: setattr(box, 'height', label.height + dp(8)))
             self.list_layout.add_widget(item_box)
+        write_debug('show_current_page end')
 
     def _update_item_rect(self, instance, value):
         self.rect.pos = instance.pos
@@ -436,12 +471,14 @@ class MainScreen(Screen):
             print('复制成功:', text)
 
     def prev_page(self, instance):
+        write_debug('prev_page called')
         if self.current_page > 0:
             self.current_page -= 1
             self.update_page_buttons()
             self.show_current_page()
 
     def next_page(self, instance):
+        write_debug('next_page called')
         if self.current_page < self.total_pages - 1:
             self.current_page += 1
             self.update_page_buttons()
@@ -494,7 +531,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(ChineseLabel(
-            text='马年祝福APP\n版本：v1.0.11\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.13\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -516,12 +553,16 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
+        write_debug('BlessApp.build called')
         Window.size = (1440, 3200)  # 设计基准
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
+        write_debug('BlessApp.build returning')
         return sm
 
 
 if __name__ == '__main__':
+    write_debug('__main__ calling BlessApp().run()')
     BlessApp().run()
+    write_debug('BlessApp().run() ended')
