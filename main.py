@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.4.2
+版本：v1.4.3
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时）
@@ -11,6 +11,7 @@ main.py - 马年元宵祝福应用（最终版）
 - “发给微信好友”分享最近复制的单条祝福
 - 动态页数（每页5条，根据祝福语数量自动计算）
 - 关于弹窗（暗红标题栏、白色内容、圆角）
+- 全屏显示，无顶部空白
 """
 
 import kivy
@@ -436,6 +437,7 @@ class MainScreen(Screen):
         self.last_copied_text = None
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
+        main_layout.size_hint_y = 1  # 确保填满高度
 
         # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(150))
@@ -509,6 +511,7 @@ class MainScreen(Screen):
 
         # 祝福语列表
         self.scroll_view = ScrollView()
+        self.scroll_view.size_hint_y = 1  # 占据剩余空间
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
@@ -734,7 +737,7 @@ class MainScreen(Screen):
         # 信息行
         info_texts = [
             '应用名称：马年新春祝福',
-            '应用版本：v1.4.2',
+            '应用版本：v1.4.3',
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
             '版权所有，侵权必究！'
@@ -761,6 +764,7 @@ class MainScreen(Screen):
 class BlessApp(App):
     def build(self):
         Window.size = (1440, 3200)
+        Window.fullscreen = 'auto'  # 强制全屏，隐藏状态栏和导航栏
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
