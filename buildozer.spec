@@ -1,6 +1,6 @@
 [app]
 
-title = 马年新春祝福-v1.4.2
+title = 马年新春祝福-v1.5.0
 package.name = horsebless
 package.domain = bless.sjinyu.com
 source.dir = .
