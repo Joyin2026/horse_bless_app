@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年新春祝福
-版本：v1.0.10
+main.py - 马年元宵祝福应用
+版本：v1.0.11
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -13,7 +13,6 @@ from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.carousel import Carousel
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -43,7 +42,9 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
     try:
-        log_path = os.path.join(os.getenv('EXTERNAL_STORAGE', '/sdcard'), 'crash.log')
+        # 写入应用私有目录，无需权限
+        private_dir = os.getenv('ANDROID_PRIVATE', '/sdcard')
+        log_path = os.path.join(private_dir, 'crash.log')
         with open(log_path, 'a') as f:
             f.write(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
     except:
@@ -202,56 +203,24 @@ FESTIVALS = ['春节祝福', '元宵节祝福']
 
 
 class StartScreen(Screen):
-    """可滑动开屏广告页"""
+    """简化开屏页面，带按钮和3秒自动跳转"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
-
-        # 轮播图片列表
-        splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
-        self.carousel = Carousel(direction='right', loop=True)
-        for img_path in splash_images:
-            img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
-            self.carousel.add_widget(img)
-        self.carousel.bind(current_slide=self.on_slide_changed)
-        layout.add_widget(self.carousel)
-
-        # 底部指示器
-        indicator_layout = BoxLayout(
-            size_hint=(None, None),
-            size=(dp(len(splash_images)*30), dp(30)),
-            pos_hint={'center_x': 0.5, 'y': 0.05},
-            spacing=dp(5)
-        )
-        self.indicators = []
-        for i in range(len(splash_images)):
-            lbl = ChineseLabel(text='○', font_size=sp(20), color=(1,1,1,1),
-                               size_hint=(None, None), size=(dp(20), dp(20)))
-            self.indicators.append(lbl)
-            indicator_layout.add_widget(lbl)
-        self.update_indicator(0)
-        layout.add_widget(indicator_layout)
-
-        # 跳过按钮
-        skip_btn = Button(
-            text='跳过',
-            size_hint=(None, None),
-            size=(dp(80), dp(40)),
-            pos_hint={'right': 1, 'top': 1},
-            background_color=get_color_from_hex('#80000000'),
-            color=(1,1,1,1),
-            bold=True,
+        btn = Button(
+            text='进入应用',
+            size_hint=(0.5, 0.5),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
             font_name='Chinese'
         )
-        skip_btn.bind(on_press=self.skip_to_main)
-        layout.add_widget(skip_btn)
+        btn.bind(on_press=self.go_main)
+        layout.add_widget(btn)
 
-        # 倒计时标签
         self.countdown_label = ChineseLabel(
-            text='3 秒',
+            text='3 秒后自动进入',
             size_hint=(None, None),
-            size=(dp(80), dp(30)),
-            pos_hint={'right': 1, 'top': 0.9},
+            size=(dp(200), dp(40)),
+            pos_hint={'center_x': 0.5, 'y': 0.3},
             color=(1,1,1,1),
             bold=True
         )
@@ -266,25 +235,14 @@ class StartScreen(Screen):
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
-            self.countdown_label.text = f'{self.countdown} 秒'
+            self.countdown_label.text = f'{self.countdown} 秒后自动进入'
             self.countdown -= 1
         else:
-            self.countdown_label.text = '进入'
+            self.countdown_label.text = '正在进入...'
             return False
 
-    def on_slide_changed(self, carousel, index):
-        self.update_indicator(index)
-
-    def update_indicator(self, index):
-        for i, lbl in enumerate(self.indicators):
-            lbl.text = '●' if i == index else '○'
-
-    def skip_to_main(self, instance):
-        Clock.unschedule(self.update_countdown)
-        Clock.unschedule(self.go_main)
-        self.manager.current = 'main'
-
     def go_main(self, *args):
+        Clock.unschedule(self.update_countdown)
         self.manager.current = 'main'
 
 
@@ -328,6 +286,8 @@ class MainScreen(Screen):
             color=(1,1,1,1)
         )
         self.category_spinner.bind(text=self.on_category_change)
+        # 延迟设置 Spinner 的字体，避免 textinput 未初始化
+        Clock.schedule_once(lambda dt: setattr(self.category_spinner.textinput, 'font_name', 'Chinese'))
         main_layout.add_widget(self.category_spinner)
 
         # 翻页区域
@@ -506,7 +466,6 @@ class MainScreen(Screen):
             print('复制当前页所有祝福:\n', full_text)
 
     def share_blessings(self, instance):
-        """使用 Android Intent 分享文本"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -520,8 +479,6 @@ class MainScreen(Screen):
                 intent.setAction(Intent.ACTION_SEND)
                 intent.putExtra(Intent.EXTRA_TEXT, full_text)
                 intent.setType('text/plain')
-                # 指定分享到微信（可选）
-                # intent.setPackage('com.tencent.mm')
                 context.startActivity(Intent.createChooser(intent, '分享到'))
                 if toast:
                     toast('分享已启动')
@@ -537,7 +494,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(ChineseLabel(
-            text='马年祝福APP\n版本：v1.0.10\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.11\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -559,7 +516,7 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        Window.size = (1440, 3200)
+        Window.size = (1440, 3200)  # 设计基准
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
