@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.5.0
+版本：v1.5.5
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播（6秒倒计时）
+- 开屏广告轮播（6秒倒计时，每1秒自动切换）
 - 节日切换（春节/元宵节/随机祝福）
 - 分类切换（按钮）
 - 点击复制祝福（柠檬绿高亮 + Toast）
@@ -331,7 +331,7 @@ FESTIVALS = ['春节祝福', '元宵节祝福', '随机祝福']
 
 
 class StartScreen(Screen):
-    """可滑动开屏广告页，带跳过按钮和底部指示点"""
+    """可滑动开屏广告页，带跳过按钮和底部指示点，自动轮播"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -342,7 +342,8 @@ class StartScreen(Screen):
         for img_path in splash_images:
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
             self.carousel.add_widget(img)
-        self.carousel.bind(current_slide=self.on_slide_changed)
+        # 绑定索引变化事件
+        self.carousel.bind(index=self.on_carousel_index_changed)
         layout.add_widget(self.carousel)
 
         # 底部指示器
@@ -395,6 +396,11 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
+        # 自动轮播定时器
+        self._auto_slide_trigger = None
+        self._start_auto_slide()
+
+        # 倒计时相关
         self.countdown = 6
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
@@ -423,6 +429,27 @@ class StartScreen(Screen):
     def go_main(self, *args):
         self.manager.current = 'main'
 
+    def _start_auto_slide(self):
+        """启动自动轮播定时器，每秒切换一张"""
+        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 1)
+
+    def _stop_auto_slide(self):
+        """停止自动轮播定时器"""
+        if self._auto_slide_trigger:
+            self._auto_slide_trigger.cancel()
+            self._auto_slide_trigger = None
+
+    def _next_slide(self, dt):
+        """切换到下一张"""
+        self.carousel.load_next()
+
+    def on_carousel_index_changed(self, instance, value):
+        """当轮播索引变化时（无论是自动还是手动），重置定时器"""
+        self.update_indicator(value)
+        # 重置自动轮播定时器
+        self._stop_auto_slide()
+        self._start_auto_slide()
+
 
 class MainScreen(Screen):
     def __init__(self, **kwargs):
@@ -437,7 +464,7 @@ class MainScreen(Screen):
         self.last_copied_text = None
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
-        main_layout.size_hint_y = 1  # 确保填满高度
+        main_layout.size_hint_y = 1
 
         # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(150))
@@ -511,7 +538,7 @@ class MainScreen(Screen):
 
         # 祝福语列表
         self.scroll_view = ScrollView()
-        self.scroll_view.size_hint_y = 1  # 占据剩余空间
+        self.scroll_view.size_hint_y = 1
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
@@ -695,30 +722,25 @@ class MainScreen(Screen):
 
     def show_about_popup(self, instance):
         """显示关于弹窗，暗红标题栏、白色内容、圆角"""
-        # 内容容器，使用BoxLayout垂直布局
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(220)))
-        # 绘制整体白色背景圆角
         with content.canvas.before:
             Color(1, 1, 1, 1)
             self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
         content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
                      size=lambda *x: setattr(self.bg_rect, 'size', content.size))
 
-        # 暗红色标题栏
         title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
         with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)  # 暗红色
+            Color(0.5, 0.1, 0.1, 1)
             self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
         title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-        # 标题文字
         title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
                             halign='left', valign='middle', size_hint_x=0.8)
         title_bar.add_widget(title_label)
 
-        # 右上角关闭按钮
         close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
                            pos_hint={'right':1, 'center_y':0.5},
                            background_color=(0,0,0,0), color=(1,1,1,1),
@@ -726,7 +748,6 @@ class MainScreen(Screen):
         close_btn.bind(on_press=lambda x: popup.dismiss())
         title_bar.add_widget(close_btn)
 
-        # 白色内容区域
         content_area = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(5))
         with content_area.canvas.before:
             Color(1, 1, 1, 1)
@@ -734,10 +755,9 @@ class MainScreen(Screen):
         content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
 
-        # 信息行
         info_texts = [
             '应用名称：马年新春祝福',
-            '应用版本：v1.5.0',
+            '应用版本：v1.5.5',
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
             '版权所有，侵权必究！'
@@ -755,7 +775,7 @@ class MainScreen(Screen):
             content=content,
             size_hint=(None, None),
             size=content.size,
-            background_color=(0,0,0,0),  # 透明背景
+            background_color=(0,0,0,0),
             auto_dismiss=False
         )
         popup.open()
@@ -768,8 +788,6 @@ class BlessApp(App):
         Window.fullscreen = True
         # 设置窗口大小为屏幕实际大小
         Window.size = Window.system_size
-        # 背景色已在全局设置，此处可选
-        # Window.clearcolor = get_color_from_hex('#FFF5E6')
         
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
@@ -779,5 +797,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
