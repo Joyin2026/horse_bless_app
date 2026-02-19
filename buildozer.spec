@@ -8,6 +8,9 @@ source.include_exts = py,png,jpg,ttf
 
 version = 1.6.0
 
+# release 模式
+android.release = True
+
 requirements = python3,kivy,plyer,pyjnius
 
 icon.filename = images/bless.png
@@ -29,13 +32,10 @@ android.minapi = 21
 android.ndk = 25b
 
 # 签名配置
-android.keystore = ./my-release-key.keystore
+android.keystore = ${HOME}/work/horse_bless_app/horse_bless_app/my-release-key.keystore
 android.keystore_alias = zhuoying_horse_bless
 android.keystore_password = 123456
 android.keyalias_password = 123456
-
-# release 模式
-android.release = True
 
 # 闪屏背景色
 presplash.bg_color = #FFF5E6
