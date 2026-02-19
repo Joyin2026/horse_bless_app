@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.0.21
+版本：v1.0.23
 开发团队：卓影工作室 · 瑾 煜
+功能：
+- 开屏广告轮播
+- 节日切换（春节/元宵节）
+- 分类切换（用按钮替代Spinner，彻底解决乱码）
+- 长按单条祝福复制（蓝色高亮 + Toast）
+- “发给微信好友”分享最近复制的单条祝福
 """
 
 import kivy
@@ -17,7 +23,6 @@ from kivy.uix.carousel import Carousel
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.spinner import Spinner
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
@@ -61,6 +66,7 @@ def show_toast(message):
     try:
         Toast.makeText(context, String(message), Toast.LENGTH_SHORT).show()
     except Exception as e:
+        # 降级处理：打印错误，但手机上无法看到，只能期望 Toast 正常工作
         print('Toast failed:', e)
 
 def share_text(text):
@@ -79,7 +85,7 @@ def share_text(text):
 # ---------- 祝福语数据 ----------
 # 春节祝福语（5类，每类10条）
 BLESSINGS_SPRING = {
-    '幽默搞怪（10条）': [
+    '幽默搞怪': [
         "马年到，好运“马”不停蹄向你奔来！2026年，祝你搞钱速度堪比千里马，摸鱼技术练得炉火纯青。不做职场牛马，只做快乐野马，钱包鼓鼓，烦恼全无，咱们继续相爱相杀！🐴",
         "你的丙午马年专属好运已送达，请签收！新的一年，主打一个“马上”系列：马上暴富，马上变瘦，马上脱单。最重要的是，马上实现财务自由，带我一起飞！",
         "兄弟，马年快乐！祝你在新的一年里，发际线像马尾一样浓密，银行卡余额像马蹄声一样数不清。工作上一马当先，酒桌上千杯不醉，今年咱们必须红红火火！",
@@ -91,7 +97,7 @@ BLESSINGS_SPRING = {
         "马年到，送你一匹“神马”！它能驮着你避开所有弯路，直达幸福终点。祝你今年买彩票中头奖，打游戏必吃鸡，吃火锅永远有毛肚，快乐加倍！",
         "虽然你不属马，但我祝你马年“马”力十足！追得上高铁，哄得好爱人，打得过生活的小怪兽。2026，咱们一起策马奔腾，活得潇潇洒洒！"
     ],
-    '深情走心（10条）': [
+    '深情走心': [
         "岁月匆匆，又是一年。在这个喜庆的马年春节，特意给你发去这条祝福。感谢你这么多年的陪伴与包容，无论距离远近，你永远是我心里最重要的人。愿你马年平安喜乐，万事胜意。",
         "马蹄声声，踏碎旧岁的尘埃，迎来新岁的曙光。很庆幸，新的一年依然有你在身边。2026丙午年，愿我们的情谊如骏马般坚韧，如老酒般醇厚。新年快乐，我的老朋友。",
         "距离阻挡不了祝福的脚步，马年的钟声已经敲响。远方的你，还好吗？希望这条信息能给你带去一丝温暖。愿你在新的一年里，有人爱，有事做，有所期待，所有的奔赴都有意义。",
@@ -103,7 +109,7 @@ BLESSINGS_SPRING = {
         "一份祝福，一份牵挂。在这个金马贺岁的日子里，愿你所有的梦想都能“马上”开花结果。感谢你出现在我的生命里，祝你马年吉祥，幸福安康，岁岁年年常相见。",
         "旧岁已展千重锦，新年再进百尺竿。马年到了，祝你在新的一年里，收获满满的幸福。不管世界怎么变，我的祝福永远不变。春节快乐，平安顺遂！"
     ],
-    '文艺唯美（10条）': [
+    '文艺唯美': [
         "春风得意马蹄疾，一日看尽长安花。2026丙午马年，愿你阅尽世间美好，不负韶华。在奔赴未来的路上，既有策马扬鞭的勇气，也有老马识途的智慧。新年快乐！🌸",
         "金马踏春，万物复苏。愿你在这个生机勃勃的年份里，如骏马般驰骋，越过山丘，遇见彩虹。愿你历经千帆，归来仍是少年，心中有梦，眼底有光。",
         "马蹄踏碎旧年霜，春风送来新岁光。新的一年，愿你心有暖阳，何惧风霜。在时光的旷野里，策马奔腾，以此启程，山河远阔，人间值得。",
@@ -115,7 +121,7 @@ BLESSINGS_SPRING = {
         "新年的钟声，是启程的号角。愿你如骏马般，挣脱束缚，奔向自由。愿你的世界，既有烟火俗常，也有诗意清欢，马年大吉！",
         "鲜衣怒马少年时，不负韶华行且知。马年到了，祝你意气风发，前程似锦。愿你所有的努力都不被辜负，所有的期待都能落地生根。"
     ],
-    '事业搞钱（10条）': [
+    '事业搞钱': [
         "X总，马年大吉！给您和家人拜年了。感谢过去一年对我的提携与信任。2026年，祝您策马扬鞭再创辉煌，事业如骏马奔腾，势不可挡！愿公司业绩一马当先，财源万马奔腾！",
         "王经理，新年好！金马贺岁，商机无限。感谢您一直以来的支持与关照。祝您马年行大运，财运亨通，生意兴隆！愿我们在新的一年里继续并驾齐驱，携手共赢！",
         "亲爱的同事，马年快乐！过去一年，感谢有你并肩作战。2026年，愿我们工作上一马当先，配合默契；生活上龙马精神，多姿多彩。祝你升职加薪“马上”兑现，年终奖拿到手软！",
@@ -127,7 +133,7 @@ BLESSINGS_SPRING = {
         "电商同行，马年发财！祝你店铺流量一马当先，销量万马奔腾。所有的爆款都“马上”出，所有的订单都“马上”发。愿你2026年赚得盆满钵满！",
         "自由职业者，新年快乐！马年愿你灵感如泉涌，客户排队来。愿你策马奔腾在自由的职业天地里，收入翻倍，时间自由，活成自己最喜欢的样子！"
     ],
-    '长辈安康（10条）': [
+    '长辈安康': [
         "爸妈，马年快乐！今天是大年初一，孩儿给二老拜年了。丙午年象征着活力与健康，愿这股瑞气永远围绕着你们。希望爸妈龙马精神，身体硬朗，吃得香睡得好，我在外一切都好，勿念！",
         "爷爷奶奶，给您二老磕头拜年啦！马蹄声声报平安，瑞雪纷飞兆丰年。马年到了，祝您福如东海长流水，寿比南山不老松。愿您二老精神矍铄，笑口常开，每天都开开心心！",
         "叔叔阿姨，新年好！金马贺岁，喜气洋洋。祝您全家马年大吉大利！新的一年，愿您身体康健，龙马精神；事业顺心，马到成功；家庭和睦，其乐融融。感谢您一直以来的关心！",
@@ -143,7 +149,7 @@ BLESSINGS_SPRING = {
 
 # 元宵节祝福语（5类，每类10条）
 BLESSINGS_LANTERN = {
-    '温馨团圆（10条）': [
+    '温馨团圆·家人亲友': [
         "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
         "灯火映万家，团圆共此时，又是一年元宵节，愿春风吹走所有烦恼，月光照亮所有美好，家人闲坐，灯火可亲，所求皆如愿，所行皆坦途。",
         "月圆人圆事事圆，花好灯好年年好，愿你在这个温暖的节日里，有家人陪伴，有朋友关心，有健康身体，有顺遂生活，幸福常在身边，平安岁岁年年。",
@@ -155,7 +161,7 @@ BLESSINGS_LANTERN = {
         "元宵佳节，暖意融融，愿你三餐四季皆安稳，岁岁年年皆无忧，有人懂你悲欢，有人陪你朝夕，生活不慌不忙，幸福如约而至。",
         "灯火阑珊处，最暖是人间，愿你此夜有团圆，此生有安稳，年年元宵年年喜，岁岁平安岁岁欢，福气常满，好运常伴，喜乐常存。"
     ],
-    '喜庆吉利（10条）': [
+    '喜庆吉利·通用祝福': [
         "元宵花灯照前程，春风如意伴君行，愿你新岁财源广、福气多、好运长、万事顺，事业步步高升，生活顺心如意，日子红红火火，人生处处精彩。",
         "月圆添吉庆，灯火送安康，愿你新的一年顺风顺水，所求皆所得，所想皆成真，出门遇贵人，在家听喜报，平安喜乐常相随，吉祥好运伴全年。",
         "吃一碗香甜汤圆，盼一年万事圆满，愿你财运亨通、福运绵长、好运连连，工作不辛苦，生活不疲惫，心情常明媚，人生常欢喜。",
@@ -167,7 +173,7 @@ BLESSINGS_LANTERN = {
         "灯火千盏，福满人间，愿你新岁多喜乐、长安宁、常安康，事业有起色，生活有奔头，家庭有欢笑，未来有希望。",
         "月圆映好梦，灯火暖人心，愿你往后余生，风雨有伞，归途有灯，心中有梦，眼中有光，生活温柔以待，人生步步生花。"
     ],
-    '温柔治愈（10条）': [
+    '温柔治愈·走心文艺': [
         "月光温柔，灯火可亲，人间烟火，最抚人心。愿你在元宵良夜里，放下疲惫与焦虑，拥抱温暖与美好，愿生活善待你，岁月不辜负你。",
         "一盏灯，照亮归途；一碗汤圆，甜满心头。愿你历经世事沧桑，依旧眼里有星光，心中有山海，笑里有坦荡，一生清澈明朗。",
         "月色如水，灯影如梦，愿你在喧嚣人间，守住一份从容，留得一份心安，不慌不忙，静静成长，慢慢发光，平安喜乐，自在从容。",
@@ -179,7 +185,7 @@ BLESSINGS_LANTERN = {
         "元宵月圆，愿所有奔赴都有意义，所有坚持都有回报，所有遗憾都能释怀，所有美好都不缺席，平安喜乐，万事胜意。",
         "愿这一盏盏花灯，照亮你一整年的好运；愿这一碗碗汤圆，甜满你一整年的幸福，愿你眼里有笑、心中有暖、身边有爱。"
     ],
-    '雅致大气（10条）': [
+    '雅致大气·高级文案': [
         "灯树千光照，明月逐人来，元宵良辰，愿山河无恙，人间皆安，家和国盛，万事顺遂，愿你此生尽兴，赤诚善良，平安喜乐。",
         "华灯初上，夜色阑珊，月光如水，灯火如画。愿你于人间烟火中坚守初心，于岁月流转中保持从容，不负时光，不负自己，不负佳期。",
         "月满元宵，灯映人间，愿你前路光明，万事圆满，心中有山海，眼底有星辰，行至水穷处，坐看云起时，一生安然，岁岁无忧。",
@@ -191,7 +197,7 @@ BLESSINGS_LANTERN = {
         "灯火照人间，吉祥伴流年，愿你平安向暖，喜乐从容，人生如花灯般绚烂，日子如月光般温柔，岁岁无忧，年年圆满。",
         "元宵之夜，月色入怀，灯火入心。愿你眼中有光、笑里有糖、心中有爱，生活不拥挤，笑容不缺席，一生顺遂，一世安宁。"
     ],
-    '职场祝福（10条）': [
+    '商务得体·职场祝福': [
         "元宵佳节，月圆人圆，祝您新的一年事业蒸蒸日上，前程似锦宏图展，万事顺心步步高，家庭和睦常幸福，平安喜乐常相伴。",
         "灯火映新程，团圆赴佳期，感谢一路支持与信任，愿新的一年合作更加顺畅，前景更加广阔，事业更上一层楼，财源广进达四方。",
         "月圆添吉庆，灯火启新章，祝您工作顺利、事事顺心、步步高升、前途光明，身体安康、家庭美满、福气常满、好运常临。",
@@ -314,6 +320,7 @@ class MainScreen(Screen):
         # 长按检测相关
         self.long_press_trigger = None
         self.selected_item = None  # 当前选中的条目
+        self.last_copied_text = None  # 最后复制的单条祝福
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
@@ -346,19 +353,10 @@ class MainScreen(Screen):
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类 Spinner（自定义下拉菜单样式）
-        self.category_spinner = Spinner(
-            text=self.current_category,
-            values=self.category_list,
-            size_hint=(1, None),
-            height=dp(45),
-            background_color=get_color_from_hex('#FFF5E6'),
-            color=(0,0,0,1),
-            font_name='Chinese'
-        )
-        self.category_spinner.bind(text=self.on_category_change)
-        self.category_spinner.bind(on_dropdown_open=self.customize_dropdown)
-        main_layout.add_widget(self.category_spinner)
+        # 分类切换按钮（代替Spinner，水平排列）
+        self.category_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(2))
+        self.update_category_buttons()
+        main_layout.add_widget(self.category_layout)
 
         # 翻页区域
         page_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(2))
@@ -394,15 +392,8 @@ class MainScreen(Screen):
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部两个功能按钮
-        bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
-        send_btn = Button(
-            text='发送祝福',
-            background_color=get_color_from_hex('#DAA520'),
-            color=(1,1,1,1),
-            font_name='Chinese'
-        )
-        send_btn.bind(on_press=self.send_blessings)
+        # 底部功能按钮（只有一个分享按钮）
+        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
         share_btn = Button(
             text='发给微信好友',
             background_color=get_color_from_hex('#4CAF50'),
@@ -410,9 +401,8 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         share_btn.bind(on_press=self.share_blessings)
-        bottom_buttons.add_widget(send_btn)
-        bottom_buttons.add_widget(share_btn)
-        main_layout.add_widget(bottom_buttons)
+        bottom_layout.add_widget(share_btn)
+        main_layout.add_widget(bottom_layout)
 
         # 底部状态栏（版权信息，可点击）
         status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=0)
@@ -435,18 +425,34 @@ class MainScreen(Screen):
         self.add_widget(main_layout)
         self.show_current_page()
 
-    def customize_dropdown(self, spinner, dropdown):
-        """自定义下拉菜单样式，确保每个选项使用中文字体"""
-        dropdown.background_color = get_color_from_hex('#FFF5E6')
-        for child in dropdown.children:
-            if isinstance(child, Button):
-                child.font_name = 'Chinese'
-                child.color = (0,0,0,1)
-                child.background_normal = ''
-                child.background_color = get_color_from_hex('#FFF5E6')
-                child.halign = 'left'
-                child.padding = (dp(10), dp(5))
-        dropdown.width = spinner.width
+    def update_category_buttons(self):
+        """根据当前节日更新分类按钮"""
+        self.category_layout.clear_widgets()
+        if self.current_festival == '春节祝福':
+            categories = list(BLESSINGS_SPRING.keys())
+        else:
+            categories = list(BLESSINGS_LANTERN.keys())
+
+        for cat in categories:
+            btn = Button(
+                text=cat,
+                size_hint_x=1/len(categories),
+                background_color=get_color_from_hex('#DAA520' if cat == self.current_category else '#8B4513'),
+                color=(1,1,1,1),
+                font_name='Chinese'
+            )
+            btn.bind(on_press=lambda x, c=cat: self.switch_category(c))
+            self.category_layout.add_widget(btn)
+
+    def switch_category(self, category):
+        """切换分类"""
+        if category == self.current_category:
+            return
+        self.current_category = category
+        self.current_page = 0
+        self.update_category_buttons()  # 更新按钮颜色
+        self.update_page_buttons()
+        self.show_current_page()
 
     def _update_status_rect(self, instance, value):
         self.status_rect.pos = instance.pos
@@ -463,9 +469,8 @@ class MainScreen(Screen):
             self.spring_btn.background_color = get_color_from_hex('#8B4513')
             self.lantern_btn.background_color = get_color_from_hex('#DAA520')
         self.update_category_list()
-        self.category_spinner.values = self.category_list
         self.current_category = self.category_list[0]
-        self.category_spinner.text = self.current_category
+        self.update_category_buttons()
         self.current_page = 0
         self.update_page_buttons()
         self.show_current_page()
@@ -481,12 +486,6 @@ class MainScreen(Screen):
             return BLESSINGS_SPRING
         else:
             return BLESSINGS_LANTERN
-
-    def on_category_change(self, spinner, text):
-        self.current_category = text
-        self.current_page = 0
-        self.update_page_buttons()
-        self.show_current_page()
 
     def show_current_page(self):
         self.list_layout.clear_widgets()
@@ -516,7 +515,7 @@ class MainScreen(Screen):
             btn.bind(on_press=self.on_press)
             btn.bind(on_release=self.on_release)
             btn.blessing_text = text
-            btn.default_bg_color = (1, 1, 1, 0.9)  # 保存默认背景色
+            btn.default_bg_color = (1, 1, 1, 0.9)
             self.list_layout.add_widget(btn)
 
     def on_press(self, instance):
@@ -533,6 +532,7 @@ class MainScreen(Screen):
         self.long_press_trigger = None
         text = instance.blessing_text
         Clipboard.copy(text)
+        self.last_copied_text = text  # 记录最后复制的单条祝福
         show_toast('祝福语已复制')
 
         # 恢复上一个选中的条目背景色
@@ -560,33 +560,21 @@ class MainScreen(Screen):
         self.next_btn.disabled = (self.current_page == self.total_pages - 1)
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
-    def send_blessings(self, instance):
-        blessings_dict = self.get_current_blessings_dict()
-        blessings = blessings_dict[self.current_category]
-        start = self.current_page * 5
-        end = min(start + 5, len(blessings))
-        page_items = blessings[start:end]
-        full_text = '\n---\n'.join(page_items)
-        Clipboard.copy(full_text)
-        show_toast('已复制当前页所有祝福')
-
     def share_blessings(self, instance):
-        blessings_dict = self.get_current_blessings_dict()
-        blessings = blessings_dict[self.current_category]
-        start = self.current_page * 5
-        end = min(start + 5, len(blessings))
-        page_items = blessings[start:end]
-        full_text = '\n---\n'.join(page_items)
-        if share_text(full_text):
-            show_toast('分享已启动')
+        """分享最近复制的单条祝福，如果没有复制过则提示"""
+        if self.last_copied_text:
+            if share_text(self.last_copied_text):
+                show_toast('分享已启动')
+            else:
+                Clipboard.copy(self.last_copied_text)
+                show_toast('分享失败，已复制到剪贴板')
         else:
-            Clipboard.copy(full_text)
-            show_toast('分享失败，已复制到剪贴板')
+            show_toast('请先长按选择一条祝福')
 
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.21\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.23\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
