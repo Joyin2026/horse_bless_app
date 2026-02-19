@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年元宵祝福应用
-版本：v1.0.17
+main.py - 马年元宵祝福应用（最终版）
+版本：v1.0.18
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -26,18 +26,11 @@ from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle
-from kivy.core.text import LabelBase
 
-# ---------- 注册中文字体 ----------
-LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
+# 使用 Android 系统字体（不需要外部字体文件）
+# 所有控件将使用默认字体，它已包含中文字符
 
-# 创建支持中文的标签类
-class ChineseLabel(Label):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_name = 'Chinese'
-
-# ---------- 全局异常捕获 ----------
+# 全局异常捕获（写入私有目录）
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -54,28 +47,35 @@ sys.excepthook = handle_exception
 
 Window.clearcolor = get_color_from_hex('#FFF5E6')
 
-# ---------- 导入plyer和pyjnius ----------
-try:
-    from plyer import toast
-except ImportError:
-    toast = None
+# ---------- 导入 jnius ----------
+from jnius import autoclass
+PythonActivity = autoclass('org.kivy.android.PythonActivity')
+Intent = autoclass('android.content.Intent')
+Uri = autoclass('android.net.Uri')
+Toast = autoclass('android.widget.Toast')
+CharSequence = autoclass('java.lang.CharSequence')
+String = autoclass('java.lang.String')
+context = PythonActivity.mActivity
 
-# 分享功能：优先使用 jnius 调用 Android Intent
-share_available = False
-try:
-    from jnius import autoclass
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    Intent = autoclass('android.content.Intent')
-    Uri = autoclass('android.net.Uri')
-    context = PythonActivity.mActivity
-    share_available = True
-except Exception:
-    # 如果 jnius 不可用，降级使用 plyer.share
+def show_toast(message):
+    """显示 Android 原生 Toast"""
     try:
-        from plyer import share
-        share_available = True
-    except ImportError:
-        share_available = False
+        Toast.makeText(context, String(message), Toast.LENGTH_SHORT).show()
+    except Exception as e:
+        print('Toast failed:', e)
+
+def share_text(text):
+    """使用 Android Intent 分享文本"""
+    try:
+        intent = Intent()
+        intent.setAction(Intent.ACTION_SEND)
+        intent.putExtra(Intent.EXTRA_TEXT, String(text))
+        intent.setType('text/plain')
+        context.startActivity(Intent.createChooser(intent, String('分享到')))
+        return True
+    except Exception as e:
+        print('Share failed:', e)
+        return False
 
 # ---------- 祝福语数据 ----------
 # 春节祝福语（5类，每类10条）
@@ -105,7 +105,7 @@ BLESSINGS_SPRING = {
         "旧岁已展千重锦，新年再进百尺竿。马年到了，祝你在新的一年里，收获满满的幸福。不管世界怎么变，我的祝福永远不变。春节快乐，平安顺遂！"
     ],
     '文艺唯美': [
-        "春风得意马蹄疾，一日看尽长安花。2026丙午马年，愿你阅尽世间美好，不负韶华。在奔赴未来的路上，既有策马扬鞭的勇气，也有老马识途的智慧。新年快乐！🌸",
+        "春风得意马蹄疾，一日看尽长安花。2026丙午马年，愿你阅尽世间美好，不负韶华。在奔赴未来的路上，既有策马扬鞭的勇气，也有老马识途的智慧。新年快乐！",
         "金马踏春，万物复苏。愿你在这个生机勃勃的年份里，如骏马般驰骋，越过山丘，遇见彩虹。愿你历经千帆，归来仍是少年，心中有梦，眼底有光。",
         "马蹄踏碎旧年霜，春风送来新岁光。新的一年，愿你心有暖阳，何惧风霜。在时光的旷野里，策马奔腾，以此启程，山河远阔，人间值得。",
         "岁序更替，华章日新。马年到了，愿你拥有“骐骥一跃”的爆发力，也有“驽马十驾”的坚持。脚踏实地，终抵星河，所有的美好都将如期而至。",
@@ -144,7 +144,7 @@ BLESSINGS_SPRING = {
 
 # 元宵节祝福语（5类，每类10条）
 BLESSINGS_LANTERN = {
-    '温馨团圆': [
+    '家人亲友': [
         "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
         "灯火映万家，团圆共此时，又是一年元宵节，愿春风吹走所有烦恼，月光照亮所有美好，家人闲坐，灯火可亲，所求皆如愿，所行皆坦途。",
         "月圆人圆事事圆，花好灯好年年好，愿你在这个温暖的节日里，有家人陪伴，有朋友关心，有健康身体，有顺遂生活，幸福常在身边，平安岁岁年年。",
@@ -238,8 +238,7 @@ class StartScreen(Screen):
                 font_size=sp(20),
                 color=(1,1,1,1),
                 size_hint=(None, None),
-                size=(dp(20), dp(20)),
-                font_name='Chinese'
+                size=(dp(20), dp(20))
             )
             self.indicators.append(lbl)
             indicator_layout.add_widget(lbl)
@@ -254,8 +253,7 @@ class StartScreen(Screen):
             pos_hint={'right': 1, 'top': 1},
             background_color=get_color_from_hex('#80000000'),
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         skip_btn.bind(on_press=self.skip_to_main)
         layout.add_widget(skip_btn)
@@ -267,8 +265,7 @@ class StartScreen(Screen):
             size=(dp(80), dp(30)),
             pos_hint={'right': 1, 'top': 0.9},
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         layout.add_widget(self.countdown_label)
 
@@ -314,11 +311,10 @@ class MainScreen(Screen):
 
         # 长按检测相关
         self.long_press_trigger = None
-        self.long_press_text = None
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
-        # 顶部图片（高度根据实际图片调整）
+        # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(150))
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
@@ -331,34 +327,30 @@ class MainScreen(Screen):
             text='春节祝福',
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
         self.lantern_btn = Button(
             text='元宵节祝福',
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类 Spinner（设置字体，并自定义下拉菜单样式）
+        # 分类 Spinner（自定义下拉菜单样式）
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
             size_hint=(1, None),
             height=dp(45),
-            background_color=get_color_from_hex('#FFF5E6'),  # 淡黄色背景
-            color=(0,0,0,1),  # 黑色文字
-            font_name='Chinese'
+            background_color=get_color_from_hex('#FFF5E6'),
+            color=(0,0,0,1)
         )
         self.category_spinner.bind(text=self.on_category_change)
-        # 绑定下拉菜单打开事件，自定义下拉菜单样式
         self.category_spinner.bind(on_dropdown_open=self.customize_dropdown)
         main_layout.add_widget(self.category_spinner)
 
@@ -368,19 +360,16 @@ class MainScreen(Screen):
             text='上一页',
             on_press=self.prev_page,
             disabled=True,
-            font_name='Chinese',
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1)
         )
         self.page_label = Label(
             text='第1页/共2页',
-            color=(0.2,0.2,0.2,1),
-            font_name='Chinese'
+            color=(0.2,0.2,0.2,1)
         )
         self.next_btn = Button(
             text='下一页',
             on_press=self.next_page,
-            font_name='Chinese',
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1)
         )
@@ -401,15 +390,13 @@ class MainScreen(Screen):
         send_btn = Button(
             text='发送祝福',
             background_color=get_color_from_hex('#DAA520'),
-            color=(1,1,1,1),
-            font_name='Chinese'
+            color=(1,1,1,1)
         )
         send_btn.bind(on_press=self.send_blessings)
         share_btn = Button(
             text='发给微信好友',
             background_color=get_color_from_hex('#4CAF50'),
-            color=(1,1,1,1),
-            font_name='Chinese'
+            color=(1,1,1,1)
         )
         share_btn.bind(on_press=self.share_blessings)
         bottom_buttons.add_widget(send_btn)
@@ -427,8 +414,7 @@ class MainScreen(Screen):
             color=get_color_from_hex('#DAA520'),
             font_size=sp(8),
             background_color=(0,0,0,0),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         copyright_btn.bind(on_press=self.show_about_popup)
         status_bar.add_widget(copyright_btn)
@@ -438,19 +424,15 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def customize_dropdown(self, spinner, dropdown):
-        """自定义下拉菜单的样式"""
-        # 设置下拉菜单容器背景色
+        """自定义下拉菜单样式"""
         dropdown.background_color = get_color_from_hex('#FFF5E6')
-        # 遍历下拉菜单中的所有按钮，设置字体和颜色
         for child in dropdown.children:
             if isinstance(child, Button):
-                child.font_name = 'Chinese'
-                child.color = (0,0,0,1)  # 黑色文字
+                child.color = (0,0,0,1)
                 child.background_normal = ''
                 child.background_color = get_color_from_hex('#FFF5E6')
                 child.halign = 'left'
                 child.padding = (dp(10), dp(5))
-        # 可选：设置下拉菜单的宽度与 Spinner 相同
         dropdown.width = spinner.width
 
     def _update_status_rect(self, instance, value):
@@ -502,15 +484,13 @@ class MainScreen(Screen):
         page_items = blessings[start:end]
 
         for text in page_items:
-            # 每个条目使用 Button 实现长按，并设置白色半透明背景
             btn = Button(
                 text=text,
                 size_hint_y=None,
-                height=dp(80),  # 初始高度，后面通过纹理调整
+                height=dp(80),
                 background_normal='',
                 background_color=(1, 1, 1, 0.9),
                 color=(0.1, 0.1, 0.1, 1),
-                font_name='Chinese',
                 halign='left',
                 valign='top',
                 padding=(dp(10), dp(5))
@@ -519,34 +499,26 @@ class MainScreen(Screen):
                 width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
                 texture_size=lambda *x, b=btn: setattr(b, 'height', b.texture_size[1] + dp(10))
             )
-            # 绑定长按事件
             btn.bind(on_press=self.on_press)
             btn.bind(on_release=self.on_release)
-            # 保存当前祝福语文本到按钮实例
             btn.blessing_text = text
             self.list_layout.add_widget(btn)
 
     def on_press(self, instance):
-        """按下时启动长按计时器"""
         self.long_press_trigger = Clock.schedule_once(
             lambda dt: self.copy_on_long_press(instance), 0.5
         )
 
     def on_release(self, instance):
-        """释放时取消长按计时器（如果尚未触发）"""
         if self.long_press_trigger:
             self.long_press_trigger.cancel()
             self.long_press_trigger = None
 
     def copy_on_long_press(self, instance):
-        """长按复制祝福语并提示"""
         self.long_press_trigger = None
         text = instance.blessing_text
         Clipboard.copy(text)
-        if toast:
-            toast('祝福语已复制')
-        else:
-            print('复制成功:', text)
+        show_toast('祝福语已复制')
 
     def prev_page(self, instance):
         if self.current_page > 0:
@@ -566,7 +538,6 @@ class MainScreen(Screen):
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def send_blessings(self, instance):
-        """复制当前页所有祝福到剪贴板并提示"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -574,67 +545,40 @@ class MainScreen(Screen):
         page_items = blessings[start:end]
         full_text = '\n---\n'.join(page_items)
         Clipboard.copy(full_text)
-        if toast:
-            toast('已复制当前页所有祝福')
-        else:
-            print('复制当前页所有祝福:\n', full_text)
+        show_toast('已复制当前页所有祝福')
 
     def share_blessings(self, instance):
-        """使用 Android Intent 分享当前页所有祝福"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
         end = min(start + 5, len(blessings))
         page_items = blessings[start:end]
         full_text = '\n---\n'.join(page_items)
-
-        if share_available:
-            try:
-                # 优先使用 jnius Intent
-                intent = Intent()
-                intent.setAction(Intent.ACTION_SEND)
-                intent.putExtra(Intent.EXTRA_TEXT, full_text)
-                intent.setType('text/plain')
-                context.startActivity(Intent.createChooser(intent, '分享到'))
-                if toast:
-                    toast('分享已启动')
-            except Exception as e:
-                # 如果 jnius 失败，尝试 plyer.share
-                try:
-                    from plyer import share
-                    share.share(full_text, title='分享祝福')
-                except:
-                    if toast:
-                        toast('分享失败')
-                print('分享失败:', e)
+        if share_text(full_text):
+            show_toast('分享已启动')
         else:
-            # 降级处理：复制到剪贴板
             Clipboard.copy(full_text)
-            if toast:
-                toast('分享功能不可用，已复制到剪贴板')
+            show_toast('分享失败，已复制到剪贴板')
 
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.17\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.18\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
-            height=dp(120),
-            font_name='Chinese'
+            height=dp(120)
         ))
         close_btn = Button(
             text='关闭',
             size_hint=(None, None),
-            size=(dp(100), dp(40)),
-            font_name='Chinese'
+            size=(dp(100), dp(40))
         )
         close_btn.bind(on_press=lambda x: popup.dismiss())
         content.add_widget(close_btn)
 
         popup = Popup(
             title='关于',
-            title_font='Chinese',
             content=content,
             size_hint=(0.8, 0.4),
             auto_dismiss=False
@@ -644,7 +588,7 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        Window.size = (1440, 3200)  # 设计基准
+        Window.size = (1440, 3200)
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
