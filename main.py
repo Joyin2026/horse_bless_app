@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.0.23
+版本：v1.2.6
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -574,7 +574,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.23\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.2.6\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -611,3 +611,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
