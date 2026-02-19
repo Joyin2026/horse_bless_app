@@ -6,7 +6,7 @@ package.domain = bless.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
-version = 1.4.2
+version = 1.5.0
 
 requirements = python3,kivy,plyer,pyjnius
 
