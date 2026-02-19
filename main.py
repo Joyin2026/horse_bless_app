@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.4.3
+版本：v1.5.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时）
@@ -737,7 +737,7 @@ class MainScreen(Screen):
         # 信息行
         info_texts = [
             '应用名称：马年新春祝福',
-            '应用版本：v1.4.3',
+            '应用版本：v1.5.0',
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
             '版权所有，侵权必究！'
@@ -773,3 +773,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
