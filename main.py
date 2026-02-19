@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用
-版本：v1.0.14
+版本：v1.0.15
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -13,6 +13,7 @@ from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.carousel import Carousel
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -26,6 +27,7 @@ from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle
 from kivy.core.text import LabelBase
+from kivy.uix.behaviors import ButtonBehavior
 
 # ---------- 注册中文字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
@@ -202,26 +204,65 @@ FESTIVALS = ['春节祝福', '元宵节祝福']
 
 
 class StartScreen(Screen):
-    """简化开屏页面，带按钮和3秒自动跳转"""
+    """可滑动开屏广告页，带跳过按钮和底部指示点"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
-        btn = Button(
-            text='进入应用',
-            size_hint=(0.5, 0.5),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
+
+        # 轮播图片列表
+        splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
+        self.carousel = Carousel(direction='right', loop=True)
+        for img_path in splash_images:
+            img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+            self.carousel.add_widget(img)
+        self.carousel.bind(current_slide=self.on_slide_changed)
+        layout.add_widget(self.carousel)
+
+        # 底部指示器
+        indicator_layout = BoxLayout(
+            size_hint=(None, None),
+            size=(dp(len(splash_images)*30), dp(30)),
+            pos_hint={'center_x': 0.5, 'y': 0.05},
+            spacing=dp(5)
+        )
+        self.indicators = []
+        for i in range(len(splash_images)):
+            lbl = Label(
+                text='○',
+                font_size=sp(20),
+                color=(1,1,1,1),
+                size_hint=(None, None),
+                size=(dp(20), dp(20)),
+                font_name='Chinese'
+            )
+            self.indicators.append(lbl)
+            indicator_layout.add_widget(lbl)
+        self.update_indicator(0)
+        layout.add_widget(indicator_layout)
+
+        # 跳过按钮
+        skip_btn = Button(
+            text='跳过',
+            size_hint=(None, None),
+            size=(dp(80), dp(40)),
+            pos_hint={'right': 1, 'top': 1},
+            background_color=get_color_from_hex('#80000000'),
+            color=(1,1,1,1),
+            bold=True,
             font_name='Chinese'
         )
-        btn.bind(on_press=self.go_main)
-        layout.add_widget(btn)
+        skip_btn.bind(on_press=self.skip_to_main)
+        layout.add_widget(skip_btn)
 
-        self.countdown_label = ChineseLabel(
-            text='3 秒后自动进入',
+        # 倒计时标签
+        self.countdown_label = Label(
+            text='3 秒',
             size_hint=(None, None),
-            size=(dp(200), dp(40)),
-            pos_hint={'center_x': 0.5, 'y': 0.3},
+            size=(dp(80), dp(30)),
+            pos_hint={'right': 1, 'top': 0.9},
             color=(1,1,1,1),
-            bold=True
+            bold=True,
+            font_name='Chinese'
         )
         layout.add_widget(self.countdown_label)
 
@@ -234,14 +275,25 @@ class StartScreen(Screen):
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
-            self.countdown_label.text = f'{self.countdown} 秒后自动进入'
+            self.countdown_label.text = f'{self.countdown} 秒'
             self.countdown -= 1
         else:
-            self.countdown_label.text = '正在进入...'
+            self.countdown_label.text = '进入'
             return False
 
-    def go_main(self, *args):
+    def on_slide_changed(self, carousel, index):
+        self.update_indicator(index)
+
+    def update_indicator(self, index):
+        for i, lbl in enumerate(self.indicators):
+            lbl.text = '●' if i == index else '○'
+
+    def skip_to_main(self, instance):
         Clock.unschedule(self.update_countdown)
+        Clock.unschedule(self.go_main)
+        self.manager.current = 'main'
+
+    def go_main(self, *args):
         self.manager.current = 'main'
 
 
@@ -254,63 +306,104 @@ class MainScreen(Screen):
         self.total_pages = 2
         self.update_category_list()
 
+        # 长按检测相关
+        self.long_press_trigger = None
+        self.long_press_text = None
+
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
-        # 顶部图片
-        top_container = FloatLayout(size_hint_y=None, height=dp(200))
+        # 顶部图片（高度根据实际图片调整）
+        top_container = FloatLayout(size_hint_y=None, height=dp(150))  # 1280x400 图片，150dp 大约合适
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
         # 节日切换按钮
-        festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        self.spring_btn = Button(text='春节祝福', background_color=get_color_from_hex('#DAA520'),
-                                  color=(1,1,1,1), bold=True, font_name='Chinese')
+        festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(2))
+        self.spring_btn = Button(
+            text='春节祝福',
+            background_color=get_color_from_hex('#DAA520'),  # 金色
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
-        self.lantern_btn = Button(text='元宵节祝福', background_color=get_color_from_hex('#8B4513'),
-                                   color=(1,1,1,1), bold=True, font_name='Chinese')
+        self.lantern_btn = Button(
+            text='元宵节祝福',
+            background_color=get_color_from_hex('#8B4513'),  # 棕色
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类 Spinner（使用默认字体，不再设置）
+        # 分类 Spinner（美化：去除默认背景，设置颜色）
         self.category_spinner = Spinner(
             text=self.current_category,
             values=self.category_list,
             size_hint=(1, None),
             height=dp(45),
-            background_color=get_color_from_hex('#8B4513'),
-            color=(1,1,1,1)
+            background_normal='',  # 去除默认背景
+            background_color=get_color_from_hex('#8B4513'),  # 棕色
+            color=(1,1,1,1),
+            font_name='Chinese'
         )
         self.category_spinner.bind(text=self.on_category_change)
         main_layout.add_widget(self.category_spinner)
 
         # 翻页区域
-        page_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=0)
-        self.prev_btn = Button(text='上一页', on_press=self.prev_page, disabled=True, font_name='Chinese')
-        self.page_label = ChineseLabel(text='第1页/共2页', color=(0.2,0.2,0.2,1))
-        self.next_btn = Button(text='下一页', on_press=self.next_page, font_name='Chinese')
+        page_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(2))
+        self.prev_btn = Button(
+            text='上一页',
+            on_press=self.prev_page,
+            disabled=True,
+            font_name='Chinese',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1)
+        )
+        self.page_label = Label(
+            text='第1页/共2页',
+            color=(0.2,0.2,0.2,1),
+            font_name='Chinese'
+        )
+        self.next_btn = Button(
+            text='下一页',
+            on_press=self.next_page,
+            font_name='Chinese',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1)
+        )
         page_layout.add_widget(self.prev_btn)
         page_layout.add_widget(self.page_label)
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # 祝福语列表
+        # 祝福语列表（可滚动）
         self.scroll_view = ScrollView()
-        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(2))
+        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部功能按钮
-        bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=0)
-        send_btn = Button(text='发送祝福', background_color=get_color_from_hex('#DAA520'),
-                          color=(1,1,1,1), font_name='Chinese')
+        # 底部两个功能按钮
+        bottom_buttons = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
+        send_btn = Button(
+            text='发送祝福',
+            background_color=get_color_from_hex('#DAA520'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
         send_btn.bind(on_press=self.send_blessings)
-        share_btn = Button(text='发给微信好友', background_color=get_color_from_hex('#4CAF50'),
-                           color=(1,1,1,1), font_name='Chinese')
+        share_btn = Button(
+            text='发给微信好友',
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
         share_btn.bind(on_press=self.share_blessings)
         bottom_buttons.add_widget(send_btn)
         bottom_buttons.add_widget(share_btn)
@@ -386,49 +479,49 @@ class MainScreen(Screen):
         page_items = blessings[start:end]
 
         for text in page_items:
-            item_box = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=0)
-            with item_box.canvas.before:
-                Color(1, 1, 1, 0.9)
-                self.rect = Rectangle(size=item_box.size, pos=item_box.pos)
-            item_box.bind(size=self._update_item_rect, pos=self._update_item_rect)
-
-            label = ChineseLabel(
+            # 每个条目使用 Button 实现长按，并设置白色半透明背景
+            btn = Button(
                 text=text,
-                size_hint_x=0.8,
                 size_hint_y=None,
+                height=dp(80),  # 初始高度，后面通过纹理调整
+                background_normal='',
+                background_color=(1, 1, 1, 0.9),
+                color=(0.1, 0.1, 0.1, 1),
+                font_name='Chinese',
                 halign='left',
                 valign='top',
-                color=(0.1,0.1,0.1,1),
-                markup=True
+                padding=(dp(10), dp(5))  # 内边距
             )
-            label.bind(
-                width=lambda *x, lbl=label: lbl.setter('text_size')(lbl, (lbl.width, None)),
-                texture_size=lambda *x, lbl=label: setattr(lbl, 'height', lbl.texture_size[1] + dp(8))
+            btn.bind(
+                width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
+                texture_size=lambda *x, b=btn: setattr(b, 'height', b.texture_size[1] + dp(10))
             )
-            copy_btn = Button(
-                text='📋',
-                size_hint_x=0.2,
-                size_hint_y=None,
-                height=dp(40),
-                background_normal='',
-                background_color=(0.2,0.6,1,1),
-                font_name='Chinese'
-            )
-            copy_btn.bind(on_press=lambda btn, t=text: self.copy_to_clipboard(t))
+            # 绑定长按事件
+            btn.bind(on_press=self.on_press)
+            btn.bind(on_release=self.on_release)
+            # 保存当前祝福语文本到按钮实例，以便在回调中使用
+            btn.blessing_text = text
+            self.list_layout.add_widget(btn)
 
-            item_box.add_widget(label)
-            item_box.add_widget(copy_btn)
-            label.bind(height=lambda *x, box=item_box: setattr(box, 'height', label.height + dp(8)))
-            self.list_layout.add_widget(item_box)
+    def on_press(self, instance):
+        """按下时启动长按计时器"""
+        self.long_press_trigger = Clock.schedule_once(
+            lambda dt: self.copy_on_long_press(instance), 0.5
+        )
 
-    def _update_item_rect(self, instance, value):
-        self.rect.pos = instance.pos
-        self.rect.size = instance.size
+    def on_release(self, instance):
+        """释放时取消长按计时器（如果尚未触发）"""
+        if self.long_press_trigger:
+            self.long_press_trigger.cancel()
+            self.long_press_trigger = None
 
-    def copy_to_clipboard(self, text):
+    def copy_on_long_press(self, instance):
+        """长按复制祝福语"""
+        self.long_press_trigger = None
+        text = instance.blessing_text
         Clipboard.copy(text)
         if toast:
-            toast('已复制')
+            toast('祝福语已复制')
         else:
             print('复制成功:', text)
 
@@ -450,6 +543,7 @@ class MainScreen(Screen):
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def send_blessings(self, instance):
+        """复制当前页所有祝福到剪贴板"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -463,6 +557,7 @@ class MainScreen(Screen):
             print('复制当前页所有祝福:\n', full_text)
 
     def share_blessings(self, instance):
+        """使用 Android Intent 分享当前页所有祝福"""
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
         start = self.current_page * 5
@@ -490,14 +585,20 @@ class MainScreen(Screen):
 
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
-        content.add_widget(ChineseLabel(
-            text='马年祝福APP\n版本：v1.0.14\n开发团队：卓影工作室 · 瑾 煜',
+        content.add_widget(Label(
+            text='马年祝福APP\n版本：v1.0.15\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
-            height=dp(120)
+            height=dp(120),
+            font_name='Chinese'
         ))
-        close_btn = Button(text='关闭', size_hint=(None, None), size=(dp(100), dp(40)), font_name='Chinese')
+        close_btn = Button(
+            text='关闭',
+            size_hint=(None, None),
+            size=(dp(100), dp(40)),
+            font_name='Chinese'
+        )
         close_btn.bind(on_press=lambda x: popup.dismiss())
         content.add_widget(close_btn)
 
