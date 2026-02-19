@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.0.20
+版本：v1.0.21
 开发团队：卓影工作室 · 瑾 煜
 """
 
@@ -143,7 +143,7 @@ BLESSINGS_SPRING = {
 
 # 元宵节祝福语（5类，每类10条）
 BLESSINGS_LANTERN = {
-    '温馨团圆·家人亲友': [
+    '温馨团圆（10条）': [
         "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
         "灯火映万家，团圆共此时，又是一年元宵节，愿春风吹走所有烦恼，月光照亮所有美好，家人闲坐，灯火可亲，所求皆如愿，所行皆坦途。",
         "月圆人圆事事圆，花好灯好年年好，愿你在这个温暖的节日里，有家人陪伴，有朋友关心，有健康身体，有顺遂生活，幸福常在身边，平安岁岁年年。",
@@ -273,10 +273,10 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        self.countdown = 5
+        self.countdown = 3
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
-        Clock.schedule_once(self.go_main, 5)
+        Clock.schedule_once(self.go_main, 3)
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
@@ -313,6 +313,7 @@ class MainScreen(Screen):
 
         # 长按检测相关
         self.long_press_trigger = None
+        self.selected_item = None  # 当前选中的条目
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
 
@@ -435,7 +436,7 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def customize_dropdown(self, spinner, dropdown):
-        """自定义下拉菜单样式"""
+        """自定义下拉菜单样式，确保每个选项使用中文字体"""
         dropdown.background_color = get_color_from_hex('#FFF5E6')
         for child in dropdown.children:
             if isinstance(child, Button):
@@ -501,7 +502,7 @@ class MainScreen(Screen):
                 size_hint_y=None,
                 height=dp(80),
                 background_normal='',
-                background_color=(1, 1, 1, 0.9),
+                background_color=(1, 1, 1, 0.9),  # 默认白色半透明
                 color=(0.1, 0.1, 0.1, 1),
                 halign='left',
                 valign='top',
@@ -515,6 +516,7 @@ class MainScreen(Screen):
             btn.bind(on_press=self.on_press)
             btn.bind(on_release=self.on_release)
             btn.blessing_text = text
+            btn.default_bg_color = (1, 1, 1, 0.9)  # 保存默认背景色
             self.list_layout.add_widget(btn)
 
     def on_press(self, instance):
@@ -532,6 +534,14 @@ class MainScreen(Screen):
         text = instance.blessing_text
         Clipboard.copy(text)
         show_toast('祝福语已复制')
+
+        # 恢复上一个选中的条目背景色
+        if self.selected_item and self.selected_item != instance:
+            self.selected_item.background_color = self.selected_item.default_bg_color
+
+        # 设置当前条目为选中状态（蓝色背景）
+        instance.background_color = (0.2, 0.6, 1, 1)  # 蓝色
+        self.selected_item = instance
 
     def prev_page(self, instance):
         if self.current_page > 0:
@@ -576,7 +586,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.0.20\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.0.21\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
