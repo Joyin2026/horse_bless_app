@@ -11,7 +11,7 @@ version = 1.0.20
 requirements = python3,kivy,plyer,pyjnius
 
 icon.filename = images/bless.png
-presplash.filename = images/start.png
+# presplash.filename = images/start.png
 
 orientation = portrait
 fullscreen = 1
