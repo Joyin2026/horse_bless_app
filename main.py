@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年元宵祝福应用（最终版 + 随机祝福）
+main.py - 马年元宵祝福应用（最终版）
 版本：v1.3.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播
+- 开屏广告轮播（6秒倒计时）
 - 节日切换（春节/元宵节/随机祝福）
-- 分类切换（用按钮替代Spinner，彻底解决乱码）
-- 长按单条祝福复制（蓝色高亮 + Toast）
+- 分类切换（按钮）
+- 点击复制祝福（柠檬绿高亮 + Toast）
 - “发给微信好友”分享最近复制的单条祝福
-- 新增100条随机祝福语（5类各20条）
+- 动态页数（每页5条，根据祝福语数量自动计算）
+- 关于弹窗右上角“X”关闭按钮
 """
 
 import kivy
@@ -379,7 +380,7 @@ class StartScreen(Screen):
         skip_btn.bind(on_press=self.skip_to_main)
         layout.add_widget(skip_btn)
 
-        # 倒计时标签
+        # 倒计时标签（6秒）
         self.countdown_label = Label(
             text='6 秒',
             size_hint=(None, None),
@@ -393,10 +394,10 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        self.countdown = 6
+        self.countdown = 6  # 改为6秒
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
-        Clock.schedule_once(self.go_main, 6)
+        Clock.schedule_once(self.go_main, 6)  # 改为6秒
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
@@ -428,11 +429,9 @@ class MainScreen(Screen):
         self.current_festival = FESTIVALS[0]
         self.current_category = list(BLESSINGS_SPRING.keys())[0]
         self.current_page = 0
-        self.total_pages = 2
+        self.total_pages = 0  # 将在 show_current_page 中动态计算
         self.update_category_list()
 
-        # 长按检测相关
-        self.long_press_trigger = None
         self.selected_item = None  # 当前选中的条目
         self.last_copied_text = None  # 最后复制的单条祝福
 
@@ -476,7 +475,7 @@ class MainScreen(Screen):
         festival_layout.add_widget(self.random_btn)
         main_layout.add_widget(festival_layout)
 
-        # 分类切换按钮（代替Spinner，水平排列）
+        # 分类切换按钮
         self.category_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(2))
         self.update_category_buttons()
         main_layout.add_widget(self.category_layout)
@@ -492,7 +491,7 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.page_label = Label(
-            text='第1页/共2页',
+            text='第1页/共0页',
             color=(0.2,0.2,0.2,1),
             font_name='Chinese'
         )
@@ -508,14 +507,14 @@ class MainScreen(Screen):
         page_layout.add_widget(self.next_btn)
         main_layout.add_widget(page_layout)
 
-        # 祝福语列表（可滚动）
+        # 祝福语列表
         self.scroll_view = ScrollView()
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部功能按钮（只有一个分享按钮）
+        # 底部功能按钮
         bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
         share_btn = Button(
             text='发给微信好友',
@@ -527,7 +526,7 @@ class MainScreen(Screen):
         bottom_layout.add_widget(share_btn)
         main_layout.add_widget(bottom_layout)
 
-        # 底部状态栏（版权信息，可点击）
+        # 底部状态栏
         status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=0)
         with status_bar.canvas.before:
             Color(0.2, 0.2, 0.2, 1)
@@ -555,7 +554,7 @@ class MainScreen(Screen):
             categories = list(BLESSINGS_SPRING.keys())
         elif self.current_festival == '元宵节祝福':
             categories = list(BLESSINGS_LANTERN.keys())
-        else:  # 随机祝福
+        else:
             categories = list(BLESSINGS_RANDOM.keys())
 
         for cat in categories:
@@ -570,13 +569,11 @@ class MainScreen(Screen):
             self.category_layout.add_widget(btn)
 
     def switch_category(self, category):
-        """切换分类"""
         if category == self.current_category:
             return
         self.current_category = category
         self.current_page = 0
-        self.update_category_buttons()  # 更新按钮颜色
-        self.update_page_buttons()
+        self.update_category_buttons()
         self.show_current_page()
 
     def _update_status_rect(self, instance, value):
@@ -597,7 +594,7 @@ class MainScreen(Screen):
             self.spring_btn.background_color = get_color_from_hex('#8B4513')
             self.lantern_btn.background_color = get_color_from_hex('#DAA520')
             self.random_btn.background_color = get_color_from_hex('#8B4513')
-        else:  # 随机祝福
+        else:
             self.spring_btn.background_color = get_color_from_hex('#8B4513')
             self.lantern_btn.background_color = get_color_from_hex('#8B4513')
             self.random_btn.background_color = get_color_from_hex('#DAA520')
@@ -606,7 +603,6 @@ class MainScreen(Screen):
         self.current_category = self.category_list[0]
         self.update_category_buttons()
         self.current_page = 0
-        self.update_page_buttons()
         self.show_current_page()
 
     def update_category_list(self):
@@ -629,8 +625,10 @@ class MainScreen(Screen):
         self.list_layout.clear_widgets()
         blessings_dict = self.get_current_blessings_dict()
         blessings = blessings_dict[self.current_category]
+        total = len(blessings)
+        self.total_pages = (total + 4) // 5  # 向上取整
         start = self.current_page * 5
-        end = min(start + 5, len(blessings))
+        end = min(start + 5, total)
         page_items = blessings[start:end]
 
         for text in page_items:
@@ -650,47 +648,36 @@ class MainScreen(Screen):
                 width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
                 texture_size=lambda *x, b=btn: setattr(b, 'height', b.texture_size[1] + dp(10))
             )
-            btn.bind(on_press=self.on_press)
-            btn.bind(on_release=self.on_release)
+            btn.bind(on_press=self.on_copy)  # 点击直接复制
             btn.blessing_text = text
             btn.default_bg_color = (1, 1, 1, 0.9)
             self.list_layout.add_widget(btn)
 
-    def on_press(self, instance):
-        self.long_press_trigger = Clock.schedule_once(
-            lambda dt: self.copy_on_long_press(instance), 0.5
-        )
+        self.update_page_buttons()
 
-    def on_release(self, instance):
-        if self.long_press_trigger:
-            self.long_press_trigger.cancel()
-            self.long_press_trigger = None
-
-    def copy_on_long_press(self, instance):
-        self.long_press_trigger = None
+    def on_copy(self, instance):
+        """点击复制祝福语"""
         text = instance.blessing_text
         Clipboard.copy(text)
-        self.last_copied_text = text  # 记录最后复制的单条祝福
+        self.last_copied_text = text
         show_toast('祝福语已复制')
 
         # 恢复上一个选中的条目背景色
         if self.selected_item and self.selected_item != instance:
             self.selected_item.background_color = self.selected_item.default_bg_color
 
-        # 设置当前条目为选中状态（蓝色背景）
-        instance.background_color = (0.2, 0.6, 1, 1)  # 蓝色
+        # 设置当前条目为选中状态（柠檬绿）
+        instance.background_color = (0.5, 0.8, 0.2, 1)  # 柠檬绿
         self.selected_item = instance
 
     def prev_page(self, instance):
         if self.current_page > 0:
             self.current_page -= 1
-            self.update_page_buttons()
             self.show_current_page()
 
     def next_page(self, instance):
         if self.current_page < self.total_pages - 1:
             self.current_page += 1
-            self.update_page_buttons()
             self.show_current_page()
 
     def update_page_buttons(self):
@@ -699,7 +686,7 @@ class MainScreen(Screen):
         self.page_label.text = f'第{self.current_page+1}页/共{self.total_pages}页'
 
     def share_blessings(self, instance):
-        """分享最近复制的单条祝福，如果没有复制过则提示"""
+        """分享最近复制的单条祝福"""
         if self.last_copied_text:
             if share_text(self.last_copied_text):
                 show_toast('分享已启动')
@@ -707,23 +694,35 @@ class MainScreen(Screen):
                 Clipboard.copy(self.last_copied_text)
                 show_toast('分享失败，已复制到剪贴板')
         else:
-            show_toast('请先长按选择一条祝福')
+            show_toast('请先选择一条祝福')
 
     def show_about_popup(self, instance):
-        content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
-        content.add_widget(Label(
+        """显示关于弹窗，右上角带X关闭按钮"""
+        # 使用FloatLayout布局，内容居中，右上角X按钮
+        content = FloatLayout()
+
+        # 版本信息标签
+        info_label = Label(
             text='马年祝福APP\n版本：v1.3.0\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
-            size_hint_y=None,
-            height=dp(120),
-            font_name='Chinese'
-        ))
-        close_btn = Button(
-            text='关闭',
             size_hint=(None, None),
-            size=(dp(100), dp(40)),
+            size=(dp(300), dp(120)),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
             font_name='Chinese'
+        )
+        content.add_widget(info_label)
+
+        # 右上角X按钮
+        close_btn = Button(
+            text='X',
+            size_hint=(None, None),
+            size=(dp(40), dp(40)),
+            pos_hint={'right': 1, 'top': 1},
+            background_color=(0,0,0,0),
+            color=(0,0,0,1),
+            font_name='Chinese',
+            bold=True
         )
         close_btn.bind(on_press=lambda x: popup.dismiss())
         content.add_widget(close_btn)
@@ -749,4 +748,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
