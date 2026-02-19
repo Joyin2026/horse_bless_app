@@ -24,6 +24,9 @@ jobs:
         with:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+      - name: List files
+        run: ls -la
+          
       - name: Build with buildozer
         run: |
            yes | buildozer android release
@@ -35,5 +38,6 @@ jobs:
           name: app-debug
 
           path: bin/*.apk
+
 
 
