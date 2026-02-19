@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年元宵祝福应用（最终版）
-版本：v1.2.6
+main.py - 马年元宵祝福应用（最终版 + 随机祝福）
+版本：v1.3.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
-- 节日切换（春节/元宵节）
+- 节日切换（春节/元宵节/随机祝福）
 - 分类切换（用按钮替代Spinner，彻底解决乱码）
 - 长按单条祝福复制（蓝色高亮 + Toast）
 - “发给微信好友”分享最近复制的单条祝福
+- 新增100条随机祝福语（5类各20条）
 """
 
 import kivy
@@ -66,7 +67,6 @@ def show_toast(message):
     try:
         Toast.makeText(context, String(message), Toast.LENGTH_SHORT).show()
     except Exception as e:
-        # 降级处理：打印错误，但手机上无法看到，只能期望 Toast 正常工作
         print('Toast failed:', e)
 
 def share_text(text):
@@ -211,7 +211,121 @@ BLESSINGS_LANTERN = {
     ]
 }
 
-FESTIVALS = ['春节祝福', '元宵节祝福']
+# 随机祝福语（5类，每类20条，共100条）
+BLESSINGS_RANDOM = {
+    '暖心话语': [
+        "愿你三冬暖，愿你春不寒；愿你天黑有灯，下雨有伞。愿你一路上，有良人相伴。",
+        "愿时光能缓，愿故人不散；愿你惦念的人能和你道晚安，愿你独闯的日子里不觉得孤单。",
+        "愿你往后余生，冷暖有相知，喜乐有分享，同量天地宽，共度日月长。",
+        "愿你有好运气，如果没有，愿你在不幸中学会慈悲；愿你被很多人爱，如果没有，愿你在寂寞中学会宽容。",
+        "愿你如阳光，明媚不忧伤；愿你如月光，明亮不清冷。愿你此生尽兴，赤诚善良。",
+        "愿你所有的努力都不白费，所想的都能如愿，所做的都能实现，愿你往后路途，深情不再枉付。",
+        "愿你走出半生，归来仍是少年；愿你经历山河，觉得人生值得。",
+        "愿你贪吃不胖，美梦不空，深情不负，此生尽兴。",
+        "愿你有梦为马，随处可栖；愿你执迷不悟时，少受点伤；愿你幡然醒悟时，物是人是。",
+        "愿你余生所有的珍惜，都不必靠失去来懂得。愿你的快乐不缺观众，你的故事都有人懂。",
+        "愿你惦念的人能和你道晚安，愿你独闯的日子里不觉得孤单。",
+        "愿你的世界永远充满阳光，不会有多余的悲伤。愿你在人生道路上，到达心之所向。",
+        "愿你如向日葵，永远面朝阳光，努力生长，保持本色，不偏不倚。",
+        "愿你所有快乐，无需假装；愿你此生尽兴，赤诚善良；愿时光能缓，愿故人不散。",
+        "愿你往后余生，眼里是阳光，笑里是坦荡。愿你天黑有灯，下雨有伞，愿你路上有良人相伴。",
+        "愿你的生活常温暖，日子总是温柔又闪光。愿你历经风雨，终见彩虹。",
+        "愿你这一生，既有随处可栖的江湖，也有追风逐梦的骁勇。",
+        "愿你被这个世界温柔以待，躲不过的惊吓都只是一场虚惊，收到的欢喜从无空欢喜。",
+        "愿你如天上的云，自由自在；愿你如林间的风，潇洒自如。愿你活成自己最喜欢的模样。",
+        "愿你所有快乐，无需假装；愿你赤子之心，永远滚烫。"
+    ],
+    '励志金句': [
+        "乾坤未定，你我皆是黑马；乾坤已定，那就扭转乾坤。",
+        "愿你以渺小启程，以伟大结尾。熬过无人问津的日子，才有诗和远方。",
+        "半山腰总是最挤的，你得去山顶看看。星光不问赶路人，时光不负有心人。",
+        "愿你眼中有光，活成自己想要的模样；愿你心中有梦，不负韶华。",
+        "将来的你，一定会感谢现在拼命的自己。每一个优秀的人，都有一段沉默的时光。",
+        "愿你熬过万丈孤独，藏下星辰大海。愿你跨过星河迈过月亮，去迎接更好的自己。",
+        "生活原本沉闷，但跑起来就有风。愿你跑起来，追上那个被寄予厚望的自己。",
+        "愿你付出甘之如饴，所得归于欢喜。愿你走出半生，归来仍是少年。",
+        "愿你成为自己的太阳，无需凭借谁的光。愿你永远年轻，永远热泪盈眶。",
+        "愿你像种子一样，一生向阳，在这片土壤里，随万物生长。",
+        "愿你每一次流泪，都是喜极而泣；愿你每一次精疲力尽，都有树可倚。",
+        "愿你学会释怀后一身轻，愿你无悔亦无惧。愿你此生尽兴，赤诚善良。",
+        "愿你在被打击时，记起你的珍贵，抵抗恶意；愿你在迷茫时，坚信你的珍贵，爱你所爱，行你所行，听从你心，无问西东。",
+        "愿你所有的努力都不被辜负，愿你成为自己的太阳，无需凭借谁的光。",
+        "愿你以梦为马，不负韶华；愿你拼尽全力，无畏前行。",
+        "愿你全力以赴，又满载而归。愿你在这个必须拼得你死我活的世界里，拥有一份不怕变质的爱情。",
+        "愿你所有的幸运，都能不期而遇；愿你所有的美好，都能如期而至。",
+        "愿你出走半生，归来仍是少年；愿你历经山河，觉得人生值得。",
+        "愿你被世界温柔以待，愿你目之所及，心之所向满满都是爱。",
+        "愿你鲜衣怒马，一生荣光；愿你往后余生，平安喜乐。"
+    ],
+    '幽默风趣': [
+        "愿你像高智商一样活着，像低能儿一样快乐。",
+        "愿你贪吃不胖，美梦不空，深情不负，钱包鼓鼓。",
+        "愿你以后有酒有肉，能贫能笑，能干能架，此生纵情豁达。",
+        "愿你做一个快乐的人，让风吹走你的忧愁，让雨洗掉你的烦恼，让阳光带给你温暖，让月亮带给你浪漫。",
+        "愿你心情像天气一样晴朗，像吃了蜜糖一样甜，像中了彩票一样嗨。",
+        "愿你天天都有好心情，夜夜都有美梦，吃嘛嘛香，干嘛嘛顺。",
+        "愿你像猪一样能吃能睡，像牛一样勤勤恳恳，像猴一样机灵，像狗一样忠诚，然后像人一样快乐。",
+        "愿你余额永远充足，愿你卡路里永远不足。",
+        "愿你发财像发际线一样不留余地，愿你减肥像记忆一样说忘就忘。",
+        "愿你以后的生活，不仅有诗和远方，还有眼前的火锅和烧烤。",
+        "愿你在这个看脸的世界里，不仅颜值在线，余额也在线。",
+        "愿你发际线永远坚挺，愿你发量永远浓密，愿你熬夜不长痘，愿你吃多不长肉。",
+        "愿你钱包鼓得像气球，烦恼轻得像鸿毛，快乐多得像星星。",
+        "愿你天天发财，月月中奖，年年有余，生生不息。",
+        "愿你做一个快乐的小吃货，吃遍天下美食，喝遍天下美酒，玩遍天下美景。",
+        "愿你像打游戏一样，一路升级打怪，最后成为人生赢家。",
+        "愿你所有的bug都被修复，愿你所有的需求都被满足，愿你永远没有蓝屏。",
+        "愿你在这个快节奏的时代，慢下来享受生活，做一个快乐的小神仙。",
+        "愿你像向日葵一样，每天都向着阳光，茁壮成长，然后结出好多好多的瓜子。",
+        "愿你在这个冬天，不仅有棉袄，还有冰淇淋；不仅有暖气，还有冰啤酒。"
+    ],
+    '唯美诗意': [
+        "愿你三冬暖，愿你春不寒；愿你天黑有灯，下雨有伞；愿你一路上，有良人相伴。",
+        "愿时光能缓，愿故人不散；愿你惦念的人能和你道晚安，愿你独闯的日子里不觉得孤单。",
+        "愿你往后余生，冷暖有相知，喜乐有分享，同量天地宽，共度日月长。",
+        "愿你有好运气，如果没有，愿你在不幸中学会慈悲；愿你被很多人爱，如果没有，愿你在寂寞中学会宽容。",
+        "愿你如阳光，明媚不忧伤；愿你如月光，明亮不清冷。愿你此生尽兴，赤诚善良。",
+        "愿你所有的努力都不白费，所想的都能如愿，所做的都能实现，愿你往后路途，深情不再枉付。",
+        "愿你走出半生，归来仍是少年；愿你经历山河，觉得人生值得。",
+        "愿你贪吃不胖，美梦不空，深情不负，此生尽兴。",
+        "愿你有梦为马，随处可栖；愿你执迷不悟时，少受点伤；愿你幡然醒悟时，物是人是。",
+        "愿你余生所有的珍惜，都不必靠失去来懂得。愿你的快乐不缺观众，你的故事都有人懂。",
+        "愿你惦念的人能和你道晚安，愿你独闯的日子里不觉得孤单。",
+        "愿你的世界永远充满阳光，不会有多余的悲伤。愿你在人生道路上，到达心之所向。",
+        "愿你如向日葵，永远面朝阳光，努力生长，保持本色，不偏不倚。",
+        "愿你所有快乐，无需假装；愿你此生尽兴，赤诚善良；愿时光能缓，愿故人不散。",
+        "愿你往后余生，眼里是阳光，笑里是坦荡。愿你天黑有灯，下雨有伞，愿你路上有良人相伴。",
+        "愿你的生活常温暖，日子总是温柔又闪光。愿你历经风雨，终见彩虹。",
+        "愿你这一生，既有随处可栖的江湖，也有追风逐梦的骁勇。",
+        "愿你被这个世界温柔以待，躲不过的惊吓都只是一场虚惊，收到的欢喜从无空欢喜。",
+        "愿你如天上的云，自由自在；愿你如林间的风，潇洒自如。愿你活成自己最喜欢的模样。",
+        "愿你所有快乐，无需假装；愿你赤子之心，永远滚烫。"
+    ],
+    '简短精炼': [
+        "愿你快乐，愿你幸福，愿你平安。",
+        "祝你心想事成，万事如意。",
+        "愿你眼里有光，心中有爱。",
+        "愿你一生温暖，不舍爱与自由。",
+        "愿你无忧无疾，百岁安生不离笑。",
+        "愿你天黑有灯，下雨有伞，愿你路上有良人相伴。",
+        "愿你所有快乐，无需假装。",
+        "愿你此生尽兴，赤诚善良。",
+        "愿你历尽千帆，归来仍是少年。",
+        "愿你如阳光，明媚不忧伤。",
+        "愿你被世界温柔以待。",
+        "愿你贪吃不胖，美梦不空。",
+        "愿你深情不负，钱包鼓鼓。",
+        "愿你以后有酒有肉，能贫能笑。",
+        "愿你岁月波澜有人陪，余生悲欢有人听。",
+        "愿你往后路途，深情不再枉付。",
+        "愿你眼中总有光芒，活成你想要的模样。",
+        "愿你付出甘之如饴，所得归于欢喜。",
+        "愿你出走半生，归来仍是少年。",
+        "愿你此生尽兴，赤诚善良。"
+    ]
+}
+
+FESTIVALS = ['春节祝福', '元宵节祝福', '随机祝福']
 
 
 class StartScreen(Screen):
@@ -331,7 +445,7 @@ class MainScreen(Screen):
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
-        # 节日切换按钮
+        # 节日切换按钮（三个）
         festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(2))
         self.spring_btn = Button(
             text='春节祝福',
@@ -349,8 +463,17 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
+        self.random_btn = Button(
+            text='随机祝福',
+            background_color=get_color_from_hex('#8B4513'),
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
+        self.random_btn.bind(on_press=lambda x: self.switch_festival('随机祝福'))
         festival_layout.add_widget(self.spring_btn)
         festival_layout.add_widget(self.lantern_btn)
+        festival_layout.add_widget(self.random_btn)
         main_layout.add_widget(festival_layout)
 
         # 分类切换按钮（代替Spinner，水平排列）
@@ -430,8 +553,10 @@ class MainScreen(Screen):
         self.category_layout.clear_widgets()
         if self.current_festival == '春节祝福':
             categories = list(BLESSINGS_SPRING.keys())
-        else:
+        elif self.current_festival == '元宵节祝福':
             categories = list(BLESSINGS_LANTERN.keys())
+        else:  # 随机祝福
+            categories = list(BLESSINGS_RANDOM.keys())
 
         for cat in categories:
             btn = Button(
@@ -462,12 +587,21 @@ class MainScreen(Screen):
         if festival == self.current_festival:
             return
         self.current_festival = festival
+
+        # 更新节日按钮颜色
         if festival == '春节祝福':
             self.spring_btn.background_color = get_color_from_hex('#DAA520')
             self.lantern_btn.background_color = get_color_from_hex('#8B4513')
-        else:
+            self.random_btn.background_color = get_color_from_hex('#8B4513')
+        elif festival == '元宵节祝福':
             self.spring_btn.background_color = get_color_from_hex('#8B4513')
             self.lantern_btn.background_color = get_color_from_hex('#DAA520')
+            self.random_btn.background_color = get_color_from_hex('#8B4513')
+        else:  # 随机祝福
+            self.spring_btn.background_color = get_color_from_hex('#8B4513')
+            self.lantern_btn.background_color = get_color_from_hex('#8B4513')
+            self.random_btn.background_color = get_color_from_hex('#DAA520')
+
         self.update_category_list()
         self.current_category = self.category_list[0]
         self.update_category_buttons()
@@ -478,14 +612,18 @@ class MainScreen(Screen):
     def update_category_list(self):
         if self.current_festival == '春节祝福':
             self.category_list = list(BLESSINGS_SPRING.keys())
-        else:
+        elif self.current_festival == '元宵节祝福':
             self.category_list = list(BLESSINGS_LANTERN.keys())
+        else:
+            self.category_list = list(BLESSINGS_RANDOM.keys())
 
     def get_current_blessings_dict(self):
         if self.current_festival == '春节祝福':
             return BLESSINGS_SPRING
-        else:
+        elif self.current_festival == '元宵节祝福':
             return BLESSINGS_LANTERN
+        else:
+            return BLESSINGS_RANDOM
 
     def show_current_page(self):
         self.list_layout.clear_widgets()
@@ -574,7 +712,7 @@ class MainScreen(Screen):
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(20))
         content.add_widget(Label(
-            text='马年祝福APP\n版本：v1.2.6\n开发团队：卓影工作室 · 瑾 煜',
+            text='马年祝福APP\n版本：v1.3.0\n开发团队：卓影工作室 · 瑾 煜',
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -611,5 +749,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
