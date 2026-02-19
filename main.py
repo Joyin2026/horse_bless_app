@@ -763,8 +763,14 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        Window.size = (1440, 3200)
-        Window.fullscreen = 'auto'  # 强制全屏，隐藏状态栏和导航栏
+        # 强制全屏，隐藏系统栏
+        Window.borderless = True
+        Window.fullscreen = True
+        # 设置窗口大小为屏幕实际大小
+        Window.size = Window.system_size
+        # 背景色已在全局设置，此处可选
+        # Window.clearcolor = get_color_from_hex('#FFF5E6')
+        
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
@@ -773,4 +779,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
