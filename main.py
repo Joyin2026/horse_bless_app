@@ -381,7 +381,7 @@ class StartScreen(Screen):
 
         # 倒计时标签
         self.countdown_label = Label(
-            text='3 秒',
+            text='6 秒',
             size_hint=(None, None),
             size=(dp(80), dp(30)),
             pos_hint={'right': 1, 'top': 0.9},
@@ -393,10 +393,10 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        self.countdown = 3
+        self.countdown = 6
         self.update_countdown()
         Clock.schedule_interval(self.update_countdown, 1)
-        Clock.schedule_once(self.go_main, 3)
+        Clock.schedule_once(self.go_main, 6)
 
     def update_countdown(self, dt=None):
         if self.countdown > 0:
@@ -749,3 +749,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
