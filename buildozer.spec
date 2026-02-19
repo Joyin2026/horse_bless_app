@@ -2,7 +2,7 @@
 
 title = 马年新春祝福-v1.5.5
 package.name = horsebless
-package.domain = bless.sjinyu.com
+package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
