@@ -44,24 +44,23 @@ jobs:
           pip install buildozer cython
           buildozer --version
 
-      # 克隆最新版 pyjnius 并打补丁（使用绝对路径）
+      # 克隆并修补 pyjnius（只替换 Cython 文件中的 long）
       - name: Clone and patch pyjnius
         run: |
           git clone https://github.com/kivy/pyjnius.git --depth 1
           cd pyjnius
-          # 替换所有 .pyx 和 .pxi 文件中的 'long' 为 'int'（解决 Python 3.10+ 兼容性）
+          # 替换所有 .pyx 和 .pxi 文件中的 'long' 为 'int'
           find . -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
-          # 验证：如果还有 'long' 则报错
-          if grep -r "\blong\b" jnius; then
-            echo "Error: 'long' still present after patching" && exit 1
+          # 验证 Cython 文件中是否还有 'long'（应无输出）
+          if grep -r --include="*.pyx" --include="*.pxi" "\blong\b" .; then
+            echo "Error: 'long' still present in Cython files after patching" && exit 1
           else
-            echo "All 'long' replaced successfully"
+            echo "All Cython 'long' replaced successfully"
           fi
           cd ..
-          # 将绝对路径存入环境变量
           echo "PYJNIUS_PATH=$(pwd)/pyjnius" >> $GITHUB_ENV
 
-      # 修改 buildozer.spec 使用绝对路径的 pyjnius
+      # 使用绝对路径的 pyjnius
       - name: Set requirements to use absolute path
         run: |
           sed -i "s|^requirements = .*|requirements = python3,kivy,$PYJNIUS_PATH|" buildozer.spec
