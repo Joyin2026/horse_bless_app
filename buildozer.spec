@@ -1,6 +1,6 @@
 # buildozer.spec - 马年祝福应用配置
 [app]
-title = 新春送祝福-v1.6.9
+title = 新春送祝福-v1.7.0
 version.regex = APP_VERSION = ['"](.*)['"]
 version.filename = %(source.dir)s/main.py
 package.name = horsebless
