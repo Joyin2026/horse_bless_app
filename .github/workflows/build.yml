@@ -44,29 +44,27 @@ jobs:
           pip install buildozer cython
           buildozer --version
 
-      # 克隆最新版 pyjnius 并打补丁
+      # 克隆最新版 pyjnius 并打补丁（使用绝对路径）
       - name: Clone and patch pyjnius
         run: |
           git clone https://github.com/kivy/pyjnius.git --depth 1
           cd pyjnius
           # 替换所有 .pyx 和 .pxi 文件中的 'long' 为 'int'（解决 Python 3.10+ 兼容性）
           find . -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
-          # 验证替换是否成功（应该无输出）
-          grep -r "\blong\b" jnius || echo "All 'long' replaced successfully"
+          # 验证：如果还有 'long' 则报错
+          if grep -r "\blong\b" jnius; then
+            echo "Error: 'long' still present after patching" && exit 1
+          else
+            echo "All 'long' replaced successfully"
+          fi
           cd ..
+          # 将绝对路径存入环境变量
+          echo "PYJNIUS_PATH=$(pwd)/pyjnius" >> $GITHUB_ENV
 
-      # 将修复后的 pyjnius 复制到 p4a 的包缓存目录，强制构建时使用
-      - name: Copy patched pyjnius to p4a cache
+      # 修改 buildozer.spec 使用绝对路径的 pyjnius
+      - name: Set requirements to use absolute path
         run: |
-          mkdir -p ~/.buildozer/android/packages
-          rm -rf ~/.buildozer/android/packages/pyjnius
-          cp -r pyjnius ~/.buildozer/android/packages/pyjnius
-          ls -l ~/.buildozer/android/packages/pyjnius/setup.py   # 确保存在
-
-      # 修改 buildozer.spec 中的 requirements（确保使用 pyjnius 包名，p4a 会从缓存获取）
-      - name: Set requirements to use patched pyjnius
-        run: |
-          sed -i 's/^requirements = .*/requirements = python3,kivy,pyjnius/' buildozer.spec
+          sed -i "s|^requirements = .*|requirements = python3,kivy,$PYJNIUS_PATH|" buildozer.spec
           echo "Updated requirements:"
           grep "^requirements" buildozer.spec
 
