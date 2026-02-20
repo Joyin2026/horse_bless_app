@@ -33,9 +33,9 @@ android.ndk = 25b
 
 # 签名配置
 android.keystore = $(KEYSTORE_FILE)
-android.keystore_alias = $(KEYSTORE_ALIAS)
-android.keystore_password = $(KEYSTORE_PASS)
-android.keyalias_password = $(KEYALIAS_PASS)
+android.keystore_alias = $(KEY_ALIAS)
+android.keystore_password = $(KEY_PASSWORD)
+android.keyalias_password = $(KEY_PASSWORD)
 
 # 闪屏背景色
 presplash.bg_color = #FFF5E6
