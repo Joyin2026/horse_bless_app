@@ -24,7 +24,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
-
+      - name: Install dependencies
+         run: |
+           pip install --upgrade buildozer cython
+           
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -94,4 +97,5 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
 
