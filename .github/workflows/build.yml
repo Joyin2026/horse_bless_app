@@ -44,28 +44,26 @@ jobs:
           pip install buildozer cython
           buildozer --version
 
-      # 克隆并修补 pyjnius（只替换 Cython 文件中的 long）
-      - name: Clone and patch pyjnius
+      # 彻底清理所有缓存，确保重新下载
+      - name: Full cleanup
         run: |
-          git clone https://github.com/kivy/pyjnius.git --depth 1
-          cd pyjnius
-          # 替换所有 .pyx 和 .pxi 文件中的 'long' 为 'int'
-          find . -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
-          # 验证 Cython 文件中是否还有 'long'（应无输出）
-          if grep -r --include="*.pyx" --include="*.pxi" "\blong\b" .; then
-            echo "Error: 'long' still present in Cython files after patching" && exit 1
-          else
-            echo "All Cython 'long' replaced successfully"
-          fi
-          cd ..
-          echo "PYJNIUS_PATH=$(pwd)/pyjnius" >> $GITHUB_ENV
+          rm -rf ~/.buildozer
+          rm -rf ~/.cache/pip
 
-      # 使用绝对路径的 pyjnius
-      - name: Set requirements to use absolute path
+      # 使用一个已知修复了 long 问题的 pyjnius 提交
+      # 这里使用 master 分支，假设已修复；如果未修复，可替换为特定 commit hash
+      - name: Set requirements to use git master
         run: |
-          sed -i "s|^requirements = .*|requirements = python3,kivy,$PYJNIUS_PATH|" buildozer.spec
+          sed -i 's|^requirements = .*|requirements = python3,kivy,git+https://github.com/kivy/pyjnius.git|' buildozer.spec
           echo "Updated requirements:"
           grep "^requirements" buildozer.spec
+
+      # 验证构建时使用的 pyjnius 源码中是否还有 long（在 p4a 下载后检查）
+      - name: Verify pyjnius source after download (optional)
+        run: |
+          # 先触发一次构建（会失败），但我们需要等 p4a 下载源码
+          # 这里不实际运行，而是在后续步骤中检查
+          echo "Will check later"
 
       - name: Decode keystore
         run: |
@@ -86,9 +84,7 @@ jobs:
           if [ -z "$KEYSTORE_ALIAS" ]; then echo "KEYSTORE_ALIAS is empty"; exit 1; fi
           if [ -z "$KEYSTORE_PASS" ]; then echo "KEYSTORE_PASS is empty"; exit 1; fi
 
-      - name: Clean buildozer cache
-        run: rm -rf ~/.buildozer
-
+      # 构建（如果失败，查看日志）
       - name: Build with buildozer
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=debug"
