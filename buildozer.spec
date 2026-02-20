@@ -6,7 +6,7 @@ package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
-version = 1.6.0
+version = 1.6.1
 
 # release 模式
 android.release = True
