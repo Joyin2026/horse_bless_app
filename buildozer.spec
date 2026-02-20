@@ -7,6 +7,7 @@ package.name = horsebless
 package.domain = bless.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
+extra_files = chinese.ttf,images/
 requirements = python3,kivy,jnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
