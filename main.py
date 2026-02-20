@@ -714,64 +714,67 @@ class MainScreen(Screen):
             show_toast('请先选择一条祝福')
 
     def show_about_popup(self, instance):
-        """显示关于弹窗，暗红标题栏、白色内容、圆角"""
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(220)))
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
-                     size=lambda *x: setattr(self.bg_rect, 'size', content.size))
+    """显示关于弹窗，暗红标题栏、白色内容、圆角"""
+    content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                        size_hint=(None, None), size=(dp(320), dp(220)))
+    with content.canvas.before:
+        Color(1, 1, 1, 1)
+        self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+    content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
+                 size=lambda *x: setattr(self.bg_rect, 'size', content.size))
 
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
-        title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
+    title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+    with title_bar.canvas.before:
+        Color(0.5, 0.1, 0.1, 1)
+        self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+    title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
+                   size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-        title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
-                            halign='left', valign='middle', size_hint_x=0.8)
-        title_bar.add_widget(title_label)
+    title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
+                        halign='left', valign='middle', size_hint_x=0.8)
+    title_bar.add_widget(title_label)
 
-        close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
-                           pos_hint={'right':1, 'center_y':0.5},
-                           background_color=(0,0,0,0), color=(1,1,1,1),
-                           font_name='Chinese', bold=True)
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(close_btn)
+    close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
+                       pos_hint={'right':1, 'center_y':0.5},
+                       background_color=(0,0,0,0), color=(1,1,1,1),
+                       font_name='Chinese', bold=True)
+    close_btn.bind(on_press=lambda x: popup.dismiss())
+    title_bar.add_widget(close_btn)
 
-        content_area = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
+    # 修改点1：将左内边距改为20dp
+    content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
+    with content_area.canvas.before:
+        Color(1, 1, 1, 1)
+        self.content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+    content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
+                      size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
 
-        info_texts = [
-            '应用名称：马年新春祝福',
-            '应用版本：v1.6.2',
-            '应用开发：瑾 煜',
-            '反馈建议：contactme@sjinyu.com',
-            '版权所有，侵权必究！'
-        ]
-        for line in info_texts:
-            lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
-                        halign='left', valign='middle', size_hint_y=None, height=dp(25))
-            content_area.add_widget(lbl)
+    info_texts = [
+        '应用名称：马年新春祝福',
+        '应用版本：v1.6.2',
+        '应用开发：瑾 煜',
+        '反馈建议：contactme@sjinyu.com',
+        '版权所有，侵权必究！'
+    ]
+    for line in info_texts:
+        lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
+                    halign='left', valign='middle', size_hint_y=None, height=dp(25))
+        # 修改点2：绑定width设置text_size，确保左对齐
+        lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
+        content_area.add_widget(lbl)
 
-        content.add_widget(title_bar)
-        content.add_widget(content_area)
+    content.add_widget(title_bar)
+    content.add_widget(content_area)
 
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
-        )
-        popup.open()
+    popup = Popup(
+        title='',
+        content=content,
+        size_hint=(None, None),
+        size=content.size,
+        background_color=(0,0,0,0),
+        auto_dismiss=False
+    )
+    popup.open()
 
 
 class BlessApp(App):
@@ -790,4 +793,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
