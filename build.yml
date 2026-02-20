@@ -10,23 +10,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Show buildozer.spec content
+        run: cat buildozer.spec
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Show buildozer.spec content
-        run: cat buildozer.spec    
-
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          sudo apt install -y \
+            git zip unzip openjdk-17-jdk python3-pip \
+            autoconf libtool pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev
 
       - name: Install buildozer
         run: |
@@ -42,15 +45,16 @@ jobs:
         run: |
           echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV   # 如果两个密码相同
+          echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Clean buildozer cache (optional)
+        run: rm -rf ~/.buildozer
 
       - name: Build with buildozer
-        run: |
-          buildozer android debug
+        run: yes | buildozer android debug --log_level=2
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: signed-apk
           path: bin/*.apk
-
