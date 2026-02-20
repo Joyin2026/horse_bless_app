@@ -1,11 +1,18 @@
 name: Build Android APK
 
+# 关键修改：移除 push/pull_request 自动触发，仅保留 workflow_dispatch 手动触发
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    # 可选：保留构建类型参数（默认 release，和你需求匹配）
+    inputs:
+      build_type:
+        description: '构建类型 (debug/release)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
   build:
@@ -58,11 +65,12 @@ jobs:
       - name: Verify keystore
         run: ls -l keystore.jks
 
+      # 优化：读取手动选择的构建类型参数（默认 release）
       - name: Build with buildozer
-        run: yes | buildozer android release
+        run: yes | buildozer android ${{ github.event.inputs.build_type }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk
+          name: signed-apk-${{ github.event.inputs.build_type }}
           path: bin/*.apk
