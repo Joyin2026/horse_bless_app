@@ -44,6 +44,22 @@ jobs:
           pip install buildozer cython
           buildozer --version
 
+      # 克隆并打补丁 pyjnius
+      - name: Clone and patch pyjnius
+        run: |
+          git clone https://github.com/kivy/pyjnius.git
+          cd pyjnius
+          # 将所有 .pyx 和 .pxi 文件中的 'long' 替换为 'int'（解决 Python 3.10+ 兼容性）
+          find . -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
+          cd ..
+
+      # 修改 buildozer.spec 使用本地 pyjnius 路径
+      - name: Patch buildozer.spec to use local pyjnius
+        run: |
+          sed -i 's/^requirements = .*/requirements = python3,kivy,.\/pyjnius/' buildozer.spec
+          echo "Updated requirements:"
+          grep "^requirements" buildozer.spec
+
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
