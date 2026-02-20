@@ -38,6 +38,9 @@ jobs:
           echo "=== Search for version = (without comment) ==="
           grep -n "^version =" buildozer.spec || echo "No active version line found"
 
+      - name: Accept Android licenses
+        run: yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
+
       - name: Force remove any version.regex lines (just in case)
         run: |
           sed -i '/version\.regex/d' buildozer.spec
@@ -91,6 +94,7 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
 
 
 
