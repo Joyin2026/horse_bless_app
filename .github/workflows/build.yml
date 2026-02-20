@@ -3,21 +3,9 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'main.py'
-      - 'buildozer.spec'
-      - 'images/**'
-      - 'chinese.ttf'
-      - '.github/workflows/build.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'main.py'
-      - 'buildozer.spec'
-      - 'images/**'
-      - 'chinese.ttf'
-      - '.github/workflows/build.yml'
-  workflow_dispatch:
+  workflow_dispatch:   # 允许手动触发
 
 jobs:
   build:
@@ -29,16 +17,6 @@ jobs:
       # 显示 buildozer.spec 内容，用于验证
       - name: Show buildozer.spec content
         run: cat buildozer.spec
-
-      # 列出项目根目录文件，确认资源存在
-      - name: List root directory files
-        run: |
-          echo "Root directory:"
-          ls -la
-          echo "Images directory:"
-          ls -la images/ || echo "images/ not found"
-          echo "Font file:"
-          file chinese.ttf || echo "chinese.ttf not found"
 
       # 设置 JDK 11（兼容性更好）
       - name: Set up JDK 11
@@ -56,12 +34,12 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            git zip unzip python3-pip \
+            git zip unzip openjdk-17-jdk python3-pip \
             autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 \
             cmake libffi-dev libssl-dev
 
-      - name: Install buildozer and dependencies
+      - name: Install buildozer
         run: |
           pip install --upgrade pip
           pip install buildozer cython
@@ -80,29 +58,37 @@ jobs:
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      # 验证 keystore 文件和环境变量
+      # 验证 keystore 文件和环境变量（可选）
       - name: Verify keystore
         run: |
           ls -l keystore.jks
           echo "KEYSTORE_FILE: $KEYSTORE_FILE"
           echo "KEYSTORE_ALIAS: $KEYSTORE_ALIAS"
+          # 不打印密码，但检查变量非空
           if [ -z "$KEYSTORE_ALIAS" ]; then echo "KEYSTORE_ALIAS is empty"; exit 1; fi
           if [ -z "$KEYSTORE_PASS" ]; then echo "KEYSTORE_PASS is empty"; exit 1; fi
 
-      # 清理构建缓存（确保全新构建）
+      # 清理构建缓存（可选）
       - name: Clean buildozer cache
-        run: rm -rf ~/.buildozer .buildozer
+        run: rm -rf ~/.buildozer
 
-      # 主构建命令（启用详细日志，并保存日志文件）
-      - name: Build with buildozer
-        run: yes | buildozer android release --verbose --log_level=2 2>&1 | tee build.log
-
-      # 解压生成的 APK 并检查资源是否包含
-      - name: Inspect APK contents
+      # 调试步骤：直接运行 gradlew 获取详细错误（如果 buildozer 失败，此步骤可提供额外信息）
+      - name: Debug Gradle build (if needed)
         run: |
-          APK_PATH=$(ls bin/*.apk | head -n1)
-          echo "APK: $APK_PATH"
-          unzip -l "$APK_PATH" | grep -E "chinese\.ttf|images/"
+          if [ -d ".buildozer/android/platform/build-arm64-v8a/dists/horsebless" ]; then
+            cd .buildozer/android/platform/build-arm64-v8a/dists/horsebless
+            chmod +x gradlew
+            ./gradlew clean assembleDebug --stacktrace --info || true
+          else
+            echo "Gradle project not yet generated, skipping debug step."
+          fi
+        continue-on-error: true
+
+      # 主构建命令（启用详细日志）
+      - name: Build with buildozer
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=debug"
+        run: yes | buildozer android debug --verbose --log_level=2
 
       # 上传生成的 APK 作为 artifact
       - name: Upload APK
@@ -110,22 +96,3 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
-
-      # 上传构建日志以供调试
-      - name: Upload build log
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-
-      # 上传 APK 解压后的文件列表（可选）
-      - name: Generate APK file list
-        run: |
-          APK_PATH=$(ls bin/*.apk | head -n1)
-          unzip -l "$APK_PATH" > apk_file_list.txt
-        continue-on-error: true
-      - name: Upload APK file list artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-file-list
-          path: apk_file_list.txt
