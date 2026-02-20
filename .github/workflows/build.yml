@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'   # 现在可以放心使用 3.10 了，因为我们手动修复了 pyjnius
+          python-version: '3.8'
 
       - name: Install system dependencies
         run: |
@@ -35,30 +35,15 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            automake libltdl-dev
+            automake libltdl-dev \
+            build-essential python3-dev libjpeg-dev
+          # 设置 JAVA_HOME
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
 
-      - name: Install buildozer
+      - name: Install buildozer and Cython
         run: |
           pip install --upgrade pip
-          pip install buildozer cython
-
-      # 手动克隆、修补并安装 pyjnius
-      - name: Clone, patch and install pyjnius
-        run: |
-          git clone https://github.com/kivy/pyjnius.git --depth 1
-          cd pyjnius
-          # 将 Cython 文件中的 'long' 替换为 'int'
-          find . -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
-          # 安装到当前 Python 环境
-          pip install .
-          cd ..
-
-      # 修改 buildozer.spec 中的 requirements，移除 pyjnius
-      - name: Remove pyjnius from requirements
-        run: |
-          sed -i 's/^requirements = .*/requirements = python3,kivy/' buildozer.spec
-          echo "Updated requirements:"
-          grep "^requirements" buildozer.spec
+          pip install buildozer cython==0.29.36  # 指定 Cython 版本
 
       - name: Cache buildozer
         uses: actions/cache@v3
@@ -66,8 +51,9 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      - name: Clean buildozer cache (optional)
-        run: rm -rf ~/.buildozer   # 确保全新构建
+      # 清理缓存，确保全新构建
+      - name: Clean buildozer cache
+        run: rm -rf ~/.buildozer
 
       - name: Decode keystore
         run: |
