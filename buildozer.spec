@@ -12,8 +12,7 @@ source.include_exts = py,png,jpg,kv,ttf
 
 # 版本
 version = 1.6.6
-#version.regex = __version__ = ['"](.*)['"]
-#version.filename = %(source.dir)s/main.py
+
 
 # 需求
 requirements = python3,kivy,jnius
