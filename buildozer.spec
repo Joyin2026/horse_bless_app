@@ -45,6 +45,7 @@ android.archs = arm64-v8a
 # 国内镜像（可选）
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
 android.ndk_url = https://mirrors.aliyun.com/android-ndk/
+android.gradle_repositories = https://maven.aliyun.com/repository/public/,https://maven.aliyun.com/repository/google/
 
 # 签名配置（通过环境变量注入）
 android.keystore = $(KEYSTORE_FILE)
