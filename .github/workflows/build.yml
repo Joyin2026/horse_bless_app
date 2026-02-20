@@ -14,10 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'   # 使用 3.9 避免 jnius 的 long 类型问题
+          python-version: '3.10'
 
       - name: Install system dependencies
         run: |
@@ -33,7 +33,6 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install buildozer cython
-          buildozer --version
 
       - name: Cache buildozer
         uses: actions/cache@v3
@@ -41,25 +40,20 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # 解码 keystore（需要设置 Secrets）
+      # 解码 keystore（需配置 Secrets）
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
           echo "KEYSTORE_FILE=$(pwd)/keystore.jks" >> $GITHUB_ENV
 
-      # 设置签名环境变量
       - name: Set signature environment variables
         run: |
           echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      # 验证 keystore 是否存在
       - name: Verify keystore
         run: ls -l keystore.jks
-
-      - name: List files
-        run: ls -la
 
       - name: Build with buildozer
         run: yes | buildozer android release
@@ -69,6 +63,3 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
-
-      - name: Clean build cache (optional)
-        run: rm -rf ~/.buildozer   # 如果需要完全清理，可取消注释；但缓存步骤已保存，不建议重复清理
