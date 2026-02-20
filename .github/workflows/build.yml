@@ -44,9 +44,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            git zip unzip openjdk-17-jdk python3-pip \
+            git zip unzip python3-pip \
             autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev libtinfo5 \
+            libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev
 
       - name: Install buildozer and dependencies
@@ -107,7 +107,7 @@ jobs:
           path: build.log
 
       # 上传 APK 解压后的文件列表（可选）
-      - name: Upload APK file list
+      - name: Generate APK file list
         run: |
           APK_PATH=$(ls bin/*.apk | head -n1)
           unzip -l "$APK_PATH" > apk_file_list.txt
