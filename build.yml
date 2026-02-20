@@ -41,6 +41,10 @@ jobs:
       - name: Accept Android licenses
         run: yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
 
+     - name: Install Android SDK components
+        run: |
+          $ANDROID_HOME/tools/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"   
+
       - name: Force remove any version.regex lines (just in case)
         run: |
           sed -i '/version\.regex/d' buildozer.spec
@@ -94,6 +98,7 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
 
 
 
