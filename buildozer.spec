@@ -5,31 +5,22 @@
 title = 新春送祝福-v1.6.6
 package.name = horsebless
 package.domain = com.bless.sjinyu
-
 # 源码目录
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-
 # 版本
 version = 1.6.6
-
-
 # 需求
 requirements = python3,kivy,jnius
-
 # 权限
 android.permissions = INTERNET
-
 # 图标
 icon.filename = %(source.dir)s/icon.png
-
 # 启动画面
 presplash.filename = %(source.dir)s/presplash.png
 presplash.bg_color = #FFF5E6
-
 # 全屏
 fullscreen = 1
-
 # Android 特定配置
 android.api = 31
 android.minapi = 21
