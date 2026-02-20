@@ -1,22 +1,22 @@
 # buildozer.spec - 马年祝福应用配置
 [app]
-title = 新春送祝福-v1.6.6
+title = 新春送祝福-v1.6.7
 package.name = horsebless
 package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-version = 1.6.6
+version.regex = APP_VERSION = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 requirements = python3,kivy,jnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
 presplash.filename = %(source.dir)s/presplash.png
 presplash.bg_color = #FFF5E6
 fullscreen = 1
+orientation = portrait   # 添加这一行，强制竖屏
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
-# android.sdk = 34   # 已删除（弃用）
-# android.gradle_dependencies =   # 已删除，不再需要
 android.enable_androidx = True
 android.archs = arm64-v8a
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
