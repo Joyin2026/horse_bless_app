@@ -1,48 +1,59 @@
+# buildozer.spec - 马年祝福应用配置
 [app]
 
-title = 马年送祝福-v1.6.5
+# 应用标识
+title = 新春送祝福-v1.6.6
 package.name = horsebless
-package.domain = com.bless.sjinyu
+package.domain = com.zhuoying
+
+# 源码目录
 source.dir = .
-source.include_exts = py,png,jpg,ttf
+source.include_exts = py,png,jpg,kv,ttf
 
-version = 1.6.5
+# 版本
+version = 1.6.6
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 
-# release 模式
-android.release = True
+# 需求
+requirements = python3,kivy,jnius
 
-requirements = python3,kivy,plyer,pyjnius
-
-icon.filename = images/bless.png
-# presplash.filename = images/start.png
-
-orientation = portrait
-fullscreen = 1
-android.enable_androidx = True
-
-# 只保留 arm64-v8a（可根据需要添加 armeabi-v7a）
-android.archs = arm64-v8a
-
-
-# 最小权限（如果不需要网络，可以去掉 INTERNET）
+# 权限
 android.permissions = INTERNET
 
+# 图标
+icon.filename = %(source.dir)s/icon.png
+
+# 启动画面
+presplash.filename = %(source.dir)s/presplash.png
+presplash.bg_color = #FFF5E6
+
+# 全屏
+fullscreen = 1
+
+# Android 特定配置
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
+android.sdk = 34
+android.gradle_dependencies = 'org.kivy:android:'
 
-# 签名配置
-android.keystore = $(KEYSTORE_FILE)
-android.keystore_alias = $(KEY_ALIAS)
-android.keystore_password = $(KEY_PASSWORD)
-android.keyalias_password = $(KEY_PASSWORD)
+# 启用 AndroidX
+android.enable_androidx = True
 
-# 闪屏背景色
-presplash.bg_color = #FFF5E6
+# 架构
+android.archs = arm64-v8a
 
 # 国内镜像（可选）
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
 android.ndk_url = https://mirrors.aliyun.com/android-ndk/
 
-[buildozer]
-log_level = 2
+# 签名配置（通过环境变量注入）
+android.keystore = $(KEYSTORE_FILE)
+android.keystore_alias = $(KEYSTORE_ALIAS)
+android.keystore_password = $(KEYSTORE_PASS)
+android.keyalias_password = $(KEYALIAS_PASS)
+
+# 其他选项
+osx.python_version = 3
+osx.kivy_version = 2.2.1
