@@ -40,7 +40,7 @@ from kivy.core.text import LabelBase
 from kivy.storage.jsonstore import JsonStore
 
 # ---------- 全局常量 ----------
-APP_VERSION = "1.7.2"   # 更新版本号
+APP_VERSION = "1.7.1"   # 更新版本号
 
 # ---------- 注册中文字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
@@ -710,4 +710,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
