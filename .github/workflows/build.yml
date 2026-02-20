@@ -28,7 +28,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 修复：添加 automake 和 libltdl-dev 以解决 autoconf 宏缺失
       - name: Install system dependencies
         run: |
           sudo apt update
@@ -44,15 +43,6 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython
           buildozer --version
-
-    # 在 "Install buildozer" 步骤之后，添加以下步骤
-      - name: Patch jnius for Python 3.10+
-        run: |
-         # 找到 jnius 的安装路径并修复 long 类型
-         JNIUS_PATH=$(python -c "import jnius; print(jnius.__path__[0])" 2>/dev/null || echo "")
-         if [ -d "$JNIUS_PATH" ]; then
-          find $JNIUS_PATH -name "*.pyx" -o -name "*.pxi" | xargs sed -i 's/\blong\b/int/g'
-        fi
 
       - name: Decode keystore
         run: |
