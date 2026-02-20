@@ -1,67 +1,56 @@
-name: Build Android APK
+# buildozer.spec - 马年祝福应用配置
+[app]
+# 应用标识
+title = 新春送祝福-v1.7.2
+# 版本
+version.regex = APP_VERSION = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
+package.name = horsebless
+package.domain = bless.sjinyu.com
+# 源码目录
+source.dir = .
+source.include_exts = py,png,jpg,kv,ttf
+extra_files = chinese.ttf,images/
 
-on:
-  workflow_dispatch:
-    inputs:
-      build_type:
-        description: '构建类型 (debug/release)'
-        required: true
-        default: 'release'
-        type: choice
-        options:
-          - debug
-          - release
+# 需求
+requirements = python3,kivy,jnius
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# 权限
+android.permissions = INTERNET
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.8'
+# 图标
+icon.filename = %(source.dir)s/icon.png
 
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip openjdk-17-jdk python3-pip \
-            autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev \
-            cmake libffi-dev libssl-dev \
-            automake libltdl-dev \
-            python3-dev
+# 启动画面
+presplash.filename = %(source.dir)s/presplash.png
+presplash.bg_color = #FFF5E6
 
-      - name: Install buildozer
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.36
+# 全屏
+fullscreen = 1
 
-      - name: Cache buildozer
-        uses: actions/cache@v3
-        with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+# Android 特定配置
+android.api = 31
+android.minapi = 21
+android.ndk = 25b
+android.sdk = 34
+android.gradle_dependencies = 'org.kivy:android:'
 
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
-          echo "KEYSTORE_FILE=$(pwd)/keystore.jks" >> $GITHUB_ENV
+# 启用 AndroidX
+android.enable_androidx = True
 
-      - name: Set signature environment variables
-        run: |
-          echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+# 架构
+android.archs = arm64-v8a
 
-      - name: Build with buildozer
-        run: yes | buildozer android ${{ github.event.inputs.build_type }}
+# 国内镜像（可选）
+android.sdk_url = https://mirrors.aliyun.com/android-sdk/
+android.ndk_url = https://mirrors.aliyun.com/android-ndk/
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: signed-apk-${{ github.event.inputs.build_type }}
-          path: bin/*.apk
+# 签名配置（通过环境变量注入）
+android.keystore = $(KEYSTORE_FILE)
+android.keystore_alias = $(KEYSTORE_ALIAS)
+android.keystore_password = $(KEYSTORE_PASS)
+android.keyalias_password = $(KEYALIAS_PASS)
+
+# 其他选项
+osx.python_version = 3
+osx.kivy_version = 2.2.1
