@@ -22,7 +22,7 @@ jobs:
       - name: Show buildozer.spec content
         run: cat buildozer.spec
 
-      # 使用 Python 3.8 避免 pyjnius 中 long 类型编译错误
+      # 使用 Python 3.8 彻底避免 pyjnius 中的 long 类型问题
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -49,8 +49,8 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # 强制清理缓存，确保使用最新 pyjnius 源码（可注释掉以加速后续构建）
-      - name: Clean buildozer cache (force fresh build)
+      # 强制清理缓存，确保 pyjnius 源码被重新获取
+      - name: Clean buildozer cache
         run: rm -rf ~/.buildozer
 
       - name: Decode keystore
