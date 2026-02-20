@@ -1,29 +1,51 @@
 # buildozer.spec - 马年祝福应用配置
 [app]
-title = 新春送祝福-v1.7.1
+# 应用标识
+title = 新春送祝福-v1.7.2
+# 版本
 version.regex = APP_VERSION = ['"](.*)['"]
 version.filename = %(source.dir)s/main.py
 package.name = horsebless
 package.domain = bless.sjinyu.com
+# 源码目录
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 extra_files = chinese.ttf,images/
+
 # 需求
 requirements = python3,kivy,jnius
+
+# 权限
 android.permissions = INTERNET
+
+# 图标
 icon.filename = %(source.dir)s/icon.png
+
+# 启动画面
 presplash.filename = %(source.dir)s/presplash.png
 presplash.bg_color = #FFF5E6
+
+# 全屏
 fullscreen = 1
-orientation = portrait
+
+# Android 特定配置
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
+android.sdk = 34
+android.gradle_dependencies = 'org.kivy:android:'
+
+# 启用 AndroidX
 android.enable_androidx = True
+
+# 架构
 android.archs = arm64-v8a
+
+# 国内镜像（可选）
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
 android.ndk_url = https://mirrors.aliyun.com/android-ndk/
-# 签名配置
+
+# 签名配置（通过环境变量注入）
 android.keystore = $(KEYSTORE_FILE)
 android.keystore_alias = $(KEYSTORE_ALIAS)
 android.keystore_password = $(KEYSTORE_PASS)
