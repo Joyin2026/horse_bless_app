@@ -15,13 +15,13 @@ fullscreen = 1
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
-# 删除 android.sdk = 34
-
+# android.sdk = 34   # 已删除（弃用）
+# android.gradle_dependencies =   # 已删除，不再需要
 android.enable_androidx = True
 android.archs = arm64-v8a
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
 android.ndk_url = https://mirrors.aliyun.com/android-ndk/
-# 签名配置保持不变
+# 签名配置
 android.keystore = $(KEYSTORE_FILE)
 android.keystore_alias = $(KEYSTORE_ALIAS)
 android.keystore_password = $(KEYSTORE_PASS)
