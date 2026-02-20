@@ -16,7 +16,7 @@ android.api = 31
 android.minapi = 21
 android.ndk = 25b
 # 删除 android.sdk = 34
-android.gradle_dependencies =   # 删除这一行或留空
+
 android.enable_androidx = True
 android.archs = arm64-v8a
 android.sdk_url = https://mirrors.aliyun.com/android-sdk/
