@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04   # 使用 Ubuntu 20.04（稳定，兼容旧版依赖）
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'   # Python 3.8 兼容 jnius 的 long 类型
+          python-version: '3.8'
 
       - name: Install system dependencies
         run: |
@@ -30,14 +30,15 @@ jobs:
           sudo apt install -y \
             git zip unzip openjdk-17-jdk python3-pip \
             autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev libtinfo5 \
+            libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            automake libltdl-dev
+            automake libltdl-dev \
+            python3-dev
 
       - name: Install buildozer
         run: |
           pip install --upgrade pip
-          pip install buildozer cython==0.29.36   # 锁定旧版 Cython
+          pip install buildozer cython==0.29.36
 
       - name: Cache buildozer
         uses: actions/cache@v3
