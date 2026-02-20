@@ -22,6 +22,7 @@ jobs:
       - name: Show buildozer.spec content
         run: cat buildozer.spec
 
+      # 使用 Python 3.8（确保 long 类型存在）
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -37,13 +38,13 @@ jobs:
             cmake libffi-dev libssl-dev \
             automake libltdl-dev \
             build-essential python3-dev libjpeg-dev
-          # 设置 JAVA_HOME
+          # 设置 JAVA_HOME（供 pyjnius 编译使用）
           echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
 
       - name: Install buildozer and Cython
         run: |
           pip install --upgrade pip
-          pip install buildozer cython==0.29.36  # 指定 Cython 版本
+          pip install buildozer cython==0.29.36   # 指定稳定的 Cython 版本
 
       - name: Cache buildozer
         uses: actions/cache@v3
@@ -51,7 +52,7 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # 清理缓存，确保全新构建
+      # 强制清理缓存，确保全新构建
       - name: Clean buildozer cache
         run: rm -rf ~/.buildozer
 
