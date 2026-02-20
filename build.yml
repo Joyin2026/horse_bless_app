@@ -14,9 +14,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show buildozer.spec content
+            - name: Show buildozer.spec content
         run: cat buildozer.spec
 
+      - name: Deep inspect buildozer.spec
+        run: |
+          echo "=== File encoding ==="
+          file buildozer.spec
+          echo "=== Line numbers and content ==="
+          cat -n buildozer.spec
+          echo "=== Search for version.regex ==="
+          grep -n "version.regex" buildozer.spec || echo "No version.regex found"
+          echo "=== Search for version.filename ==="
+          grep -n "version.filename" buildozer.spec || echo "No version.filename found"
+          echo "=== Search for version = (without comment) ==="
+          grep -n "^version =" buildozer.spec || echo "No active version line found"
+
+      - name: Force remove any version.regex lines (just in case)
+        run: |
+          sed -i '/version\.regex/d' buildozer.spec
+          sed -i '/version\.filename/d' buildozer.spec
+          echo "=== After forced removal ==="
+          cat buildozer.spec
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -58,3 +77,4 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
