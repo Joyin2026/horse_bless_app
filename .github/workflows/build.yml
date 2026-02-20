@@ -1,6 +1,5 @@
 name: Build Android APK
 
-# 仅保留 workflow_dispatch 手动触发，支持选择 debug/release
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +22,7 @@ jobs:
       - name: Show buildozer.spec content
         run: cat buildozer.spec
 
-      # 降级 Python 到 3.8，避免 pyjnius 中 long 类型编译错误
+      # 使用 Python 3.8 避免 pyjnius 中 long 类型编译错误
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -38,7 +37,6 @@ jobs:
             libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
             automake libltdl-dev
-          # libtinfo5 已从依赖中移除（新版 Ubuntu 无此包）
 
       - name: Install buildozer
         run: |
@@ -51,7 +49,7 @@ jobs:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # 确保使用最新源码，清理可能残留的旧 pyjnius 缓存
+      # 强制清理缓存，确保使用最新 pyjnius 源码（可注释掉以加速后续构建）
       - name: Clean buildozer cache (force fresh build)
         run: rm -rf ~/.buildozer
 
@@ -69,7 +67,6 @@ jobs:
       - name: Verify keystore
         run: ls -l keystore.jks
 
-      # 根据手动选择的构建类型执行 debug 或 release
       - name: Build with buildozer
         run: yes | buildozer android ${{ github.event.inputs.build_type }}
 
