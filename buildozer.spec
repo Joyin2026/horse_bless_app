@@ -1,12 +1,12 @@
 [app]
 
-title = 马年送祝福-v1.6.2
+title = 马年送祝福-v1.6.3
 package.name = horsebless
 package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,ttf
 
-version = 1.6.2
+version = 1.6.3
 
 # release 模式
 android.release = True
