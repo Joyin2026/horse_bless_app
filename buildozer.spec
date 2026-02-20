@@ -4,7 +4,7 @@
 # 应用标识
 title = 新春送祝福-v1.6.6
 package.name = horsebless
-package.domain = com.zhuoying
+package.domain = com.bless.sjinyu
 
 # 源码目录
 source.dir = .
