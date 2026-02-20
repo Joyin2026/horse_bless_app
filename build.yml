@@ -1,54 +1,59 @@
-name: Build Signed Kivy APK
+# buildozer.spec - 马年祝福应用配置
+[app]
 
-on: [workflow_dispatch, push]  # 你可以根据需要调整触发条件
+# 应用标识
+title = 马年新春祝福
+package.name = horsebless
+package.domain = com.zhuoying
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# 源码目录
+source.dir = .
+source.include_exts = py,png,jpg,kv,ttf
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+# 版本
+version = 0.1
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+# 需求
+requirements = python3,kivy,jnius
 
-      - name: Install Buildozer
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
+# 权限
+android.permissions = INTERNET
 
-      # ---------- 关键步骤 1: 解码并创建 keystore 文件 ----------
-      - name: Decode Keystore
-        env:
-          # 这个签名字段需要您先在 GitHub Secrets 里创建
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          # 将 Secrets 中保存的 base64 字符串解码，还原为原始的 keystore 文件
-          echo "$KEYSTORE_BASE64" | base64 --decode > ./my-release-key.keystore
-      # -------------------------------------------------------
+# 图标
+icon.filename = %(source.dir)s/icon.png
 
-      # ---------- 关键步骤 2: 将签名信息设为环境变量 ----------
-      - name: Set Signing Environment Variables
-        run: |
-          # 这些 Secrets 也需要您在 GitHub 上预先设置好
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-      # -------------------------------------------------------
+# 启动画面
+presplash.filename = %(source.dir)s/presplash.png
+presplash.bg_color = #FFF5E6
 
-      - name: Build with buildozer
-        run: |
-          yes | buildozer android release
+# 全屏
+fullscreen = 1
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: signed-app-debug
-          path: bin/*.apk
+# Android 特定配置
+android.api = 31
+android.minapi = 21
+android.ndk = 25b
+android.sdk = 34
+android.gradle_dependencies = 'org.kivy:android:'
+
+# 启用 AndroidX
+android.enable_androidx = True
+
+# 架构
+android.archs = arm64-v8a
+
+# 国内镜像（可选）
+android.sdk_url = https://mirrors.aliyun.com/android-sdk/
+android.ndk_url = https://mirrors.aliyun.com/android-ndk/
+
+# 签名配置（通过环境变量注入）
+android.keystore = $(KEYSTORE_FILE)
+android.keystore_alias = $(KEYSTORE_ALIAS)
+android.keystore_password = $(KEYSTORE_PASS)
+android.keyalias_password = $(KEYALIAS_PASS)
+
+# 其他选项
+osx.python_version = 3
+osx.kivy_version = 2.2.1
