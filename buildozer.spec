@@ -37,7 +37,7 @@ android.gradle_dependencies = 'org.kivy:android:'
 
 # 启用 AndroidX
 android.enable_androidx = True
-
+android.release_artifact = apk
 # 架构
 android.archs = arm64-v8a
 
