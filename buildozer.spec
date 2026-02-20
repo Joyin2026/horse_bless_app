@@ -5,8 +5,6 @@ package.name = horsebless
 package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-version.regex = APP_VERSION = ['"](.*)['"]
-version.filename = %(source.dir)s/main.py
 requirements = python3,kivy,jnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
