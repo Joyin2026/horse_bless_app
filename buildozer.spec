@@ -8,7 +8,7 @@ package.domain = bless.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 extra_files = chinese.ttf,images/
-requirements = python3,kivy,jnius==1.5.0
+requirements = python3,kivy,pyjnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
 presplash.filename = %(source.dir)s/presplash.png
