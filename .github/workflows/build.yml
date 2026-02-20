@@ -3,8 +3,20 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'main.py'
+      - 'buildozer.spec'
+      - 'images/**'
+      - 'chinese.ttf'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'main.py'
+      - 'buildozer.spec'
+      - 'images/**'
+      - 'chinese.ttf'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
