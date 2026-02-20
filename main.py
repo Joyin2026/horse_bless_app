@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.6.0
+版本：v1.6.1
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播（6秒倒计时，每1秒自动切换，滑动时暂停）
+- 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
 - 节日切换（春节/元宵节/随机祝福）
 - 分类切换（按钮）
 - 点击复制祝福（暗红色背景 + 亮黄色文字 + Toast）
@@ -331,7 +331,7 @@ FESTIVALS = ['春节祝福', '元宵节祝福', '随机祝福']
 
 
 class StartScreen(Screen):
-    """可滑动开屏广告页，带跳过按钮和底部指示点，自动轮播，滑动时暂停倒计时和轮播"""
+    """可滑动开屏广告页，带跳过按钮和底部指示点，自动轮播，用户滑动时暂停"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -342,8 +342,8 @@ class StartScreen(Screen):
         for img_path in splash_images:
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
             self.carousel.add_widget(img)
-        # 绑定索引变化事件（用户滑动时触发）
-        self.carousel.bind(index=self.on_carousel_index_changed)
+        # 监听触摸事件（用户手动滑动时会触发）
+        self.carousel.bind(on_touch_down=self.on_carousel_touch_down)
         layout.add_widget(self.carousel)
 
         # 底部指示器
@@ -397,26 +397,18 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        # 自动轮播定时器（1秒）
-        self._auto_slide_trigger = None
-        # 进入主屏倒计时定时器
-        self._enter_timer = None
-        # 无操作定时器（5秒）
-        self._idle_timer = None
+        # 定时器管理
+        self._auto_slide_trigger = None   # 自动轮播定时器（每秒切换）
+        self._enter_timer = None           # 进入主屏倒计时定时器
+        self._idle_timer = None            # 无操作5秒后恢复的定时器
 
         # 初始状态：启动自动轮播和6秒倒计时
+        self.countdown = 6
         self._start_auto_slide()
-        self._start_enter_countdown(6)
-
-        self.countdown = 6  # 剩余秒数
-        self.update_countdown()
-
-    def update_countdown(self):
-        """更新倒计时标签"""
-        self.countdown_label.text = f'{self.countdown} 秒'
+        self._start_enter_countdown()
 
     def _start_auto_slide(self):
-        """启动自动轮播定时器，每秒切换一张"""
+        """启动自动轮播，每秒切换一张"""
         self._stop_auto_slide()
         self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 1)
 
@@ -425,11 +417,11 @@ class StartScreen(Screen):
             self._auto_slide_trigger.cancel()
             self._auto_slide_trigger = None
 
-    def _start_enter_countdown(self, seconds):
-        """启动进入主屏倒计时，seconds秒后跳转"""
+    def _start_enter_countdown(self):
+        """启动进入主屏倒计时，每秒递减，归零后跳转"""
         self._stop_enter_countdown()
-        self.countdown = seconds
-        self.update_countdown()
+        self.countdown = 6
+        self.countdown_label.text = '6 秒'
         self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
 
     def _stop_enter_countdown(self):
@@ -439,7 +431,7 @@ class StartScreen(Screen):
 
     def _tick_countdown(self, dt):
         self.countdown -= 1
-        self.update_countdown()
+        self.countdown_label.text = f'{self.countdown} 秒'
         if self.countdown <= 0:
             self._stop_enter_countdown()
             self.go_main()
@@ -448,33 +440,53 @@ class StartScreen(Screen):
         self.carousel.load_next()
 
     def _reset_idle_timer(self):
-        """重置无操作定时器：5秒后如果无新滑动，恢复自动轮播和倒计时"""
+        """重置无操作定时器：取消当前定时，启动5秒后恢复的定时"""
         if self._idle_timer:
             self._idle_timer.cancel()
         self._idle_timer = Clock.schedule_once(self._resume_after_idle, 5)
 
     def _resume_after_idle(self, dt):
-        """5秒无操作后，重新启动自动轮播和倒计时"""
+        """5秒无操作后，恢复自动轮播和倒计时"""
+        self._idle_timer = None
         self._start_auto_slide()
-        self._start_enter_countdown(6)
+        self._start_enter_countdown()
 
-    def on_carousel_index_changed(self, instance, value):
-        """轮播索引变化时（用户滑动或自动切换）"""
-        self.update_indicator(value)
-        # 无论手动还是自动，都暂停倒计时和自动轮播，并启动5秒无操作计时器
-        self._stop_auto_slide()
-        self._stop_enter_countdown()
-        self._reset_idle_timer()
+    def on_carousel_touch_down(self, instance, touch):
+        """当用户触摸Carousel时触发（包括滑动、点击等）"""
+        # 判断触摸点是否在Carousel区域内（防止误触其他区域）
+        if self.carousel.collide_point(*touch.pos):
+            # 停止自动轮播和倒计时
+            self._stop_auto_slide()
+            self._stop_enter_countdown()
+            # 重置无操作定时器（5秒后恢复）
+            self._reset_idle_timer()
 
     def update_indicator(self, index):
         for i, lbl in enumerate(self.indicators):
             lbl.text = '●' if i == index else '○'
 
-    def skip_to_main(self, instance):
+    def on_enter(self):
+        """进入屏幕时（每次显示）重置状态"""
+        self.update_indicator(0)
+        self.carousel.index = 0  # 确保从第一张开始
+        self._start_auto_slide()
+        self._start_enter_countdown()
+        # 确保任何残留的空闲定时器被取消
+        if self._idle_timer:
+            self._idle_timer.cancel()
+            self._idle_timer = None
+
+    def on_leave(self):
+        """离开屏幕时停止所有定时器"""
         self._stop_auto_slide()
         self._stop_enter_countdown()
         if self._idle_timer:
             self._idle_timer.cancel()
+            self._idle_timer = None
+
+    def skip_to_main(self, instance):
+        """点击跳过，立即进入主页面"""
+        self.on_leave()  # 清理定时器
         self.manager.current = 'main'
 
     def go_main(self, *args):
@@ -738,7 +750,7 @@ class MainScreen(Screen):
 
         info_texts = [
             '应用名称：马年新春祝福',
-            '应用版本：v1.6.0',
+            '应用版本：v1.6.1',
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
             '版权所有，侵权必究！'
