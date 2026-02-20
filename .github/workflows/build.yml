@@ -6,7 +6,7 @@ on:
       build_type:
         description: '构建类型 (debug/release)'
         required: true
-        default: 'release'
+        default: 'debug'
         type: choice
         options:
           - debug
@@ -18,6 +18,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Show buildozer.spec content
+        run: cat buildozer.spec
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -57,10 +60,27 @@ jobs:
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build with buildozer
-        run: yes | buildozer android ${{ github.event.inputs.build_type }}
+      - name: Verify keystore
+        run: ls -l keystore.jks
 
-      - name: Upload APK
+      # 构建并允许失败，以便后续调试
+      - name: Build with buildozer (allow failure)
+        id: build
+        continue-on-error: true
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=debug"
+        run: yes | buildozer -v android ${{ github.event.inputs.build_type }} --log_level=2
+
+      # 如果 buildozer 失败，尝试直接运行 gradlew 获取详细错误
+      - name: Debug gradle if build failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          cd .buildozer/android/platform/build-arm64-v8a/dists/horsebless
+          chmod +x gradlew
+          ./gradlew clean assembleDebug --stacktrace --info
+
+      - name: Upload APK (if success)
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: signed-apk-${{ github.event.inputs.build_type }}
