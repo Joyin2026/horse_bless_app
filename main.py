@@ -406,14 +406,14 @@ class StartScreen(Screen):
         self._idle_timer = None            # 无操作5秒后恢复的定时器
 
         # 初始状态：启动自动轮播和6秒倒计时
-        self.countdown = 6
+        self.countdown = 9
         self._start_auto_slide()
         self._start_enter_countdown()
 
     def _start_auto_slide(self):
         """启动自动轮播，每秒切换一张"""
         self._stop_auto_slide()
-        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 1)
+        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 3)
 
     def _stop_auto_slide(self):
         if self._auto_slide_trigger:
@@ -425,7 +425,7 @@ class StartScreen(Screen):
         self._stop_enter_countdown()
         self.countdown = 6
         self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -797,6 +797,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
