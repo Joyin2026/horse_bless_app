@@ -2,7 +2,7 @@
 [app]
 title = 新春送祝福-v1.6.8
 package.name = horsebless
-package.domain = com.bless.sjinyu
+package.domain = bless.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 version = 1.6.8
