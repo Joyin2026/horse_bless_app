@@ -13,7 +13,7 @@ source.include_exts = py,png,jpg,kv,ttf
 extra_files = chinese.ttf,images/
 
 # 需求
-requirements = python3,kivy,pyjnius
+requirements = python3,kivy
 
 # 权限
 android.permissions = INTERNET
