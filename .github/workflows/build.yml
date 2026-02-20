@@ -14,19 +14,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04   # 使用 Ubuntu 20.04（稳定，兼容旧版依赖）
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show buildozer.spec content
-        run: cat buildozer.spec
-
-      # 使用 Python 3.8（确保 long 类型存在）
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.8'   # Python 3.8 兼容 jnius 的 long 类型
 
       - name: Install system dependencies
         run: |
@@ -34,27 +30,20 @@ jobs:
           sudo apt install -y \
             git zip unzip openjdk-17-jdk python3-pip \
             autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 \
             cmake libffi-dev libssl-dev \
-            automake libltdl-dev \
-            build-essential python3-dev libjpeg-dev
-          # 设置 JAVA_HOME（供 pyjnius 编译使用）
-          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+            automake libltdl-dev
 
-      - name: Install buildozer and Cython
+      - name: Install buildozer
         run: |
           pip install --upgrade pip
-          pip install buildozer cython==0.29.36   # 指定稳定的 Cython 版本
+          pip install buildozer cython==0.29.36   # 锁定旧版 Cython
 
       - name: Cache buildozer
         uses: actions/cache@v3
         with:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-
-      # 强制清理缓存，确保全新构建
-      - name: Clean buildozer cache
-        run: rm -rf ~/.buildozer
 
       - name: Decode keystore
         run: |
@@ -66,9 +55,6 @@ jobs:
           echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-
-      - name: Verify keystore
-        run: ls -l keystore.jks
 
       - name: Build with buildozer
         run: yes | buildozer android ${{ github.event.inputs.build_type }}
