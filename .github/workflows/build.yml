@@ -1,46 +1,31 @@
-name: Build Android APK
+name: Build Kivy APK
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y \
-            git zip unzip openjdk-17-jdk python3-pip \
-            autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev \
-            cmake libffi-dev libssl-dev \
-            automake libltdl-dev
-
-      - name: Install buildozer
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+      - name: Install Buildozer
         run: |
           pip install --upgrade pip
           pip install buildozer cython
-
       - name: Cache buildozer
         uses: actions/cache@v3
         with:
           path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-
-      # 解码 keystore（需配置 Secrets）
+      
+       # 解码 keystore（需配置 Secrets）
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
@@ -63,3 +48,4 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+ 
