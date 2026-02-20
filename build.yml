@@ -16,6 +16,8 @@ jobs:
 
             - name: Show buildozer.spec content
         run: cat buildozer.spec
+           - name: Build with buildozer
+        run: yes | buildozer android debug --verbose --log_level=2
 
       - name: Deep inspect buildozer.spec
         run: |
@@ -77,4 +79,5 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
 
