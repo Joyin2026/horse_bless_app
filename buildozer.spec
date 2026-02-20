@@ -1,11 +1,12 @@
 # buildozer.spec - 马年祝福应用配置
 [app]
 title = 新春送祝福-v1.6.9
+version.regex = APP_VERSION = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 package.name = horsebless
 package.domain = bless.sjinyu.com
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-version = 1.6.9
 requirements = python3,kivy,jnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
