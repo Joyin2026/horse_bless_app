@@ -5,14 +5,15 @@ package.name = horsebless
 package.domain = com.bless.sjinyu
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-version = 1.6.6
+version.regex = APP_VERSION = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 requirements = python3,kivy,jnius
 android.permissions = INTERNET
 icon.filename = %(source.dir)s/icon.png
 presplash.filename = %(source.dir)s/presplash.png
 presplash.bg_color = #FFF5E6
 fullscreen = 1
-orientation = portrait   # 添加这一行，强制竖屏
+orientation = portrait
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
