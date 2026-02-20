@@ -86,9 +86,7 @@ jobs:
 
       # 主构建命令（启用详细日志）
       - name: Build with buildozer
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=debug"
-        run: yes | buildozer android debug --verbose --log_level=2
+         run: yes | buildozer android release --verbose --log_level=2
 
       # 上传生成的 APK 作为 artifact
       - name: Upload APK
@@ -96,3 +94,4 @@ jobs:
         with:
           name: signed-apk
           path: bin/*.apk
+
