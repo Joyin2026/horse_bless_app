@@ -54,7 +54,8 @@ jobs:
       - name: Install buildozer
         run: |
           pip install --upgrade pip
-          pip install buildozer cython==0.29.36
+          pip install --upgrade buildozer
+          pip install cython==0.29.36
 
       - name: Cache buildozer
         uses: actions/cache@v3
@@ -76,13 +77,13 @@ jobs:
       - name: Verify keystore
         run: ls -l keystore.jks
 
-      # 新增：验证 keystore 有效性
+      # 验证 keystore 有效性
       - name: Validate keystore
         run: |
           sudo apt update && sudo apt install -y openjdk-17-jdk-headless
           keytool -list -keystore keystore.jks -storepass "$KEYSTORE_PASS" -alias "$KEYSTORE_ALIAS" -v
 
-      # ========== 新增：手动复制资源到 buildozer 工作目录 ==========
+      # 手动复制资源到 buildozer 工作目录
       - name: Copy resources to buildozer app directory
         run: |
           mkdir -p .buildozer/android/app
@@ -90,22 +91,35 @@ jobs:
           cp -r images .buildozer/android/app/
           echo "Resources copied:"
           ls -la .buildozer/android/app/
-      # =========================================================
+
+      # 清理 buildozer 缓存（解决 Python 库缺失问题）
+      - name: Clean buildozer cache
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf .buildozer
 
       - name: Build with buildozer
         run: yes | buildozer android debug --verbose --log_level=2 2>&1 | tee build.log
 
-      # 新增：验证生成的 APK 签名
+      # 验证生成的 APK 签名
       - name: Verify APK signature
         run: |
           keytool -printcert -jarfile bin/*.apk || echo "ERROR: APK has no signature!"
 
+      # 重命名 APK 文件
       - name: Rename APK
         run: |
           mv bin/*.apk bin/马年送祝福-${{ env.VERSION_FULL }}.apk
 
-      - name: Upload APK
+      # 创建包含 APK 的目录，以便上传为 ZIP 压缩包
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifact
+          cp bin/马年送祝福-${{ env.VERSION_FULL }}.apk artifact/
+
+      # 上传整个目录，GitHub 会自动打包为 ZIP 文件
+      - name: Upload APK as ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
-          path: bin/马年送祝福-${{ env.VERSION_FULL }}.apk
+          path: artifact/
