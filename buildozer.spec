@@ -11,7 +11,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 
 # 关键修改：不指定 Python 具体版本，让 buildozer 生成带 m 后缀的库
-requirements = python3, kivy==2.2.1, pyjnius
+requirements = python3==3.8.10, kivy==2.2.1, pyjnius
 
 # 强制竖屏
 orientation = portrait
