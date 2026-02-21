@@ -82,6 +82,16 @@ jobs:
           sudo apt update && sudo apt install -y openjdk-17-jdk-headless
           keytool -list -keystore keystore.jks -storepass "$KEYSTORE_PASS" -alias "$KEYSTORE_ALIAS" -v
 
+      # ========== 新增：手动复制资源到 buildozer 工作目录 ==========
+      - name: Copy resources to buildozer app directory
+        run: |
+          mkdir -p .buildozer/android/app
+          cp chinese.ttf .buildozer/android/app/
+          cp -r images .buildozer/android/app/
+          echo "Resources copied:"
+          ls -la .buildozer/android/app/
+      # =========================================================
+
       - name: Build with buildozer
         run: yes | buildozer android debug --verbose --log_level=2 2>&1 | tee build.log
 
