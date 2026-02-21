@@ -83,12 +83,7 @@ jobs:
           keytool -list -keystore keystore.jks -storepass "$KEYSTORE_PASS" -alias "$KEYSTORE_ALIAS" -v
 
       - name: Build with buildozer
-        env:
-          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
-          KEYSTORE_ALIAS: ${{ env.KEYSTORE_ALIAS }}
-          KEYSTORE_PASS: ${{ env.KEYSTORE_PASS }}
-          KEYALIAS_PASS: ${{ env.KEYALIAS_PASS }}
-        run: yes | buildozer android ${{ github.event.inputs.build_type }}
+        run: yes | buildozer android debug --verbose --log_level=2 2>&1 | tee build.log
 
       # 新增：验证生成的 APK 签名
       - name: Verify APK signature
