@@ -33,11 +33,12 @@ from kivy.uix.checkbox import CheckBox
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
-from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.storage.jsonstore import JsonStore
+from kivy.core.window import Window
+Window.orientation = 'portrait'
 
 # ---------- 全局常量 ----------
 APP_VERSION = "1.7.3"
@@ -916,4 +917,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
