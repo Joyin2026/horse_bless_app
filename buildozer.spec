@@ -7,6 +7,8 @@ version.regex = APP_VERSION = ['"](.*)['"]
 version.filename = %(source.dir)s/main.py
 package.name = horsebless
 package.domain = bless.sjinyu.com
+android.add_src = images
+android.add_src = chinese.ttf
 # 强制应用竖屏
 orientation = portrait
 android.manifest.orientation = portrait
