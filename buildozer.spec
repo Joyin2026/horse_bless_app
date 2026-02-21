@@ -3,8 +3,8 @@ title = 新春送祝福-v1.7.4
 package.name = horsebless
 package.domain = bless.sjinyu.com
 
-version.regex = APP_VERSION = ['"](.*)['"]
-version.filename = %(source.dir)s/main.py
+version = 1.7.4
+
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
