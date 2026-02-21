@@ -22,14 +22,18 @@ jobs:
       - name: Show buildozer.spec content
         run: cat buildozer.spec
 
-      # 从 main.py 提取 APP_VERSION
+      # 使用 sed 从 main.py 提取 APP_VERSION
       - name: Extract version from main.py
         id: version
         run: |
-          # 提取 APP_VERSION 的值（支持单引号或双引号）
-          VERSION_FULL=$(python -c "import re; print(re.search(r'APP_VERSION\s*=\s*['\"]\s*([^'\"]+)', open('main.py').read()).group(1))")
+          # 提取完整版本（可能带 v）
+          VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
+          if [ -z "$VERSION_FULL" ]; then
+            echo "Error: Could not extract APP_VERSION from main.py"
+            exit 1
+          fi
           echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
-          # 去除开头的 v 得到纯数字版本（用于压缩包名）
+          # 提取数字版本（去掉开头的 v）
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
