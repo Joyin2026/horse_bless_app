@@ -1,4 +1,4 @@
-# buildozer.spec - 马年祝福应用配置
+# buildozer.spec - 马年送祝福应用配置
 [app]
 # 应用标识
 title = 新春送祝福-v1.7.4
@@ -13,7 +13,7 @@ android.manifest.orientation = portrait
 # 源码目录
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-extra_files = chinese.ttf,images/
+#extra_files = chinese.ttf,images/
 
 # 需求
 requirements = python3,kivy,jnius
