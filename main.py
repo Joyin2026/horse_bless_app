@@ -14,7 +14,6 @@ main.py - 马年元宵祝福应用（最终版）
 - 全屏显示，无顶部空白
 - 首次使用引导（四步气泡，可选不再显示）
 """
-
 import kivy
 from kivy.config import Config
 Config.set('graphics', 'orientation', 'portrait')
@@ -920,6 +919,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
