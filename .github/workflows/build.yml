@@ -6,7 +6,7 @@ on:
       build_type:
         description: '构建类型 (debug/release)'
         required: true
-        default: 'release'
+        default: 'debug'
         type: choice
         options:
           - debug
@@ -19,18 +19,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show buildozer.spec content
-        run: cat buildozer.spec
-
-      # 提取版本
-      - name: Extract version from main.py
+      - name: Extract version
         id: version
         run: |
           VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
-          if [ -z "$VERSION_FULL" ]; then
-            echo "Error: Could not extract APP_VERSION from main.py"
-            exit 1
-          fi
           echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -48,14 +40,12 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            automake libltdl-dev \
-            python3-dev
+            automake libltdl-dev
 
       - name: Install buildozer
         run: |
           pip install --upgrade pip
-          pip install --upgrade buildozer
-          pip install cython==0.29.36
+          pip install buildozer cython==0.29.36
 
       - name: Cache buildozer
         uses: actions/cache@v3
@@ -64,77 +54,25 @@ jobs:
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
       - name: Decode keystore
+        if: github.event.inputs.build_type == 'release'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
           echo "KEYSTORE_FILE=$(pwd)/keystore.jks" >> $GITHUB_ENV
-
-      - name: Set signature environment variables
-        run: |
           echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Verify keystore
-        run: ls -l keystore.jks
-
-      - name: Validate keystore
-        run: |
-          sudo apt update && sudo apt install -y openjdk-17-jdk-headless
-          keytool -list -keystore keystore.jks -storepass "$KEYSTORE_PASS" -alias "$KEYSTORE_ALIAS" -v
-
-      # 手动复制资源（作为备份）
-      - name: Copy resources to buildozer app directory
-        run: |
-          mkdir -p .buildozer/android/app
-          cp chinese.ttf .buildozer/android/app/
-          cp -r images .buildozer/android/app/
-          echo "Resources copied to .buildozer/android/app:"
-          ls -la .buildozer/android/app/
-          echo "images content:"
-          ls -la .buildozer/android/app/images/ || echo "images/ not found"
-
       - name: Clean buildozer cache
-        run: |
-          rm -rf ~/.buildozer
-          rm -rf .buildozer
+        run: rm -rf ~/.buildozer .buildozer
 
       - name: Build with buildozer
-        run: yes | buildozer android debug --verbose --log_level=2 2>&1 | tee build.log
+        run: yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log
 
-      # 验证 APK 内容
-      - name: List APK contents
-        run: |
-          APK_PATH=$(ls bin/*.apk | head -n1)
-          echo "APK: $APK_PATH"
-          unzip -l "$APK_PATH" > apk_contents.txt
-          echo "APK contents (root):"
-          unzip -l "$APK_PATH" | grep -E "chinese\.ttf|images/|\.so"
-          echo "Full list saved to apk_contents.txt"
-
-      - name: Upload APK contents list
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-contents
-          path: apk_contents.txt
-
-      - name: Verify APK signature
-        run: |
-          keytool -printcert -jarfile bin/*.apk || echo "ERROR: APK has no signature!"
-
-      - name: Rename APK
-        run: |
-          mv bin/*.apk bin/马年送祝福-${{ env.VERSION_FULL }}.apk
-
-      - name: Prepare artifact directory
-        run: |
-          mkdir -p artifact
-          cp bin/马年送祝福-${{ env.VERSION_FULL }}.apk artifact/
-
-      - name: Upload APK as ZIP artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
-          path: artifact/
+          path: bin/*.apk
 
       - name: Upload build log
         uses: actions/upload-artifact@v4
