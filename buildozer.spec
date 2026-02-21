@@ -33,7 +33,6 @@ android.api = 31
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 34
-android.gradle_dependencies = 'org.kivy:android:'
 
 # 启用 AndroidX
 android.enable_androidx = True
