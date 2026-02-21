@@ -6,7 +6,7 @@ on:
       build_type:
         description: '构建类型 (debug/release)'
         required: true
-        default: 'debug'
+        default: 'release'
         type: choice
         options:
           - debug
@@ -21,6 +21,17 @@ jobs:
 
       - name: Show buildozer.spec content
         run: cat buildozer.spec
+
+      # 从 main.py 提取 APP_VERSION
+      - name: Extract version from main.py
+        id: version
+        run: |
+          # 提取 APP_VERSION 的值（支持单引号或双引号）
+          VERSION_FULL=$(python -c "import re; print(re.search(r'APP_VERSION\s*=\s*['\"]\s*([^'\"]+)', open('main.py').read()).group(1))")
+          echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
+          # 去除开头的 v 得到纯数字版本（用于压缩包名）
+          VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -63,25 +74,18 @@ jobs:
       - name: Verify keystore
         run: ls -l keystore.jks
 
-      # 构建并允许失败，以便后续调试
-      - name: Build with buildozer (allow failure)
-        id: build
-        continue-on-error: true
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=debug"
-        run: yes | buildozer -v android ${{ github.event.inputs.build_type }} --log_level=2
+      - name: Build with buildozer
+        run: yes | buildozer android ${{ github.event.inputs.build_type }}
 
-      # 如果 buildozer 失败，尝试直接运行 gradlew 获取详细错误
-      - name: Debug gradle if build failed
-        if: steps.build.outcome == 'failure'
+      # 重命名 APK 文件
+      - name: Rename APK
         run: |
-          cd .buildozer/android/platform/build-arm64-v8a/dists/horsebless
-          chmod +x gradlew
-          ./gradlew clean assembleDebug --stacktrace --info
+          # 假设 bin/ 目录下只有一个 APK 文件
+          mv bin/*.apk bin/马年送祝福-${{ env.VERSION_FULL }}.apk
 
-      - name: Upload APK (if success)
-        if: steps.build.outcome == 'success'
+      # 上传 artifact，压缩包名为 horse_bless_v版本-构建类型.zip
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk-${{ github.event.inputs.build_type }}
-          path: bin/*.apk
+          name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
+          path: bin/马年送祝福-${{ env.VERSION_FULL }}.apk
