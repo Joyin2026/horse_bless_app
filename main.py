@@ -38,6 +38,7 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.storage.jsonstore import JsonStore
+Window.orientation = 'portrait'
 
 # ---------- 全局常量 ----------
 APP_VERSION = "1.7.3"   # 更新版本号
@@ -696,6 +697,8 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
+        from kivy.core.window import Window
+        Window.orientation = 'portrait'
         # 强制全屏，隐藏系统栏
         Window.borderless = True
         Window.fullscreen = True
@@ -710,6 +713,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
