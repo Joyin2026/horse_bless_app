@@ -73,7 +73,11 @@ jobs:
         with:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
           path: bin/*.apk
-
+      - name: Clean everything
+         run: |
+         rm -rf ~/.buildozer
+         rm -rf .buildozer
+         rm -rf bin
       - name: Upload build log
         uses: actions/upload-artifact@v4
         with:
