@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install system dependencies
+      - name: Install system dependencies (including Python build deps)
         run: |
           sudo apt update
           sudo apt install -y \
@@ -40,20 +40,22 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            automake libltdl-dev
+            automake libltdl-dev \
+            libbz2-dev liblzma-dev libreadline-dev libsqlite3-dev
 
       - name: Install buildozer
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.36
 
-      - name: Cache buildozer
-        uses: actions/cache@v3
-        with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+      # 彻底清除所有缓存
+      - name: Wipe all caches
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf .buildozer
+          rm -rf bin
 
-      - name: Decode keystore
+      - name: Decode keystore (if release)
         if: github.event.inputs.build_type == 'release'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
@@ -62,11 +64,17 @@ jobs:
           echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Clean buildozer cache
-        run: rm -rf ~/.buildozer .buildozer
-
       - name: Build with buildozer
         run: yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log
+
+      # 验证APK中的Python库文件名
+      - name: Verify Python library
+        run: |
+          APK_PATH=$(ls bin/*.apk | head -n1)
+          echo "APK: $APK_PATH"
+          unzip -l "$APK_PATH" | grep "libpython" > python_libs.txt
+          echo "Python libraries found:"
+          cat python_libs.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -74,14 +82,14 @@ jobs:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
           path: bin/*.apk
 
-      - name: Clean everything
-        run: |
-          rm -rf ~/.buildozer
-          rm -rf .buildozer
-          rm -rf bin
-
       - name: Upload build log
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: build.log
+
+      - name: Upload Python lib list
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-libs
+          path: python_libs.txt
