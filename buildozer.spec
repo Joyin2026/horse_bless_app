@@ -15,7 +15,6 @@ android.manifest.orientation = portrait
 # 源码目录
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
-#移除extra_files = chinese.ttf,images/
 
 # 需求
 requirements = python3==3.8.10,kivy==2.2.1,jnius
