@@ -1,4 +1,3 @@
-# buildozer.spec - 马年祝福应用配置（最终修复版）
 [app]
 title = 新春送祝福-v1.7.4
 package.name = horsebless
@@ -10,10 +9,12 @@ version.filename = %(source.dir)s/main.py
 source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 
-# 关键修改：不指定 Python 具体版本，让 buildozer 生成带 m 后缀的库
-requirements = python3==3.8.10, kivy==2.2.1, pyjnius
+# 关键修改：不指定具体版本，但强制使用 Python 3.8 源码编译
+requirements = python3, kivy==2.2.1, pyjnius
+android.python_version = 3.8
+android.ndk_libc++ = c++_shared
 
-# 强制竖屏
+# 竖屏
 orientation = portrait
 android.manifest.orientation = portrait
 
@@ -24,7 +25,7 @@ android.minapi = 21
 android.ndk = 25b
 android.ndk_api = 21
 
-# 资源显式包含
+# 资源
 android.add_src = images chinese.ttf
 
 # 权限
@@ -37,8 +38,6 @@ presplash.bg_color = #FFF5E6
 
 # 全屏
 fullscreen = 1
-
-# 启用 AndroidX
 android.enable_androidx = True
 
 # 签名（从环境变量读取）
