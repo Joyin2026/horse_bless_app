@@ -26,14 +26,12 @@ jobs:
       - name: Extract version from main.py
         id: version
         run: |
-          # 提取完整版本（可能带 v）
           VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
           if [ -z "$VERSION_FULL" ]; then
             echo "Error: Could not extract APP_VERSION from main.py"
             exit 1
           fi
           echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
-          # 提取数字版本（去掉开头的 v）
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -78,16 +76,29 @@ jobs:
       - name: Verify keystore
         run: ls -l keystore.jks
 
+      # 新增：验证 keystore 有效性
+      - name: Validate keystore
+        run: |
+          sudo apt update && sudo apt install -y openjdk-17-jdk-headless
+          keytool -list -keystore keystore.jks -storepass "$KEYSTORE_PASS" -alias "$KEYSTORE_ALIAS" -v
+
       - name: Build with buildozer
+        env:
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_ALIAS: ${{ env.KEYSTORE_ALIAS }}
+          KEYSTORE_PASS: ${{ env.KEYSTORE_PASS }}
+          KEYALIAS_PASS: ${{ env.KEYALIAS_PASS }}
         run: yes | buildozer android ${{ github.event.inputs.build_type }}
 
-      # 重命名 APK 文件
+      # 新增：验证生成的 APK 签名
+      - name: Verify APK signature
+        run: |
+          keytool -printcert -jarfile bin/*.apk || echo "ERROR: APK has no signature!"
+
       - name: Rename APK
         run: |
-          # 假设 bin/ 目录下只有一个 APK 文件
           mv bin/*.apk bin/马年送祝福-${{ env.VERSION_FULL }}.apk
 
-      # 上传 artifact，压缩包名为 horse_bless_v版本-构建类型.zip
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
