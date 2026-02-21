@@ -12,14 +12,13 @@ main.py - 马年元宵祝福应用（最终版）
 - 祝福语列表无限滚动（不分页）
 - 关于弹窗（暗红标题栏、白色内容、圆角）
 - 全屏显示，无顶部空白
-- 新增首次使用引导（四步气泡，可选不再显示）
+- 首次使用引导（四步气泡，可选不再显示）
 """
 
 import kivy
 import sys
 import os
 import traceback
-import platform
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -40,20 +39,11 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.storage.jsonstore import JsonStore
 
-# 设置Kivy日志级别
-os.environ['KIVY_LOG_LEVEL'] = 'warning'
-
 # ---------- 全局常量 ----------
-APP_VERSION = "v1.7.3"   # 更新版本号
-IS_ANDROID = platform.system() == 'Linux' and 'android' in os.environ.get('PATH', '').lower()
+APP_VERSION = "v1.7.3"
 
 # ---------- 注册中文字体 ----------
-try:
-    LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
-except Exception as e:
-    print(f"字体注册失败: {e}")
-    # 回退到默认字体
-    LabelBase.register(name='Chinese', fn_regular='DroidSansFallback.ttf')
+LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -61,71 +51,44 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
     try:
-        if IS_ANDROID:
-            private_dir = os.getenv('ANDROID_PRIVATE', '/sdcard')
-        else:
-            private_dir = os.path.expanduser('~')
-        log_path = os.path.join(private_dir, 'blessing_app_crash.log')
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write('\n' + '='*50 + '\n')
-            f.write(f'崩溃时间: {os.popen("date").read() if IS_ANDROID else ""}\n')
+        private_dir = os.getenv('ANDROID_PRIVATE', '/sdcard')
+        log_path = os.path.join(private_dir, 'crash.log')
+        with open(log_path, 'a') as f:
             f.write(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-    except Exception as e:
-        print(f"日志写入失败: {e}")
+    except:
+        pass
 
 sys.excepthook = handle_exception
 
-# 设置窗口背景色
 Window.clearcolor = get_color_from_hex('#FFF5E6')
 
-# ---------- Android 相关功能 ----------
-if IS_ANDROID:
-    try:
-        from jnius import autoclass, cast
-        PythonActivity = autoclass('org.kivy.android.PythonActivity')
-        Intent = autoclass('android.content.Intent')
-        Toast = autoclass('android.widget.Toast')
-        String = autoclass('java.lang.String')
-        Context = autoclass('android.content.Context')
-        context = PythonActivity.mActivity
-    except Exception as e:
-        print(f"导入jnius失败: {e}")
-        IS_ANDROID = False
+# ---------- 导入 jnius ----------
+from jnius import autoclass
+PythonActivity = autoclass('org.kivy.android.PythonActivity')
+Intent = autoclass('android.content.Intent')
+Toast = autoclass('android.widget.Toast')
+String = autoclass('java.lang.String')
+context = PythonActivity.mActivity
 
 def show_toast(message):
-    """显示 Toast 提示（兼容Android和桌面）"""
+    """显示 Android 原生 Toast"""
     try:
-        if IS_ANDROID:
-            # Android原生Toast
-            toast = Toast.makeText(context, String(message), Toast.LENGTH_SHORT)
-            toast.show()
-        else:
-            # 桌面端模拟Toast
-            print(f"Toast: {message}")
-            # 可以在这里添加桌面端的提示实现
+        Toast.makeText(context, String(message), Toast.LENGTH_SHORT).show()
     except Exception as e:
-        print(f'Toast显示失败: {e}')
+        print('Toast failed:', e)
 
 def share_text(text):
-    """分享文本（兼容Android和桌面）"""
+    """使用 Android Intent 分享文本（添加标志优化返回行为）"""
     try:
-        if IS_ANDROID:
-            intent = Intent()
-            intent.setAction(Intent.ACTION_SEND)
-            intent.putExtra(Intent.EXTRA_TEXT, String(text))
-            intent.setType('text/plain')
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            chooser = Intent.createChooser(intent, String('分享到'))
-            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(chooser)
-            return True
-        else:
-            # 桌面端复制到剪贴板并提示
-            Clipboard.copy(text)
-            show_toast(f'已复制到剪贴板: {text[:20]}...')
-            return True
+        intent = Intent()
+        intent.setAction(Intent.ACTION_SEND)
+        intent.putExtra(Intent.EXTRA_TEXT, String(text))
+        intent.setType('text/plain')
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(Intent.createChooser(intent, String('分享到')))
+        return True
     except Exception as e:
-        print(f'分享失败: {e}')
+        print('Share failed:', e)
         return False
 
 # ---------- 祝福语数据 ----------
@@ -168,7 +131,7 @@ BLESSINGS_SPRING = {
         "鲜衣怒马少年时，不负韶华行且知。马年到了，祝你意气风发，前程似锦。愿你所有的努力都不被辜负，所有的期待都能落地生根。"
     ],
     '事业搞钱': [
-        "总，马年大吉！给您和家人拜年了。感谢过去一年对我的提携与信任。2026年，祝您策马扬鞭再创辉煌，事业如骏马奔腾，势不可挡！愿公司业绩一马当先，财源万马奔腾！",
+        "**总，马年大吉！给您和家人拜年了。感谢过去一年对我的提携与信任。2026年，祝您策马扬鞭再创辉煌，事业如骏马奔腾，势不可挡！愿公司业绩一马当先，财源万马奔腾！",
         "王经理，新年好！金马贺岁，商机无限。感谢您一直以来的支持与关照。祝您马年行大运，财运亨通，生意兴隆！愿我们在新的一年里继续并驾齐驱，携手共赢！",
         "亲爱的同事，马年快乐！过去一年，感谢有你并肩作战。2026年，愿我们工作上一马当先，配合默契；生活上龙马精神，多姿多彩。祝你升职加薪“马上”兑现，年终奖拿到手软！",
         "创业伙伴，新春快乐！厉兵秣马又一年，马年是我们大展宏图的好时机。愿你在商海中策马奔腾，独占鳌头！所有的项目都马到成功，所有的付出都能换来丰厚的回报。",
@@ -380,18 +343,12 @@ class StartScreen(Screen):
         super().__init__(**kwargs)
         layout = FloatLayout()
 
-        # 轮播图片列表（添加默认图片容错）
+        # 轮播图片列表
         splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
         self.carousel = Carousel(direction='right', loop=True)
         for img_path in splash_images:
-            # 检查图片文件是否存在
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
-            # 绑定错误处理
-            img.bind(on_error=lambda *x: print(f"图片加载失败: {img_path}"))
             self.carousel.add_widget(img)
-        
-        # 监听Carousel的index变化来更新指示器
-        self.carousel.bind(index=self.on_carousel_index)
         # 监听触摸事件（用户手动滑动时会触发）
         self.carousel.bind(on_touch_down=self.on_carousel_touch_down)
         layout.add_widget(self.carousel)
@@ -448,18 +405,19 @@ class StartScreen(Screen):
         self.add_widget(layout)
 
         # 定时器管理
-        self._auto_slide_trigger = None   # 自动轮播定时器（每秒切换）
-        self._enter_timer = None           # 进入主屏倒计时定时器
+        self._auto_slide_trigger = None   # 自动轮播定时器（每3秒切换）
+        self._enter_timer = None           # 进入主屏倒计时定时器（每秒更新）
         self._idle_timer = None            # 无操作5秒后恢复的定时器
 
-    def on_carousel_index(self, instance, value):
-        """Carousel索引变化时更新指示器"""
-        self.update_indicator(int(value))
+        # 初始状态：启动自动轮播和6秒倒计时
+        self.countdown = 6
+        self._start_auto_slide()
+        self._start_enter_countdown()
 
     def _start_auto_slide(self):
-        """启动自动轮播，每秒切换一张"""
+        """启动自动轮播，每3秒切换一张"""
         self._stop_auto_slide()
-        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 1)  # 修复：改为1秒
+        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 3)
 
     def _stop_auto_slide(self):
         if self._auto_slide_trigger:
@@ -471,7 +429,8 @@ class StartScreen(Screen):
         self._stop_enter_countdown()
         self.countdown = 6
         self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)  # 修复：改为1秒
+        # 修正：间隔应为1秒，确保倒计时正确
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -486,11 +445,7 @@ class StartScreen(Screen):
             self.go_main()
 
     def _next_slide(self, dt):
-        """切换到下一张图片"""
-        try:
-            self.carousel.load_next()
-        except Exception as e:
-            print(f"轮播切换失败: {e}")
+        self.carousel.load_next()
 
     def _reset_idle_timer(self):
         """重置无操作定时器：取消当前定时，启动5秒后恢复的定时"""
@@ -506,29 +461,21 @@ class StartScreen(Screen):
 
     def on_carousel_touch_down(self, instance, touch):
         """当用户触摸Carousel时触发（包括滑动、点击等）"""
-        # 判断触摸点是否在Carousel区域内（防止误触其他区域）
         if self.carousel.collide_point(*touch.pos):
-            # 停止自动轮播和倒计时
             self._stop_auto_slide()
             self._stop_enter_countdown()
-            # 重置无操作定时器（5秒后恢复）
             self._reset_idle_timer()
 
     def update_indicator(self, index):
-        """更新指示器状态"""
-        try:
-            for i, lbl in enumerate(self.indicators):
-                lbl.text = '●' if i == index else '○'
-        except Exception as e:
-            print(f"更新指示器失败: {e}")
+        for i, lbl in enumerate(self.indicators):
+            lbl.text = '●' if i == index else '○'
 
     def on_enter(self):
-        """进入屏幕时（每次显示）重置状态"""
+        """进入屏幕时重置状态"""
         self.update_indicator(0)
-        self.carousel.index = 0  # 确保从第一张开始
+        self.carousel.index = 0
         self._start_auto_slide()
         self._start_enter_countdown()
-        # 确保任何残留的空闲定时器被取消
         if self._idle_timer:
             self._idle_timer.cancel()
             self._idle_timer = None
@@ -542,13 +489,10 @@ class StartScreen(Screen):
             self._idle_timer = None
 
     def skip_to_main(self, instance):
-        """点击跳过，立即进入主页面"""
-        self.on_leave()  # 清理定时器
+        self.on_leave()
         self.manager.current = 'main'
 
     def go_main(self, *args):
-        """跳转到主页面"""
-        self.on_leave()
         self.manager.current = 'main'
 
 
@@ -558,7 +502,6 @@ class GuideOverlay(FloatLayout):
         super().__init__(**kwargs)
         self.main_screen = main_screen
         self.current_step = 0
-        self.dont_show_again = False
 
         # 半透明背景
         with self.canvas.before:
@@ -569,71 +512,42 @@ class GuideOverlay(FloatLayout):
         # 定义四个步骤的目标和说明文字
         self.steps = [
             (main_screen.spring_btn, "第一步：选择节日"),
-            (None, "第二步：选择祝福语分类"),  # 延迟查找
-            (None, "第三步：点击选定祝福语"),  # 延迟查找
+            (self._get_humor_button(), "第二步：选择祝福语分类"),
+            (self._get_first_blessing_button(), "第三步：点击选定祝福语"),
             (main_screen.share_btn, "第四步：点击立马发送")
         ]
-        # 延迟一帧创建UI，确保布局已完成
-        Clock.schedule_once(lambda dt: self.create_step_ui(), 0.1)
+        self.create_step_ui()
 
     def update_bg(self, *args):
         self.bg_rect.pos = self.pos
         self.bg_rect.size = self.size
 
     def _get_humor_button(self):
-        """从分类布局中找到文字为“幽默搞怪”的按钮"""
-        try:
-            for child in self.main_screen.category_layout.children:
-                if isinstance(child, Button) and child.text == '幽默搞怪':
-                    return child
-            # 如果找不到，返回第一个分类按钮
-            if self.main_screen.category_layout.children:
-                return self.main_screen.category_layout.children[0]
-        except Exception as e:
-            print(f"查找分类按钮失败: {e}")
-        return self.main_screen.category_layout  # 最后回退到分类布局本身
+        for child in self.main_screen.category_layout.children:
+            if isinstance(child, Button) and child.text == '幽默搞怪':
+                return child
+        return None
 
     def _get_first_blessing_button(self):
-        """获取祝福语列表中的第一条按钮（位于最上方）"""
-        try:
-            if self.main_screen.list_layout.children:
-                # children 列表的第一个是最后添加的（底部），最后一个是最先添加的（顶部）
-                return self.main_screen.list_layout.children[-1]
-        except Exception as e:
-            print(f"查找祝福语按钮失败: {e}")
-        return self.main_screen.scroll_view  # 回退到滚动视图
+        if self.main_screen.list_layout.children:
+            return self.main_screen.list_layout.children[-1]
+        return None
 
     def create_step_ui(self):
-        """创建当前步骤的UI"""
         self.clear_widgets()
-        
-        # 动态更新步骤目标
-        if self.current_step == 1:
-            self.steps[1] = (self._get_humor_button(), "第二步：选择祝福语分类")
-        elif self.current_step == 2:
-            self.steps[2] = (self._get_first_blessing_button(), "第三步：点击选定祝福语")
-        
         if self.current_step >= len(self.steps):
             self.dismiss()
             return
 
         target, text = self.steps[self.current_step]
         if target is None:
-            # 如果目标不存在，跳过此步（容错）
             self.next_step()
             return
 
-        # 计算目标在窗口中的位置
-        try:
-            win_pos = target.to_window(*target.pos)
-            target_center_x = win_pos[0] + target.width / 2
-            target_top = win_pos[1] + target.height
-        except Exception as e:
-            print(f"计算目标位置失败: {e}")
-            self.next_step()
-            return
+        win_pos = target.to_window(*target.pos)
+        target_center_x = win_pos[0] + target.width / 2
+        target_top = win_pos[1] + target.height
 
-        # 创建气泡（指示框）
         bubble = BoxLayout(orientation='vertical', size_hint=(None, None),
                            size=(dp(220), dp(100)), padding=dp(10), spacing=dp(5))
         with bubble.canvas.before:
@@ -643,10 +557,8 @@ class GuideOverlay(FloatLayout):
                              halign='center', valign='middle', font_name='Chinese')
         bubble_label.bind(size=lambda s, w: setattr(bubble_label, 'text_size', (bubble_label.width, None)))
 
-        # 按钮区域
         btn_layout = BoxLayout(size_hint_y=0.4, spacing=dp(10))
         if self.current_step == len(self.steps) - 1:
-            # 最后一步：显示复选框 + 完成按钮
             check_layout = BoxLayout(size_hint_x=0.6)
             chk = CheckBox(size_hint_x=0.3)
             chk_label = Label(text='下次不再显示', color=(0,0,0,1), size_hint_x=0.7, font_name='Chinese')
@@ -664,18 +576,14 @@ class GuideOverlay(FloatLayout):
         bubble.add_widget(bubble_label)
         bubble.add_widget(btn_layout)
 
-        # 将气泡添加到覆盖层
         self.add_widget(bubble)
 
-        # 计算气泡位置：默认放在目标上方，如果超出屏幕则放在下方
         bubble_x = target_center_x - bubble.width / 2
         bubble_y = target_top + dp(10)
-        # 检查右边界
         if bubble_x + bubble.width > self.width:
             bubble_x = self.width - bubble.width - dp(10)
         if bubble_x < 0:
             bubble_x = dp(10)
-        # 检查上边界，如果超出则放在目标下方
         if bubble_y + bubble.height > self.height:
             bubble_y = win_pos[1] - bubble.height - dp(10)
         if bubble_y < 0:
@@ -683,28 +591,20 @@ class GuideOverlay(FloatLayout):
         bubble.pos = (bubble_x, bubble_y)
 
     def next_step(self):
-        """进入下一步"""
         self.current_step += 1
         self.create_step_ui()
 
     def finish(self, dont_show):
-        """最后一步完成，根据复选框状态存储设置，并关闭引导"""
         if dont_show:
-            try:
-                # 存储到 JsonStore
-                store = JsonStore(os.path.join(App.get_running_app().user_data_dir, 'guide.json'))
-                store.put('guide', shown=True)
-            except Exception as e:
-                print(f"存储引导设置失败: {e}")
+            store = JsonStore(App.get_running_app().user_data_dir + '/guide.json')
+            store.put('guide', shown=True)
         self.dismiss()
 
     def dismiss(self):
-        """关闭引导层"""
         if self.parent:
             self.parent.remove_widget(self)
 
     def on_touch_down(self, touch):
-        # 阻止触摸事件传递到底层控件
         return True
 
 
@@ -721,15 +621,14 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # 顶部图片（添加容错）
+        # 顶部图片
         top_container = FloatLayout(size_hint_y=None, height=dp(150))
         top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
-        top_img.bind(on_error=lambda *x: print("顶部图片加载失败"))
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
-        # 节日切换按钮（三个）
+        # 节日切换按钮
         festival_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(2))
         self.spring_btn = Button(
             text='春节祝福',
@@ -765,17 +664,17 @@ class MainScreen(Screen):
         self.update_category_buttons()
         main_layout.add_widget(self.category_layout)
 
-        # 祝福语列表（可滚动）
+        # 祝福语列表
         self.scroll_view = ScrollView()
         self.scroll_view.size_hint_y = 1
-        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8), padding=dp(8))
+        self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
         # 底部功能按钮
-        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8), padding=dp(8))
-        self.share_btn = Button(  # 保存为实例变量供引导使用
+        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
+        self.share_btn = Button(
             text='发给微信好友',
             background_color=get_color_from_hex('#4CAF50'),
             color=(1,1,1,1),
@@ -806,67 +705,43 @@ class MainScreen(Screen):
         self.add_widget(main_layout)
         self.show_current_page()
 
-        # 引导标志
-        self.guide_shown = False
-        self._check_guide()
-
-    def _check_guide(self):
-        """检查是否需要显示引导"""
-        try:
-            store_path = os.path.join(App.get_running_app().user_data_dir, 'guide.json')
-            store = JsonStore(store_path)
-            if store.exists('guide'):
-                self.guide_shown = store.get('guide')['shown']
-            else:
-                self.guide_shown = False
-        except Exception as e:
-            print(f"检查引导状态失败: {e}")
-            self.guide_shown = False
-
     def on_enter(self):
-        """每次进入主屏幕时，如果未显示过引导，则显示"""
-        if not self.guide_shown:
-            # 延迟一帧显示，确保布局已完成
-            Clock.schedule_once(lambda dt: self.show_guide(), 0.5)
+        """每次进入主屏幕时，如果存储中没有 'shown' 标记，则显示引导"""
+        try:
+            store = JsonStore(App.get_running_app().user_data_dir + '/guide.json')
+            if store.exists('guide') and store.get('guide')['shown']:
+                return  # 已勾选“不再显示”，跳过引导
+        except:
+            pass
+        # 未标记或存储出错，显示引导
+        Clock.schedule_once(lambda dt: self.show_guide(), 0)
 
     def show_guide(self):
         """显示引导覆盖层"""
-        if self.guide_shown:
-            return
-        try:
-            overlay = GuideOverlay(self)
-            self.add_widget(overlay)
-            # 标记已显示（但还未存储，存储由用户选择）
-            self.guide_shown = True  # 防止多次显示
-        except Exception as e:
-            print(f"显示引导失败: {e}")
+        overlay = GuideOverlay(self)
+        self.add_widget(overlay)
 
     def update_category_buttons(self):
-        """更新分类按钮"""
         self.category_layout.clear_widgets()
-        try:
-            if self.current_festival == '春节祝福':
-                categories = list(BLESSINGS_SPRING.keys())
-            elif self.current_festival == '元宵节祝福':
-                categories = list(BLESSINGS_LANTERN.keys())
-            else:
-                categories = list(BLESSINGS_RANDOM.keys())
+        if self.current_festival == '春节祝福':
+            categories = list(BLESSINGS_SPRING.keys())
+        elif self.current_festival == '元宵节祝福':
+            categories = list(BLESSINGS_LANTERN.keys())
+        else:
+            categories = list(BLESSINGS_RANDOM.keys())
 
-            for cat in categories:
-                btn = Button(
-                    text=cat,
-                    size_hint_x=1/len(categories),
-                    background_color=get_color_from_hex('#DAA520' if cat == self.current_category else '#8B4513'),
-                    color=(1,1,1,1),
-                    font_name='Chinese'
-                )
-                btn.bind(on_press=lambda x, c=cat: self.switch_category(c))
-                self.category_layout.add_widget(btn)
-        except Exception as e:
-            print(f"更新分类按钮失败: {e}")
+        for cat in categories:
+            btn = Button(
+                text=cat,
+                size_hint_x=1/len(categories),
+                background_color=get_color_from_hex('#DAA520' if cat == self.current_category else '#8B4513'),
+                color=(1,1,1,1),
+                font_name='Chinese'
+            )
+            btn.bind(on_press=lambda x, c=cat: self.switch_category(c))
+            self.category_layout.add_widget(btn)
 
     def switch_category(self, category):
-        """切换分类"""
         if category == self.current_category:
             return
         self.current_category = category
@@ -874,12 +749,10 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def _update_status_rect(self, instance, value):
-        """更新状态栏背景"""
         self.status_rect.pos = instance.pos
         self.status_rect.size = instance.size
 
     def switch_festival(self, festival):
-        """切换节日"""
         if festival == self.current_festival:
             return
         self.current_festival = festival
@@ -903,7 +776,6 @@ class MainScreen(Screen):
         self.show_current_page()
 
     def update_category_list(self):
-        """更新分类列表"""
         if self.current_festival == '春节祝福':
             self.category_list = list(BLESSINGS_SPRING.keys())
         elif self.current_festival == '元宵节祝福':
@@ -912,7 +784,6 @@ class MainScreen(Screen):
             self.category_list = list(BLESSINGS_RANDOM.keys())
 
     def get_current_blessings_dict(self):
-        """获取当前节日的祝福语字典"""
         if self.current_festival == '春节祝福':
             return BLESSINGS_SPRING
         elif self.current_festival == '元宵节祝福':
@@ -921,72 +792,46 @@ class MainScreen(Screen):
             return BLESSINGS_RANDOM
 
     def show_current_page(self):
-        """显示当前分类的祝福语列表"""
         self.list_layout.clear_widgets()
-        try:
-            blessings_dict = self.get_current_blessings_dict()
-            blessings = blessings_dict[self.current_category]
-            # 一次性加载所有祝福语，不分页
-            for text in blessings:
-                btn = Button(
-                    text=text,
-                    size_hint_y=None,
-                    height=dp(80),  # 初始高度
-                    background_normal='',
-                    background_color=(1, 1, 1, 0.9),
-                    color=(0.1, 0.1, 0.1, 1),
-                    halign='left',
-                    valign='middle',  # 改为middle更美观
-                    padding=(dp(10), dp(10)),
-                    font_name='Chinese',
-                    font_size=sp(14)
-                )
-                # 动态调整按钮高度以适应文本
-                def update_height(instance, value):
-                    instance.height = max(dp(80), instance.texture_size[1] + dp(20))
-                
-                btn.bind(
-                    width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
-                    texture_size=update_height
-                )
-                btn.bind(on_press=self.on_copy)
-                btn.blessing_text = text
-                btn.default_bg_color = (1, 1, 1, 0.9)
-                btn.default_text_color = (0.1, 0.1, 0.1, 1)
-                self.list_layout.add_widget(btn)
-        except Exception as e:
-            print(f"显示祝福语列表失败: {e}")
-            # 添加错误提示
-            error_label = Label(
-                text=f"加载失败: {str(e)}",
-                color=(1, 0, 0, 1),
+        blessings_dict = self.get_current_blessings_dict()
+        blessings = blessings_dict[self.current_category]
+        for text in blessings:
+            btn = Button(
+                text=text,
+                size_hint_y=None,
+                height=dp(80),
+                background_normal='',
+                background_color=(1, 1, 1, 0.9),
+                color=(0.1, 0.1, 0.1, 1),
+                halign='left',
+                valign='top',
+                padding=(dp(10), dp(5)),
                 font_name='Chinese'
             )
-            self.list_layout.add_widget(error_label)
+            btn.bind(
+                width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
+                texture_size=lambda *x, b=btn: setattr(b, 'height', b.texture_size[1] + dp(10))
+            )
+            btn.bind(on_press=self.on_copy)
+            btn.blessing_text = text
+            btn.default_bg_color = (1, 1, 1, 0.9)
+            self.list_layout.add_widget(btn)
 
     def on_copy(self, instance):
-        """复制祝福语到剪贴板"""
-        try:
-            text = instance.blessing_text
-            Clipboard.copy(text)
-            self.last_copied_text = text
-            show_toast('祝福语已复制')
+        text = instance.blessing_text
+        Clipboard.copy(text)
+        self.last_copied_text = text
+        show_toast('祝福语已复制')
 
-            # 恢复上一个选中的条目背景色
-            if self.selected_item and self.selected_item != instance:
-                self.selected_item.background_color = self.selected_item.default_bg_color
-                self.selected_item.color = self.selected_item.default_text_color
+        if self.selected_item and self.selected_item != instance:
+            self.selected_item.background_color = self.selected_item.default_bg_color
+            self.selected_item.color = (0.1, 0.1, 0.1, 1)
 
-            # 设置当前条目为选中状态（暗红色背景，亮黄色文字）
-            instance.background_color = (0.5, 0.1, 0.1, 1)  # 暗红色
-            instance.color = (1, 1, 0, 1)                   # 亮黄色
-            self.selected_item = instance
-        except Exception as e:
-            print(f"复制失败: {e}")
-            show_toast('复制失败，请重试')
+        instance.background_color = (0.5, 0.1, 0.1, 1)
+        instance.color = (1, 1, 0, 1)
+        self.selected_item = instance
 
     def share_blessings(self, instance):
-        """分享最近复制的祝福语"""
         if self.last_copied_text:
             if share_text(self.last_copied_text):
                 show_toast('分享已启动')
@@ -997,33 +842,77 @@ class MainScreen(Screen):
             show_toast('请先选择一条祝福')
 
     def show_about_popup(self, instance):
-        """显示关于弹窗，暗红标题栏、白色内容、圆角"""
-        try:
-            content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                                size_hint=(None, None), size=(dp(320), dp(220)))
-            with content.canvas.before:
-                Color(1, 1, 1, 1)
-                self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-            content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
-                        size=lambda *x: setattr(self.bg_rect, 'size', content.size))
+        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                            size_hint=(None, None), size=(dp(320), dp(220)))
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+        content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
+                     size=lambda *x: setattr(self.bg_rect, 'size', content.size))
 
-            title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-            with title_bar.canvas.before:
-                Color(0.5, 0.1, 0.1, 1)
-                self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
-            title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
-                        size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
+        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+        with title_bar.canvas.before:
+            Color(0.5, 0.1, 0.1, 1)
+            self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+        title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
+                       size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-            title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
-                                halign='left', valign='middle', size_hint_x=0.8)
-            title_bar.add_widget(title_label)
+        title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
+                            halign='left', valign='middle', size_hint_x=0.8)
+        title_bar.add_widget(title_label)
 
-            close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
-                            pos_hint={'right':1, 'center_y':0.5},
-                            background_color=(0,0,0,0), color=(1,1,1,1),
-                            font_name='Chinese', bold=True)
-            
-            # 内容区域：左内边距 20dp
-            content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
-            with content_area.canvas.before:
-                Color(1, 1
+        close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
+                           pos_hint={'right':1, 'center_y':0.5},
+                           background_color=(0,0,0,0), color=(1,1,1,1),
+                           font_name='Chinese', bold=True)
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        title_bar.add_widget(close_btn)
+
+        content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
+        with content_area.canvas.before:
+            Color(1, 1, 1, 1)
+            self.content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+        content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
+                          size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
+
+        info_texts = [
+            '应用名称：马年新春祝福',
+            '应用版本：' + APP_VERSION,
+            '应用开发：瑾 煜',
+            '反馈建议：contactme@sjinyu.com',
+            '版权所有，侵权必究！'
+        ]
+        for line in info_texts:
+            lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
+                        halign='left', valign='middle', size_hint_y=None, height=dp(25))
+            lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
+            content_area.add_widget(lbl)
+
+        content.add_widget(title_bar)
+        content.add_widget(content_area)
+
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(None, None),
+            size=content.size,
+            background_color=(0,0,0,0),
+            auto_dismiss=False
+        )
+        popup.open()
+
+
+class BlessApp(App):
+    def build(self):
+        Window.borderless = True
+        Window.fullscreen = True
+        Window.size = Window.system_size
+
+        sm = ScreenManager()
+        sm.add_widget(StartScreen(name='start'))
+        sm.add_widget(MainScreen(name='main'))
+        return sm
+
+
+if __name__ == '__main__':
+    BlessApp().run()
