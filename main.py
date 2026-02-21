@@ -16,6 +16,10 @@ main.py - 马年元宵祝福应用（最终版）
 """
 
 import kivy
+from kivy.config import Config
+Config.set('graphics', 'orientation', 'portrait')
+Config.set('graphics', 'resizable', False)
+
 import sys
 import os
 import traceback
@@ -37,8 +41,7 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.storage.jsonstore import JsonStore
-from kivy.core.window import Window
-Window.orientation = 'landscape'
+
 
 # ---------- 全局常量 ----------
 APP_VERSION = "1.7.4"
