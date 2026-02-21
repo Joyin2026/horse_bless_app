@@ -16,7 +16,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 
 # 需求
-requirements = python3==3.8.10,kivy==2.2.1,jnius
+requirements = python3, kivy, pyjnius
 
 # 权限
 android.permissions = INTERNET
