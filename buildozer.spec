@@ -8,8 +8,8 @@ version.regex = APP_VERSION = ["']v(.*?)["']
 version.filename = %(source.dir)s/main.py
 
 source.dir = .
-source.include_exts = py,png,jpg,ttf,txt
-source.include_patterns = images/*.png, images/*.jpg, chinese.ttf, NotoColorEmoji.ttf
+source.include_exts = py,png,jpg,txt
+source.include_patterns = images/*.png, images/*.jpg
 
 requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 
