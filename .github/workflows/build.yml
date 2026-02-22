@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版
+name: Build APK (Docker) - 最终版 v2
 
 on:
   workflow_dispatch:
@@ -32,25 +32,26 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker
+      - name: Build in Docker (with absolute path)
         run: |
-          # 确保 .buildozer 目录存在（使用绝对路径）
-          mkdir -p $HOME/.buildozer
-
-          # 准备挂载参数（使用绝对路径）
-          DOCKER_ARGS="--rm -v $PWD:/app -v $HOME/.buildozer:/home/user/.buildozer"
+          set -x  # 打印执行的命令，方便调试
+          # 使用绝对路径，避免波浪号问题
+          mkdir -p "${HOME}/.buildozer"
+          BUILD_DIR="${HOME}/.buildozer"
           
-          # 如果是 release 构建，挂载 keystore
+          # 构建 Docker 参数
+          DOCKER_ARGS="--rm -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-            DOCKER_ARGS="$DOCKER_ARGS -v $PWD/keystore.jks:/app/keystore.jks"
-            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_FILE=/app/keystore.jks"
-            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}"
-            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}"
-            DOCKER_ARGS="$DOCKER_ARGS -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
+            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_FILE=/app/keystore.jks"
+            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}"
+            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 运行构建，并实时输出日志
-          docker run $DOCKER_ARGS \
+          # 运行 Docker 构建
+          docker run ${DOCKER_ARGS} \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
