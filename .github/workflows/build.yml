@@ -39,11 +39,9 @@ jobs:
           set -x
           set -o pipefail
 
-          # 创建缓存目录
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
 
-          # Docker 运行参数
           DOCKER_ARGS="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
 
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
@@ -54,7 +52,7 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 运行构建，自动回答 root 警告
+          # 自动回答 root 警告
           printf 'y\n' | docker run ${DOCKER_ARGS} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
@@ -62,11 +60,9 @@ jobs:
             kivy/buildozer:latest \
             android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成，并重命名为中文文件名
+          # 检查 APK 是否生成（使用通配符）
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "APK generated successfully."
-            # 重命名为：马年送祝福 - v1.7.5.apk
-            mv bin/*.apk "bin/马年送祝福 - v${{ env.VERSION }}.apk"
           else
             echo "ERROR: APK not found! Build may have failed."
             echo "===== LAST 200 LINES OF BUILD LOG ====="
@@ -82,6 +78,21 @@ jobs:
         with:
           name: build-full-log
           path: build_full.log
+
+      - name: Rename APK (host)
+        if: success()
+        run: |
+          cd bin
+          # 找到生成的 APK 文件（格式如 blessapp-1.7.5-arm64-v8a-debug.apk）
+          apk_file=$(ls blessapp-*.apk | head -n1)
+          if [ -n "$apk_file" ]; then
+            mv "$apk_file" "马年送祝福 - v${{ env.VERSION }}.apk"
+            echo "Renamed to 马年送祝福 - v${{ env.VERSION }}.apk"
+          else
+            echo "No APK file found in bin directory"
+            exit 1
+          fi
+        shell: bash
 
       - name: Upload APK
         if: success()
