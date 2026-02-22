@@ -62,8 +62,8 @@ jobs:
           echo "ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
           echo "GRADLE_OPTS=-Xmx2048m" >> $GITHUB_ENV
           echo "JAVA_OPTS=-Xmx2048m" >> $GITHUB_ENV
-          echo "P4A_DOWNLOAD_RETRIES=5" >> $GITHUB_ENV          # 增加重试次数
-          echo "P4A_DOWNLOAD_TIMEOUT=60" >> $GITHUB_ENV        # 延长超时
+          echo "P4A_DOWNLOAD_RETRIES=10" >> $GITHUB_ENV
+          echo "P4A_DOWNLOAD_TIMEOUT=120" >> $GITHUB_ENV
 
       # 缓存 .buildozer 目录，避免重复下载 SDK/NDK
       - name: Cache .buildozer
@@ -85,15 +85,19 @@ jobs:
 
       - name: Accept Android SDK licenses
         run: |
-          # 如果 SDK 尚未下载，此步骤可能失败，但没关系
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      # 构建主命令，加入重试机制（最多3次）
+      # 构建主命令，加入重试机制（最多3次），并捕获日志
       - name: Build with buildozer (with retry)
+        id: build
         run: |
           for i in {1..3}; do
             echo "Attempt $i of 3..."
-            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log && break
+            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+              echo "Build succeeded on attempt $i"
+              exit 0
+            fi
             if [ $i -eq 3 ]; then
               echo "All attempts failed."
               exit 1
@@ -102,16 +106,16 @@ jobs:
             sleep 10
           done
         shell: bash
-        continue-on-error: true
 
       - name: Show last 200 lines of build log on failure
-        if: failure()
+        if: failure() && steps.build.outcome == 'failure'
         run: |
           echo "===== LAST 200 LINES OF BUILD.LOG ====="
           tail -n 200 build.log
           echo "========================================"
 
       - name: Verify APK existence
+        if: success()
         run: |
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "APK found."
@@ -121,6 +125,7 @@ jobs:
           fi
 
       - name: Verify Python library
+        if: success()
         run: |
           APK_PATH=$(ls bin/*.apk | head -n1)
           echo "APK: $APK_PATH"
@@ -129,11 +134,11 @@ jobs:
           cat python_libs.txt
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
           path: bin/*.apk
-          if-no-files-found: ignore
 
       - name: Upload build log
         if: always()
@@ -143,8 +148,8 @@ jobs:
           path: build.log
 
       - name: Upload Python lib list
-        if: always()
-        uses: actions/cache@v4
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
           name: python-libs
           path: python_libs.txt
