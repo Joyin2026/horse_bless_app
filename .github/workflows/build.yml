@@ -34,8 +34,11 @@ jobs:
 
       - name: Build in Docker
         run: |
-          # 准备挂载参数
-          DOCKER_ARGS="--rm -v $PWD:/app -v ~/.buildozer:/home/user/.buildozer"
+          # 确保 .buildozer 目录存在（使用绝对路径）
+          mkdir -p $HOME/.buildozer
+
+          # 准备挂载参数（使用绝对路径）
+          DOCKER_ARGS="--rm -v $PWD:/app -v $HOME/.buildozer:/home/user/.buildozer"
           
           # 如果是 release 构建，挂载 keystore
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
