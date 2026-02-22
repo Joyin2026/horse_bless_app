@@ -39,8 +39,9 @@ from kivy.core.text import LabelBase
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.6"   # 统一版本定义
 
-# ---------- 注册中文字体 ----------
+# ---------- 注册中文字体和 Emoji 字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
+LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf,NotoColorEmoji.ttf')
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -90,19 +91,7 @@ def share_text(text):
 # ---------- 祝福语数据 ----------
 # 春节祝福语（5类，每类10条）
 BLESSINGS_SPRING = {
-    '幽默搞怪': [
-        "马年到，好运“马”不停蹄向你奔来！2026年，祝你搞钱速度堪比千里马，摸鱼技术练得炉火纯青。不做职场牛马，只做快乐野马，钱包鼓鼓，烦恼全无，咱们继续相爱相杀！",
-        "你的丙午马年专属好运已送达，请签收！新的一年，主打一个“马上”系列：马上暴富，马上变瘦，马上脱单。最重要的是，马上实现财务自由，带我一起飞！",
-        "兄弟，马年快乐！祝你在新的一年里，发际线像马尾一样浓密，银行卡余额像马蹄声一样数不清。工作上一马当先，酒桌上千杯不醉，今年咱们必须红红火火！",
-        "集美，马年大吉！听说马年是咱们的主场，愿你胡吃海喝不长肉，熬夜追剧不爆痘。桃花朵朵开，烂桃花滚远点，所有的美好都“马上”发生在你身上！",
-        "嘚驾！好运马正向你狂奔，请注意避让烦恼，张开双臂迎接暴富。2026年，希望你依然保持那份天真，像小马驹一样在快乐草原上撒欢，永远做个快乐的小孩。",
-        "马年许愿：愿你赚钱不费力，生活不费心，爱情不费神。做一匹脱缰的野马，在自由的天地里驰骋，去哪里都顺路，做什么都成功！",
-        "过年好！马年到了，祝你智商在线，颜值爆表，钱包鼓包。拒绝内卷，拒绝内耗，马力全开享受生活，把去年的遗憾都变成今年的惊喜！",
-        "特批你马年“带薪快乐”一年！愿你在2026年，老板不找茬，客户不磨叽，同事不甩锅。每天都是元气满满的一天，所有的好事都排队来找你！",
-        "马年到，送你一匹“神马”！它能驮着你避开所有弯路，直达幸福终点。祝你今年买彩票中头奖，打游戏必吃鸡，吃火锅永远有毛肚，快乐加倍！",
-        "虽然你不属马，但我祝你马年“马”力十足！追得上高铁，哄得好爱人，打得过生活的小怪兽。2026，咱们一起策马奔腾，活得潇潇洒洒！"
-    ],
-    '深情走心': [
+       '深情走心': [
         "岁月匆匆，又是一年。在这个喜庆的马年春节，特意给你发去这条祝福。感谢你这么多年的陪伴与包容，无论距离远近，你永远是我心里最重要的人。愿你马年平安喜乐，万事胜意。",
         "马蹄声声，踏碎旧岁的尘埃，迎来新岁的曙光。很庆幸，新的一年依然有你在身边。2026丙午年，愿我们的情谊如骏马般坚韧，如老酒般醇厚。新年快乐，我的老朋友。",
         "距离阻挡不了祝福的脚步，马年的钟声已经敲响。远方的你，还好吗？希望这条信息能给你带去一丝温暖。愿你在新的一年里，有人爱，有事做，有所期待，所有的奔赴都有意义。",
@@ -149,6 +138,18 @@ BLESSINGS_SPRING = {
         "老师，马年快乐！感谢您的谆谆教诲，您辛苦了。祝您在新的一年里，桃李满天下，春晖遍四方。愿您身体硬朗，精神饱满，继续在教育的草原上策马奔腾，培育更多千里马！",
         "退休的大伯，新年好！马年到了，祝您退休生活更加精彩。愿您龙马精神，积极乐观。没事养养花、遛遛鸟，享受悠闲时光。祝您福如东海，寿比南山！",
         "致家族长辈：金马迎春，福气盈门。在这个喜庆的日子里，祝您和家人马年大吉！愿您身体安康，精神矍铄；家庭和睦，万事兴旺。愿您岁岁有今朝，年年如今日！"
+    ],
+ '幽默搞怪': [
+        "马年到，好运“马”不停蹄向你奔来！2026年，祝你搞钱速度堪比千里马，摸鱼技术练得炉火纯青。不做职场牛马，只做快乐野马，钱包鼓鼓，烦恼全无，咱们继续相爱相杀！",
+        "你的丙午马年专属好运已送达，请签收！新的一年，主打一个“马上”系列：马上暴富，马上变瘦，马上脱单。最重要的是，马上实现财务自由，带我一起飞！",
+        "兄弟，马年快乐！祝你在新的一年里，发际线像马尾一样浓密，银行卡余额像马蹄声一样数不清。工作上一马当先，酒桌上千杯不醉，今年咱们必须红红火火！",
+        "集美，马年大吉！听说马年是咱们的主场，愿你胡吃海喝不长肉，熬夜追剧不爆痘。桃花朵朵开，烂桃花滚远点，所有的美好都“马上”发生在你身上！",
+        "嘚驾！好运马正向你狂奔，请注意避让烦恼，张开双臂迎接暴富。2026年，希望你依然保持那份天真，像小马驹一样在快乐草原上撒欢，永远做个快乐的小孩。",
+        "马年许愿：愿你赚钱不费力，生活不费心，爱情不费神。做一匹脱缰的野马，在自由的天地里驰骋，去哪里都顺路，做什么都成功！",
+        "过年好！马年到了，祝你智商在线，颜值爆表，钱包鼓包。拒绝内卷，拒绝内耗，马力全开享受生活，把去年的遗憾都变成今年的惊喜！",
+        "特批你马年“带薪快乐”一年！愿你在2026年，老板不找茬，客户不磨叽，同事不甩锅。每天都是元气满满的一天，所有的好事都排队来找你！",
+        "马年到，送你一匹“神马”！它能驮着你避开所有弯路，直达幸福终点。祝你今年买彩票中头奖，打游戏必吃鸡，吃火锅永远有毛肚，快乐加倍！",
+        "虽然你不属马，但我祝你马年“马”力十足！追得上高铁，哄得好爱人，打得过生活的小怪兽。2026，咱们一起策马奔腾，活得潇潇洒洒！"
     ]
 }
 
@@ -281,7 +282,7 @@ BLESSINGS_RANDOM = {
         "愿你像打游戏一样，一路升级打怪，最后成为人生赢家。🎮🏆",
         "愿你所有的bug都被修复，愿你所有的需求都被满足，愿你永远没有蓝屏。🐞✅",
         "愿你在这个快节奏的时代，慢下来享受生活，做一个快乐的小神仙。🧘‍♂️☁️",
-        "愿你像向日葵一样，每天都向着阳光，茁壮成长，然后结出好多好多的瓜子。🌻🌰",
+        "愿你像向日葵一样，每天都向着阳光，努力生长，然后结出好多好多的瓜子。🌻🌰",
         "愿你在这个冬天，不仅有棉袄，还有冰淇淋；不仅有暖气，还有冰啤酒。🧥🍦🍺"
     ],
     '唯美诗意': [
@@ -364,7 +365,7 @@ class StartScreen(Screen):
                 color=(1,1,1,1),
                 size_hint=(None, None),
                 size=(dp(20), dp(20)),
-                font_name='Chinese'
+                font_name='ChineseEmoji'
             )
             self.indicators.append(lbl)
             indicator_layout.add_widget(lbl)
@@ -381,7 +382,7 @@ class StartScreen(Screen):
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         # 跳过按钮
         skip_btn = Button(
@@ -391,7 +392,7 @@ class StartScreen(Screen):
             background_color=get_color_from_hex('#80000000'),
             color=(1,1,1,1),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         skip_btn.bind(on_press=self.skip_to_main)
         top_right.add_widget(self.countdown_label)
@@ -523,7 +524,7 @@ class MainScreen(Screen):
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
         self.lantern_btn = Button(
@@ -531,7 +532,7 @@ class MainScreen(Screen):
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         self.random_btn = Button(
@@ -539,7 +540,7 @@ class MainScreen(Screen):
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         self.random_btn.bind(on_press=lambda x: self.switch_festival('随机祝福'))
         festival_layout.add_widget(self.spring_btn)
@@ -566,7 +567,7 @@ class MainScreen(Screen):
             text='发给微信好友',
             background_color=get_color_from_hex('#4CAF50'),
             color=(1,1,1,1),
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         share_btn.bind(on_press=self.share_blessings)
         bottom_layout.add_widget(share_btn)
@@ -584,7 +585,7 @@ class MainScreen(Screen):
             font_size=sp(8),
             background_color=(0,0,0,0),
             bold=True,
-            font_name='Chinese'
+            font_name='ChineseEmoji'
         )
         copyright_btn.bind(on_press=self.show_about_popup)
         status_bar.add_widget(copyright_btn)
@@ -608,7 +609,7 @@ class MainScreen(Screen):
                 size_hint_x=1/len(categories),
                 background_color=get_color_from_hex('#DAA520' if cat == self.current_category else '#8B4513'),
                 color=(1,1,1,1),
-                font_name='Chinese'
+                font_name='ChineseEmoji'
             )
             btn.bind(on_press=lambda x, c=cat: self.switch_category(c))
             self.category_layout.add_widget(btn)
@@ -679,7 +680,7 @@ class MainScreen(Screen):
                 halign='left',
                 valign='top',
                 padding=(dp(10), dp(5)),
-                font_name='Chinese'
+                font_name='ChineseEmoji'
             )
             btn.bind(
                 width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
@@ -733,14 +734,14 @@ class MainScreen(Screen):
         title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-        title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
+        title_label = Label(text='关于', font_name='ChineseEmoji', color=(1,1,1,1),
                             halign='left', valign='middle', size_hint_x=0.8)
         title_bar.add_widget(title_label)
 
         close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
                            pos_hint={'right':1, 'center_y':0.5},
                            background_color=(0,0,0,0), color=(1,1,1,1),
-                           font_name='Chinese', bold=True)
+                           font_name='ChineseEmoji', bold=True)
         close_btn.bind(on_press=lambda x: popup.dismiss())
         title_bar.add_widget(close_btn)
 
@@ -761,7 +762,7 @@ class MainScreen(Screen):
             '版权所有，侵权必究！'
         ]
         for line in info_texts:
-            lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
+            lbl = Label(text=line, font_name='ChineseEmoji', color=(0,0,0,1),
                         halign='left', valign='middle', size_hint_y=None, height=dp(25))
             # 绑定 width 设置 text_size 确保左对齐
             lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
@@ -797,8 +798,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
-
