@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v1.7.5
+name: Build APK (Docker) - 马年送祝福 - v1.7.5
 
 on:
   workflow_dispatch:
