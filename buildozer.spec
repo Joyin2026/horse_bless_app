@@ -25,7 +25,7 @@ android.permissions = WRITE_EXTERNAL_STORAGE
 
 fullscreen = 1
 orientation = portrait
-icon.filename = %(source.dir)s/icon.png
+icon.filename = %(source.dir)s/images/icon.png
 presplash.filename = %(source.dir)s/images/presplash.png
 
 android.accept_sdk_license = True
