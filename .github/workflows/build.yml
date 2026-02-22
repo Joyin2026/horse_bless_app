@@ -1,4 +1,4 @@
-name: Build APK (Docker) - v 1.0.0
+name: Build APK (Docker) - 最终版
 
 on:
   workflow_dispatch:
@@ -38,7 +38,8 @@ jobs:
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
-          DOCKER_ARGS="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          # 使用 -it 分配伪终端，确保输入传递
+          DOCKER_ARGS="--rm -it -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
           
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
             DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
@@ -48,18 +49,13 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 进入容器，先接受所有 SDK 许可，然后构建
+          # 使用 yes 自动回答 root 警告，并通过伪终端传递
           docker run ${DOCKER_ARGS} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            sh -c "
-              # 接受所有 Android SDK 许可
-              yes | sdkmanager --licenses || true
-              # 然后运行构建（同样用 yes 回答 root 警告）
-              yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2
-            " 2>&1 | tee build_full.log
+            sh -c "yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2" 2>&1 | tee build_full.log
 
           # 检查 APK 是否生成并重命名
           if ls bin/*.apk 1> /dev/null 2>&1; then
