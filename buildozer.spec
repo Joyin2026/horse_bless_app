@@ -1,5 +1,5 @@
 [app]
-title = 马年元宵祝福
+title = 马年送祝福
 package.name = blessapp
 package.domain = com.sjinyu.bless
 orientation = portrait
