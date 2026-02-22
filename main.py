@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年送祝福应用（最终版）
+main.py - 马年元宵祝福应用（最终版）
 版本：v1.7.8
 开发团队：卓影工作室 · 瑾 煜
 功能：
@@ -33,27 +33,6 @@ from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
-from kivy.core.text import LabelBase
-from kivy.resources import resource_add_path
-
-# 立即输出到 stderr（用于调试）
-print("=== DEBUG: main.py STARTED ===", file=sys.stderr)
-sys.stderr.flush()
-
-# 将当前文件所在目录添加到资源搜索路径，确保能找到字体文件
-resource_add_path(os.path.dirname(__file__))
-# 在文件开头（import之后，注册字体之前）添加
-print("=== Current directory:", os.path.dirname(__file__), file=sys.stderr)
-print("=== Files in current directory:", os.listdir(os.path.dirname(__file__)), file=sys.stderr)
-sys.stderr.flush()
-# 注册中文字体
-try:
-    LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
-    print("Chinese font registered as 'Chinese'")
-except Exception as e:
-    print(f"Failed to register chinese.ttf: {e}")
-    # 不再尝试注册空字符串，只是打印警告，让应用继续使用默认字体（可能乱码）
-    # 但至少不会崩溃
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.8"
@@ -361,7 +340,6 @@ class StartScreen(Screen):
         for img_path in splash_images:
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
             self.carousel.add_widget(img)
-        # 监听触摸事件（用户手动滑动时会触发）
         self.carousel.bind(on_touch_down=self.on_carousel_touch_down)
         layout.add_widget(self.carousel)
 
@@ -379,35 +357,30 @@ class StartScreen(Screen):
                 font_size=sp(20),
                 color=(1,1,1,1),
                 size_hint=(None, None),
-                size=(dp(20), dp(20)),
-                font_name='Chinese'
+                size=(dp(20), dp(20))
             )
             self.indicators.append(lbl)
             indicator_layout.add_widget(lbl)
         self.update_indicator(0)
         layout.add_widget(indicator_layout)
 
-        # 跳过按钮和倒计时（水平布局）
+        # 跳过按钮和倒计时
         top_right = BoxLayout(size_hint=(None, None), size=(dp(160), dp(40)),
                               pos_hint={'right': 1, 'top': 1}, spacing=dp(5))
-        # 倒计时标签
         self.countdown_label = Label(
             text='6 秒',
             size_hint=(None, None),
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
-        # 跳过按钮
         skip_btn = Button(
             text='跳过',
             size_hint=(None, None),
             size=(dp(80), dp(40)),
             background_color=get_color_from_hex('#80000000'),
             color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
+            bold=True
         )
         skip_btn.bind(on_press=self.skip_to_main)
         top_right.add_widget(self.countdown_label)
@@ -417,11 +390,10 @@ class StartScreen(Screen):
         self.add_widget(layout)
 
         # 定时器管理
-        self._auto_slide_trigger = None   # 自动轮播定时器（每秒切换）
-        self._enter_timer = None           # 进入主屏倒计时定时器
-        self._idle_timer = None            # 无操作5秒后恢复的定时器
+        self._auto_slide_trigger = None
+        self._enter_timer = None
+        self._idle_timer = None
 
-        # 初始状态：启动自动轮播和6秒倒计时
         self.countdown = 9
         self._start_auto_slide()
         self._start_enter_countdown()
@@ -813,5 +785,6 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
