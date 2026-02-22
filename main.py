@@ -35,20 +35,28 @@ from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
+from kivy.resources import resource_add_path
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.7"   # 统一版本定义
 
-# ---------- 注册中文字体和 Emoji 字体 ----------
-LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
-try:
-    # 尝试注册复合字体，如果 NotoColorEmoji.ttf 不存在，则回退到纯中文字体
-    LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf,NotoColorEmoji.ttf')
-    print("Emoji font loaded successfully.")
-except Exception as e:
-    print(f"Emoji font not found, using Chinese font only. Error: {e}")
-    LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf')
+# 添加当前目录到资源路径，确保能找到字体文件
+resource_add_path(os.path.dirname(__file__))
 
+# 尝试注册 NotoColorEmoji.ttf，如果失败则回退到 chinese.ttf
+try:
+    LabelBase.register(name='MainFont', fn_regular='NotoColorEmoji.ttf')
+    print("Using NotoColorEmoji.ttf")
+except Exception as e:
+    print(f"NotoColorEmoji.ttf not found ({e}), fallback to chinese.ttf")
+    try:
+        LabelBase.register(name='MainFont', fn_regular='chinese.ttf')
+        print("Using chinese.ttf")
+    except Exception as e2:
+        print(f"chinese.ttf also not found: {e2}")
+        # 如果连 chinese.ttf 都没有，注册一个系统默认字体（防止崩溃）
+        LabelBase.register(name='MainFont', fn_regular='')
+        
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -804,6 +812,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
