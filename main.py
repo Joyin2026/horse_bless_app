@@ -34,18 +34,13 @@ from kivy.utils import get_color_from_hex
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.core.text import LabelBase
 
 # 立即输出到 stderr 和文件（应用私有目录）
 print("=== DEBUG: main.py STARTED ===", file=sys.stderr)
 sys.stderr.flush()
 
-try:
-    # 使用应用私有目录写入调试文件
-    private_dir = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(private_dir, 'debug.txt'), 'w') as f:
-        f.write('main.py started at ' + str(os.getpid()))
-except Exception as e:
-    print("Failed to write debug file:", e, file=sys.stderr)
+LabelBase.register(name='Roboto', fn_regular='chinese.ttf')
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.7"   # 统一版本定义
@@ -805,3 +800,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
