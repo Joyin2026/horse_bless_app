@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v6
+name: Build APK (Docker) - 最终版 v7
 
 on:
   workflow_dispatch:
@@ -32,13 +32,13 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with echo y)
+      - name: Build in Docker (with tty and yes)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
-          DOCKER_ARGS="--rm -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          DOCKER_ARGS="--rm -t -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
           
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
             DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
@@ -52,7 +52,7 @@ jobs:
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            sh -c "echo y | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2" 2>&1 | tee build_full.log
+            sh -c "yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2" 2>&1 | tee build_full.log
 
       - name: Upload full build log
         if: always()
