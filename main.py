@@ -35,7 +35,7 @@ from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
-from kivy.resources import resource_add_path
+
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.7"   # 统一版本定义
@@ -43,19 +43,14 @@ APP_VERSION = "v1.7.7"   # 统一版本定义
 # 添加当前目录到资源路径，确保能找到字体文件
 resource_add_path(os.path.dirname(__file__))
 
-# 尝试注册 NotoColorEmoji.ttf，如果失败则回退到 chinese.ttf
+# 只注册中文字体，不涉及 Emoji
 try:
-    LabelBase.register(name='MainFont', fn_regular='NotoColorEmoji.ttf')
-    print("Using NotoColorEmoji.ttf")
+    LabelBase.register(name='MainFont', fn_regular='chinese.ttf')
+    print("Chinese font loaded successfully.")
 except Exception as e:
-    print(f"NotoColorEmoji.ttf not found ({e}), fallback to chinese.ttf")
-    try:
-        LabelBase.register(name='MainFont', fn_regular='chinese.ttf')
-        print("Using chinese.ttf")
-    except Exception as e2:
-        print(f"chinese.ttf also not found: {e2}")
-        # 如果连 chinese.ttf 都没有，注册一个系统默认字体（防止崩溃）
-        LabelBase.register(name='MainFont', fn_regular='')
+    print(f"Chinese font failed to load: {e}")
+    # 如果连 chinese.ttf 都没有，注册系统默认字体（防止崩溃）
+    LabelBase.register(name='MainFont', fn_regular='')
         
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -812,6 +807,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
