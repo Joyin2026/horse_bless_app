@@ -37,7 +37,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 
 # ---------- 全局常量 ----------
-APP_VERSION = "v1.7.5   # 统一版本定义
+APP_VERSION = "v1.7.5"   # 统一版本定义
 
 # ---------- 注册中文字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
@@ -797,6 +797,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
