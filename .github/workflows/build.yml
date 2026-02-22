@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v9
+name: Build APK (Docker) - 最终版 v10
 
 on:
   workflow_dispatch:
@@ -32,13 +32,13 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with single y via printf)
+      - name: Build in Docker (with python -m buildozer)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
-          # 关键参数：-i 允许标准输入，-v 挂载目录
+          # 使用 -i 允许标准输入，挂载卷
           DOCKER_ARGS="--rm -i -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
           
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
@@ -49,12 +49,13 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # printf 只发送一个 'y' 加换行，管道传递给容器的 stdin
+          # 通过 printf 发送单个 'y' 并换行，通过管道传递给容器
+          # 使用 python -m buildozer 确保正确调用 buildozer 模块
           printf 'y\n' | docker run ${DOCKER_ARGS} \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
+            python -m buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
       - name: Upload full build log
         if: always()
