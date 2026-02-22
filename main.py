@@ -2,16 +2,6 @@
 """
 main.py - 马年元宵祝福应用（最终版）
 版本：v1.7.8
-开发团队：卓影工作室 · 瑾 煜
-功能：
-- 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
-- 节日切换（春节/元宵节/随机祝福）
-- 分类切换（按钮）
-- 点击复制祝福（暗红色背景 + 亮黄色文字 + Toast）
-- “发给微信好友”分享最近复制的单条祝福
-- 祝福语列表无限滚动（不分页）
-- 关于弹窗（暗红标题栏、白色内容、圆角）
-- 全屏显示，无顶部空白
 """
 import kivy
 import sys
@@ -63,14 +53,12 @@ String = autoclass('java.lang.String')
 context = PythonActivity.mActivity
 
 def show_toast(message):
-    """显示 Android 原生 Toast"""
     try:
         Toast.makeText(context, String(message), Toast.LENGTH_SHORT).show()
     except Exception as e:
         print('Toast failed:', e)
 
 def share_text(text):
-    """使用 Android Intent 分享文本"""
     try:
         intent = Intent()
         intent.setAction(Intent.ACTION_SEND)
@@ -82,8 +70,8 @@ def share_text(text):
         print('Share failed:', e)
         return False
 
-# ---------- 祝福语数据 ----------
-# 春节祝福语（5类，每类10条）
+# ==================== 祝福语数据（完整版，无省略）====================
+# 春节祝福语
 BLESSINGS_SPRING = {
     '深情走心': [
         "岁月匆匆，又是一年。在这个喜庆的马年春节，特意给你发去这条祝福。感谢你这么多年的陪伴与包容，无论距离远近，你永远是我心里最重要的人。愿你马年平安喜乐，万事胜意。",
@@ -147,7 +135,7 @@ BLESSINGS_SPRING = {
     ]
 }
 
-# 元宵节祝福语（5类，每类10条）
+# 元宵节祝福语
 BLESSINGS_LANTERN = {
     '温馨团圆': [
         "元宵良辰至，灯火照人间，圆月当空，汤圆香甜，愿一家人平安相伴、喜乐相随，日子有盼头，生活有温暖，岁岁常团圆，年年皆安康。",
@@ -211,7 +199,7 @@ BLESSINGS_LANTERN = {
     ]
 }
 
-# 随机祝福语（5类，每类20条，共100条）
+# 随机祝福语
 BLESSINGS_RANDOM = {
     '暖心话语': [
         "愿你三冬暖，愿你春不寒；愿你天黑有灯，下雨有伞。愿你一路上，有良人相伴。",
@@ -328,6 +316,7 @@ BLESSINGS_RANDOM = {
 FESTIVALS = ['春节祝福', '元宵节祝福', '随机祝福']
 
 
+# ==================== 界面类 ====================
 class StartScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -742,4 +731,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
