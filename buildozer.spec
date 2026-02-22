@@ -34,8 +34,8 @@ android.permissions = WRITE_EXTERNAL_STORAGE
 
 # 全屏设置
 fullscreen = 1
-icon.filename = %(source.dir)s/icon.png
-presplash.filename = %(source.dir)s/presplash.png
+icon.filename = %(source.dir)s/images/icon.png
+presplash.filename = %(source.dir)s/images/presplash.png
 
 # 自动接受 SDK 许可证（只保留这一行）
 android.accept_sdk_license = True
