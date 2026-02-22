@@ -10,7 +10,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,ttf
 
 # 关键修改：不指定具体版本，但强制使用 Python 3.8 源码编译
-requirements = python3, kivy==2.2.1, pyjnius
+requirements = python3, kivy
 android.python_version = 3.8
 android.ndk_libc++ = c++_shared
 
