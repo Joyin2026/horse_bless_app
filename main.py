@@ -41,7 +41,13 @@ APP_VERSION = "v1.7.7"   # 统一版本定义
 
 # ---------- 注册中文字体和 Emoji 字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
-LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf,NotoColorEmoji.ttf')
+try:
+    # 尝试注册复合字体，如果 NotoColorEmoji.ttf 不存在，则回退到纯中文字体
+    LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf,NotoColorEmoji.ttf')
+    print("Emoji font loaded successfully.")
+except Exception as e:
+    print(f"Emoji font not found, using Chinese font only. Error: {e}")
+    LabelBase.register(name='ChineseEmoji', fn_regular='chinese.ttf')
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -798,5 +804,6 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
