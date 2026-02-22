@@ -30,9 +30,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'   # 推荐 3.9，与 Kivy 兼容性更好
+          python-version: '3.8'   # 或 3.9、3.10
 
-      - name: Install system dependencies (full Kivy build requirements)
+      - name: Install system dependencies (including Kivy build requirements)
         run: |
           sudo apt update
           sudo apt install -y \
@@ -42,19 +42,17 @@ jobs:
             cmake libffi-dev libssl-dev \
             automake libltdl-dev \
             libbz2-dev liblzma-dev libreadline-dev libsqlite3-dev \
-            # 以下是 Kivy 构建必需的 SDL2 及相关库
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
             libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
             libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            # 其他可能需要的工具
             wget curl unzip
 
-      - name: Install buildozer and Cython
+      - name: Install buildozer
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.36
 
-      # 彻底清除所有缓存（保证每次构建干净）
+      # 彻底清除所有缓存
       - name: Wipe all caches
         run: |
           rm -rf ~/.buildozer
@@ -71,9 +69,7 @@ jobs:
           echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Build with buildozer
-        run: |
-          # 使用 --force 强制重建，避免缓存问题
-          yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log
+        run: yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build.log
 
       # 验证APK中的Python库文件名
       - name: Verify Python library
