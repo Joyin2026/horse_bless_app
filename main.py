@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年元宵祝福应用（最终版）
-版本：v1.7.6
+版本：v1.7.7
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
@@ -37,7 +37,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 
 # ---------- 全局常量 ----------
-APP_VERSION = "v1.7.6"   # 统一版本定义
+APP_VERSION = "v1.7.7"   # 统一版本定义
 
 # ---------- 注册中文字体和 Emoji 字体 ----------
 LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
@@ -798,3 +798,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
