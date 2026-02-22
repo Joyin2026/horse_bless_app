@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v1.7.7
+版本：v1.7.8
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
@@ -43,7 +43,7 @@ sys.stderr.flush()
 LabelBase.register(name='Roboto', fn_regular='chinese.ttf')
 
 # ---------- 全局常量 ----------
-APP_VERSION = "v1.7.7"   # 统一版本定义
+APP_VERSION = "v1.7.8"   # 统一版本定义
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -800,4 +800,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
