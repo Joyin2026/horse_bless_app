@@ -37,6 +37,15 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.resources import resource_add_path
 
+# 立即输出到 stderr 和文件
+print("=== DEBUG: main.py STARTED ===", file=sys.stderr)
+sys.stderr.flush()
+
+try:
+    with open('/sdcard/debug.txt', 'w') as f:
+        f.write('main.py started at ' + str(os.getpid()))
+except Exception as e:
+    print("Failed to write debug file:", e, file=sys.stderr)
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.7"   # 统一版本定义
@@ -808,6 +817,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
