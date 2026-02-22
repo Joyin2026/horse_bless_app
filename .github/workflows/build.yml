@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v5
+name: Build APK (Docker) - 最终版 v6
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with host-side yes)
+      - name: Build in Docker (with echo y)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
@@ -48,12 +48,11 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 使用 yes 在宿主机生成 'y' 输入，通过管道和 -i 传递给容器
-          yes y | docker run -i ${DOCKER_ARGS} \
+          docker run ${DOCKER_ARGS} \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
+            sh -c "echo y | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2" 2>&1 | tee build_full.log
 
       - name: Upload full build log
         if: always()
