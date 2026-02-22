@@ -27,6 +27,7 @@ android.extra_env = PYJNIUS_CYTHONIZE=1
 
 # 权限
 android.permissions = WRITE_EXTERNAL_STORAGE
+android.accept_sdk_license = True
 
 # 全屏与启动图
 fullscreen = 1
