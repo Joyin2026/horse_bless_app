@@ -81,5 +81,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: 马年送祝福_v${{ env.VERSION }}
-          path: bin/马年送祝福 - 马年送祝福_v${{ env.VERSION }}.apk
+          name: 马年送祝福 - v${{ env.VERSION }}
+          path: bin/马年送祝福 - v${{ env.VERSION }}.apk
