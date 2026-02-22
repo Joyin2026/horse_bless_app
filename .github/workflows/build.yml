@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v2
+name: Build APK (Docker) - 最终版 v3
 
 on:
   workflow_dispatch:
@@ -50,8 +50,9 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 运行 Docker 构建
+          # 运行 Docker 构建，自动接受 root 运行提示
           docker run ${DOCKER_ARGS} \
+            -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
