@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v12
+name: Build APK (Docker) - 最终版 v13
 
 on:
   workflow_dispatch:
@@ -32,9 +32,11 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (set working dir)
+      - name: Build in Docker (with full error handling)
         run: |
           set -x
+          set -o pipefail  # 确保管道中任何命令失败都会导致整体失败
+          
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
@@ -48,12 +50,25 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 发送单个 'y' 回答 root 警告，直接传递构建参数
+          # 发送单个 'y' 回答 root 警告，同时设置环境变量防止其他交互
           printf 'y\n' | docker run ${DOCKER_ARGS} \
+            -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
             android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
+
+          # 检查 APK 是否生成
+          if [ -f bin/*.apk ]; then
+            echo "APK generated successfully."
+          else
+            echo "ERROR: APK not found! Build may have failed."
+            echo "===== LAST 200 LINES OF BUILD LOG ====="
+            tail -n 200 build_full.log
+            echo "========================================"
+            exit 1
+          fi
+        shell: bash
 
       - name: Upload full build log
         if: always()
