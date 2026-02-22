@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 马年送祝福 - v1.7.5
+name: Build APK (Docker) - 马年送祝福
 
 on:
   workflow_dispatch:
@@ -19,11 +19,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract version
+      - name: Extract version from main.py
         id: version
         run: |
+          # 提取 APP_VERSION 行，格式如 APP_VERSION = "v1.7.5"
           VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
           echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
+          # 去掉开头的 v，得到纯版本号
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -32,16 +34,18 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with full error handling)
+      - name: Build APK in Docker
         run: |
           set -x
-          set -o pipefail  # 确保管道中任何命令失败都会导致整体失败
-          
+          set -o pipefail
+
+          # 创建缓存目录
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
-          
+
+          # Docker 运行参数
           DOCKER_ARGS="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
-          
+
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
             DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_FILE=/app/keystore.jks"
@@ -50,7 +54,7 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 发送单个 'y' 回答 root 警告，同时设置环境变量防止其他交互
+          # 运行构建，自动回答 root 警告
           printf 'y\n' | docker run ${DOCKER_ARGS} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
@@ -58,9 +62,11 @@ jobs:
             kivy/buildozer:latest \
             android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成
-          if [ -f bin/*.apk ]; then
+          # 检查 APK 是否生成，并重命名为中文文件名
+          if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "APK generated successfully."
+            # 重命名为：马年送祝福 - v1.7.5.apk
+            mv bin/*.apk "bin/马年送祝福 - v${{ env.VERSION }}.apk"
           else
             echo "ERROR: APK not found! Build may have failed."
             echo "===== LAST 200 LINES OF BUILD LOG ====="
