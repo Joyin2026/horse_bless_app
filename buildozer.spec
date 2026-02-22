@@ -15,7 +15,7 @@ requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.sdk = 34
+android.sdk = 33
 
 android.extra_env = PYJNIUS_CYTHONIZE=1
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
