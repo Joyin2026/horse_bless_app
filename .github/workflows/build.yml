@@ -1,4 +1,4 @@
-name: Build APK (Docker) - Horse Bless - v1.0.0
+name: Build APK (Docker) - v 1.0.0
 
 on:
   workflow_dispatch:
@@ -19,13 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract version from main.py
+      - name: Extract version
         id: version
         run: |
-          # 提取 APP_VERSION 行，格式如 APP_VERSION = "v1.7.5"
           VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
           echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
-          # 去掉开头的 v，得到纯版本号
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -34,16 +32,14 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build APK in Docker
+      - name: Build in Docker
         run: |
           set -x
-          set -o pipefail
-
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
-
+          
           DOCKER_ARGS="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
-
+          
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
             DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_FILE=/app/keystore.jks"
@@ -52,54 +48,36 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 自动回答 root 警告
-          printf 'y\n' | docker run ${DOCKER_ARGS} \
+          # 进入容器，先接受所有 SDK 许可，然后构建
+          docker run ${DOCKER_ARGS} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
+            sh -c "
+              # 接受所有 Android SDK 许可
+              yes | sdkmanager --licenses || true
+              # 然后运行构建（同样用 yes 回答 root 警告）
+              yes | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2
+            " 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成
+          # 检查 APK 是否生成并重命名
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "APK generated successfully."
+            mv bin/*.apk "bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
           else
             echo "ERROR: APK not found! Build may have failed."
-            echo "===== LAST 200 LINES OF BUILD LOG ====="
             tail -n 200 build_full.log
-            echo "========================================"
             exit 1
           fi
         shell: bash
 
-      - name: Upload full build log
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-full-log
+          name: build-log
           path: build_full.log
-
-      - name: Fix permissions
-        if: success()
-        run: |
-          sudo chown -R $(whoami) bin
-          chmod -R u+w bin
-
-      - name: Rename APK to English name
-        if: success()
-        run: |
-          cd bin
-          # 找到生成的 APK 文件
-          apk_file=$(ls blessapp-*.apk | head -n1)
-          if [ -n "$apk_file" ]; then
-            # 重命名为英文格式：horse-bless-v1.7.5-debug.apk
-            mv "$apk_file" "horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
-            echo "Renamed to horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
-          else
-            echo "No APK file found in bin directory"
-            exit 1
-          fi
-        shell: bash
 
       - name: Upload APK
         if: success()
