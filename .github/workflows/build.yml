@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 马年送祝福
+name: Build APK (Docker) - Horse Bless - v1.7.5
 
 on:
   workflow_dispatch:
@@ -85,15 +85,16 @@ jobs:
           sudo chown -R $(whoami) bin
           chmod -R u+w bin
 
-      - name: Rename APK
+      - name: Rename APK to English name
         if: success()
         run: |
           cd bin
           # 找到生成的 APK 文件
           apk_file=$(ls blessapp-*.apk | head -n1)
           if [ -n "$apk_file" ]; then
-            mv "$apk_file" "马年送祝福 - v${{ env.VERSION }}.apk"
-            echo "Renamed to 马年送祝福 - v${{ env.VERSION }}.apk"
+            # 重命名为英文格式：horse-bless-v1.7.5-debug.apk
+            mv "$apk_file" "horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
+            echo "Renamed to horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
           else
             echo "No APK file found in bin directory"
             exit 1
@@ -104,5 +105,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: 马年送祝福 - v${{ env.VERSION }}
-          path: bin/马年送祝福 - v${{ env.VERSION }}.apk
+          name: horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
+          path: bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk
