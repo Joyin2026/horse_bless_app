@@ -26,7 +26,7 @@ android.ndk = 25b
 android.ndk_api = 21
 
 # 资源
-android.add_src = images chinese.ttf
+#android.add_src = images chinese.ttf
 
 # 权限
 android.permissions = INTERNET
