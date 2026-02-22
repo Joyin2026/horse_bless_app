@@ -40,19 +40,20 @@ from kivy.resources import resource_add_path
 print("=== DEBUG: main.py STARTED ===", file=sys.stderr)
 sys.stderr.flush()
 
-# 添加当前目录到资源路径，以便找到字体文件
+# 将当前文件所在目录添加到资源搜索路径，确保能找到字体文件
 resource_add_path(os.path.dirname(__file__))
 
-# 注册中文字体
+# 注册中文字体，使用自定义名称 'Chinese'
 try:
-    LabelBase.register(name='Roboto', fn_regular='chinese.ttf')
-    print("Chinese font loaded successfully.")
+    LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
+    print("Chinese font registered as 'Chinese'")
 except Exception as e:
-    print(f"Failed to load chinese.ttf: {e}")
+    print(f"Failed to register chinese.ttf: {e}")
+    # 如果失败，回退到系统默认（可能导致乱码，但不崩溃）
+    LabelBase.register(name='Chinese', fn_regular='')
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.8"
-# ... 其余代码 ...
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -375,8 +376,8 @@ class StartScreen(Screen):
                 font_size=sp(20),
                 color=(1,1,1,1),
                 size_hint=(None, None),
-                size=(dp(20), dp(20))
-                # 不指定 font_name，使用默认字体
+                size=(dp(20), dp(20)),
+                font_name='Chinese'
             )
             self.indicators.append(lbl)
             indicator_layout.add_widget(lbl)
@@ -392,8 +393,8 @@ class StartScreen(Screen):
             size_hint=(None, None),
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         # 跳过按钮
         skip_btn = Button(
@@ -402,8 +403,8 @@ class StartScreen(Screen):
             size=(dp(80), dp(40)),
             background_color=get_color_from_hex('#80000000'),
             color=(1,1,1,1),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         skip_btn.bind(on_press=self.skip_to_main)
         top_right.add_widget(self.countdown_label)
@@ -534,24 +535,24 @@ class MainScreen(Screen):
             text='春节祝福',
             background_color=get_color_from_hex('#DAA520'),
             color=(1,1,1,1),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         self.spring_btn.bind(on_press=lambda x: self.switch_festival('春节祝福'))
         self.lantern_btn = Button(
             text='元宵节祝福',
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         self.lantern_btn.bind(on_press=lambda x: self.switch_festival('元宵节祝福'))
         self.random_btn = Button(
             text='随机祝福',
             background_color=get_color_from_hex('#8B4513'),
             color=(1,1,1,1),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         self.random_btn.bind(on_press=lambda x: self.switch_festival('随机祝福'))
         festival_layout.add_widget(self.spring_btn)
@@ -577,8 +578,8 @@ class MainScreen(Screen):
         share_btn = Button(
             text='发给微信好友',
             background_color=get_color_from_hex('#4CAF50'),
-            color=(1,1,1,1)
-            # 不指定 font_name
+            color=(1,1,1,1),
+            font_name='Chinese'
         )
         share_btn.bind(on_press=self.share_blessings)
         bottom_layout.add_widget(share_btn)
@@ -595,8 +596,8 @@ class MainScreen(Screen):
             color=get_color_from_hex('#DAA520'),
             font_size=sp(8),
             background_color=(0,0,0,0),
-            bold=True
-            # 不指定 font_name
+            bold=True,
+            font_name='Chinese'
         )
         copyright_btn.bind(on_press=self.show_about_popup)
         status_bar.add_widget(copyright_btn)
@@ -619,8 +620,8 @@ class MainScreen(Screen):
                 text=cat,
                 size_hint_x=1/len(categories),
                 background_color=get_color_from_hex('#DAA520' if cat == self.current_category else '#8B4513'),
-                color=(1,1,1,1)
-                # 不指定 font_name
+                color=(1,1,1,1),
+                font_name='Chinese'
             )
             btn.bind(on_press=lambda x, c=cat: self.switch_category(c))
             self.category_layout.add_widget(btn)
@@ -690,8 +691,8 @@ class MainScreen(Screen):
                 color=(0.1, 0.1, 0.1, 1),
                 halign='left',
                 valign='top',
-                padding=(dp(10), dp(5))
-                # 不指定 font_name
+                padding=(dp(10), dp(5)),
+                font_name='Chinese'
             )
             btn.bind(
                 width=lambda *x, b=btn: b.setter('text_size')(b, (b.width - dp(20), None)),
@@ -745,14 +746,14 @@ class MainScreen(Screen):
         title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
-        title_label = Label(text='关于', color=(1,1,1,1),
+        title_label = Label(text='关于', font_name='Chinese', color=(1,1,1,1),
                             halign='left', valign='middle', size_hint_x=0.8)
         title_bar.add_widget(title_label)
 
         close_btn = Button(text='X', size_hint=(None, None), size=(dp(30), dp(30)),
                            pos_hint={'right':1, 'center_y':0.5},
                            background_color=(0,0,0,0), color=(1,1,1,1),
-                           bold=True)
+                           font_name='Chinese', bold=True)
         close_btn.bind(on_press=lambda x: popup.dismiss())
         title_bar.add_widget(close_btn)
 
@@ -773,7 +774,7 @@ class MainScreen(Screen):
             '版权所有，侵权必究！'
         ]
         for line in info_texts:
-            lbl = Label(text=line, color=(0,0,0,1),
+            lbl = Label(text=line, font_name='Chinese', color=(0,0,0,1),
                         halign='left', valign='middle', size_hint_y=None, height=dp(25))
             # 绑定 width 设置 text_size 确保左对齐
             lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
@@ -809,7 +810,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
