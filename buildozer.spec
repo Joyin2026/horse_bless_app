@@ -1,7 +1,7 @@
 [app]
 title = 马年元宵祝福
 package.name = blessapp
-package.domain = com.sjinyu
+package.domain = com.sjinyu.bless
 
 # 从 main.py 动态提取版本号
 version.regex = APP_VERSION = ["']v(.*?)["']
@@ -11,8 +11,8 @@ source.dir = .
 source.include_exts = py,png,jpg,ttf,txt
 source.include_patterns = images/*.png, images/*.jpg, chinese.ttf
 
-# 只保留必要依赖，移除注释，使用稳定版本
-requirements = python3,kivy,pyjnius==1.4.0
+# 使用稳定的依赖版本
+requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 
 android.api = 33
 android.minapi = 21
@@ -22,10 +22,10 @@ android.sdk = 34
 # 强制 pyjnius 重新生成 C 文件
 android.extra_env = PYJNIUS_CYTHONIZE=1
 
-# 显式指定 NDK 路径（避免环境变量冲突）
+# 显式指定 NDK 路径
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 
-# 只构建 arm64-v8a 架构（减少编译时间和内存）
+# 仅构建 arm64-v8a 架构
 android.archs = arm64-v8a
 
 # 权限
@@ -45,6 +45,9 @@ android.keystore.password = $(KEYSTORE_PASS)
 android.keystore.alias.password = $(KEYALIAS_PASS)
 
 android.private_storage = True
+
+# 增加日志级别
+log_level = 2
 
 [buildozer]
 log_level = 2
