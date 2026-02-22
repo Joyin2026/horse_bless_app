@@ -2,6 +2,7 @@
 title = 马年元宵祝福
 package.name = blessapp
 package.domain = com.sjinyu.bless
+orientation = portrait
 
 # 从 main.py 动态提取版本号
 version.regex = APP_VERSION = ["']v(.*?)["']
@@ -33,7 +34,8 @@ android.permissions = WRITE_EXTERNAL_STORAGE
 
 # 全屏设置
 fullscreen = 1
-presplash.filename = %(source.dir)s/images/splash1.png
+icon.filename = %(source.dir)s/icon.png
+presplash.filename = %(source.dir)s/images/presplash.png
 
 # 自动接受 SDK 许可证（只保留这一行）
 android.accept_sdk_license = True
