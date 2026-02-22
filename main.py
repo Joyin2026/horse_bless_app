@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年元宵祝福应用（最终版）
+main.py - 马年送祝福应用（最终版）
 版本：v1.7.8
 开发团队：卓影工作室 · 瑾 煜
 功能：
@@ -810,3 +810,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
