@@ -1,47 +1,68 @@
 [app]
-title = 新春送祝福-v1.7.4
-package.name = horsebless
-package.domain = bless.sjinyu.com
 
-version = 1.7.4
+# 应用的基本信息
+title = 马年元宵祝福
+package.name = blessapp
+package.domain = com.sjinyu
 
+# 版本号从代码中提取（匹配 APP_VERSION = "v1.7.0"）
+version.regex = APP_VERSION = ["']v(.*?)["']
+version.filename = %(source.dir)s/main.py
 
+# 源代码目录
 source.dir = .
-source.include_exts = py,png,jpg,kv,ttf
+source.include_exts = py,png,jpg,ttf,txt
 
-# 关键修改：不指定具体版本，但强制使用 Python 3.8 源码编译
-requirements = python3, kivy
-android.python_version = 3.8
-android.ndk_libc++ = c++_shared
+# 需要包含的额外文件/目录
+source.include_patterns = images/*.png, images/*.jpg, chinese.ttf
 
-# 竖屏
-orientation = portrait
-android.manifest.orientation = portrait
+# 应用图标（可选）
+# icon.filename = %(source.dir)s/icon.png
 
-# 架构
-android.archs = arm64-v8a
-android.api = 31
+# 依赖库
+requirements = python3,kivy,pyjnius
+
+# 针对安卓的配置
+android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.ndk_api = 21
-
-# 资源
-#android.add_src = images chinese.ttf
+android.sdk = 34
 
 # 权限
-android.permissions = INTERNET
+android.permissions = WRITE_EXTERNAL_STORAGE
 
-# 图标和启动画面
-icon.filename = %(source.dir)s/icon.png
-presplash.filename = %(source.dir)s/presplash.png
-presplash.bg_color = #FFF5E6
+# 添加 Java 代码（不需要）
+# android.add_src =
 
-# 全屏
+# 是否启用 android 私有存储
+android.private_storage = True
+
+# 如果使用 Gradle 依赖（一般不需要）
+# android.gradle_dependencies =
+
+# 应用入口
+osx.python_version = 3
+osx.kivy_version = 2.2.1
+
+# 全屏设置
 fullscreen = 1
-android.enable_androidx = True
 
-# 签名（从环境变量读取）
-android.keystore = $(KEYSTORE_FILE)
-android.keystore_alias = $(KEYSTORE_ALIAS)
-android.keystore_password = $(KEYSTORE_PASS)
-android.keyalias_password = $(KEYALIAS_PASS)
+# 编译选项
+presplash.filename = %(source.dir)s/images/splash1.png
+# 如果需要图标
+# icon.filename = %(source.dir)s/icon.png
+
+[buildozer]
+log_level = 2
+warn_on_root = 1
+
+# 在构建之前执行的命令
+# pre_build_commands =
+
+# 其他平台相关配置（可忽略）
+[requirements.android]
+# 如果遇到 pyjnius 问题，可以尝试添加 recipes
+# recipes = pyjnius
+
+[requirements.osx]
+# 略
