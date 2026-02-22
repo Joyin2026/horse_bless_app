@@ -10,7 +10,7 @@ version.filename = %(source.dir)s/main.py
 source.dir = .
 source.include_exts = py,png,jpg,txt
 source.include_patterns = images/*.png, images/*.jpg
-
+source.include_patterns = images/*.png, images/*.jpg, chinese.ttf
 requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 
 android.api = 33
