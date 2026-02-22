@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build APK (Docker) - 最终版
 
 on:
   workflow_dispatch:
@@ -27,119 +27,38 @@ jobs:
           VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip openjdk-17-jdk python3-pip \
-            autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev \
-            cmake libffi-dev libssl-dev \
-            automake libltdl-dev \
-            libbz2-dev liblzma-dev libreadline-dev libsqlite3-dev \
-            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-            libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            libgl1-mesa-dev libgles2-mesa-dev libmtdev-dev \
-            libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev \
-            libxkbcommon-dev libxfixes-dev \
-            wayland-protocols libwayland-dev libdbus-1-dev \
-            wget curl unzip
-
-      - name: Install buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.36
-
-      - name: Set environment variables
-        run: |
-          echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "GRADLE_OPTS=-Xmx2048m" >> $GITHUB_ENV
-          echo "JAVA_OPTS=-Xmx2048m" >> $GITHUB_ENV
-          echo "P4A_DOWNLOAD_RETRIES=10" >> $GITHUB_ENV
-          echo "P4A_DOWNLOAD_TIMEOUT=120" >> $GITHUB_ENV
-
-      # 缓存 .buildozer 目录，避免重复下载 SDK/NDK
-      - name: Cache .buildozer
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
-
-      # 清理可能损坏的 hostpython3 缓存
-      - name: Clean hostpython3
-        run: |
-          rm -rf .buildozer/android/platform/build-*/build/other_builds/hostpython3
-
       - name: Decode keystore (if release)
         if: github.event.inputs.build_type == 'release'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
-          echo "KEYSTORE_FILE=$(pwd)/keystore.jks" >> $GITHUB_ENV
-          echo "KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Accept Android SDK licenses
+      - name: Build in Docker
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          # 准备挂载参数
+          DOCKER_ARGS="--rm -v $PWD:/app -v ~/.buildozer:/home/user/.buildozer"
+          
+          # 如果是 release 构建，挂载 keystore
+          if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+            DOCKER_ARGS="$DOCKER_ARGS -v $PWD/keystore.jks:/app/keystore.jks"
+            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_FILE=/app/keystore.jks"
+            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}"
+            DOCKER_ARGS="$DOCKER_ARGS -e KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_ARGS="$DOCKER_ARGS -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
+          fi
 
-      # 构建主命令，加入重试机制（最多3次），并捕获完整日志
-      - name: Build with buildozer (with retry and debug)
-        id: build
-        run: |
-          for i in {1..3}; do
-            echo "Attempt $i of 3..."
-            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
-            if [ ${PIPESTATUS[0]} -eq 0 ]; then
-              echo "Build succeeded on attempt $i"
-              exit 0
-            fi
-            if [ $i -eq 3 ]; then
-              echo "All attempts failed."
-              echo "===== LAST 500 LINES OF BUILD LOG ====="
-              tail -n 500 build_full.log
-              echo "========================================"
-              exit 1
-            fi
-            echo "Build failed, retrying in 10 seconds..."
-            sleep 10
-          done
-        shell: bash
+          # 运行构建，并实时输出日志
+          docker run $DOCKER_ARGS \
+            -e P4A_DOWNLOAD_RETRIES=10 \
+            -e P4A_DOWNLOAD_TIMEOUT=120 \
+            kivy/buildozer:latest \
+            android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
-      - name: Upload full build log (always)
+      - name: Upload full build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-full-log
           path: build_full.log
-
-      - name: Verify APK existence
-        if: success()
-        run: |
-          if ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "APK found."
-          else
-            echo "No APK found. Build failed."
-            exit 1
-          fi
-
-      - name: Verify Python library
-        if: success()
-        run: |
-          APK_PATH=$(ls bin/*.apk | head -n1)
-          echo "APK: $APK_PATH"
-          unzip -l "$APK_PATH" | grep "libpython" > python_libs.txt
-          echo "Python libraries found:"
-          cat python_libs.txt
 
       - name: Upload APK
         if: success()
@@ -147,10 +66,3 @@ jobs:
         with:
           name: horse_bless_v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
           path: bin/*.apk
-
-      - name: Upload Python lib list
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-libs
-          path: python_libs.txt
