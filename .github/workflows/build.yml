@@ -60,7 +60,7 @@ jobs:
             kivy/buildozer:latest \
             android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成（使用通配符）
+          # 检查 APK 是否生成
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "APK generated successfully."
           else
@@ -79,11 +79,17 @@ jobs:
           name: build-full-log
           path: build_full.log
 
-      - name: Rename APK (host)
+      - name: Fix permissions
+        if: success()
+        run: |
+          sudo chown -R $(whoami) bin
+          chmod -R u+w bin
+
+      - name: Rename APK
         if: success()
         run: |
           cd bin
-          # 找到生成的 APK 文件（格式如 blessapp-1.7.5-arm64-v8a-debug.apk）
+          # 找到生成的 APK 文件
           apk_file=$(ls blessapp-*.apk | head -n1)
           if [ -n "$apk_file" ]; then
             mv "$apk_file" "马年送祝福 - v${{ env.VERSION }}.apk"
