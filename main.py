@@ -1,19 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-main.py - 马年送祝福（最终版）
-版本：v1.7.8
-开发团队：卓影工作室 · 瑾 煜
-功能：
-- 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
-- 节日切换（春节/元宵节/随机祝福）
-- 分类切换（按钮）
-- 点击复制祝福（暗红色背景 + 亮黄色文字 + Toast）
-- “发给微信好友”分享最近复制的单条祝福
-- 祝福语列表无限滚动（不分页）
-- 关于弹窗（暗红标题栏、白色内容、圆角）
-- 全屏显示，无顶部空白
-"""
-
 import kivy
 import sys
 import os
@@ -35,15 +20,25 @@ from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
+from kivy.resources import resource_add_path
 
-# 立即输出到 stderr 和文件（应用私有目录）
+# 立即输出到 stderr（用于调试）
 print("=== DEBUG: main.py STARTED ===", file=sys.stderr)
 sys.stderr.flush()
 
-LabelBase.register(name='Roboto', fn_regular='chinese.ttf')
+# 添加当前目录到资源路径，以便找到字体文件
+resource_add_path(os.path.dirname(__file__))
+
+# 注册中文字体
+try:
+    LabelBase.register(name='Roboto', fn_regular='chinese.ttf')
+    print("Chinese font loaded successfully.")
+except Exception as e:
+    print(f"Failed to load chinese.ttf: {e}")
 
 # ---------- 全局常量 ----------
-APP_VERSION = "v1.7.8"   # 统一版本定义
+APP_VERSION = "v1.7.7"
+# ... 其余代码 ...
 
 # ---------- 全局异常捕获 ----------
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -800,5 +795,6 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
