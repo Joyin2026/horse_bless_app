@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版 v4
+name: Build APK (Docker) - 最终版 v5
 
 on:
   workflow_dispatch:
@@ -32,14 +32,12 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with absolute path)
+      - name: Build in Docker (with host-side yes)
         run: |
-          set -x  # 打印执行的命令，方便调试
-          # 使用绝对路径，避免波浪号问题
+          set -x
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
-          # 构建 Docker 参数
           DOCKER_ARGS="--rm -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
           
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
@@ -50,12 +48,12 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 运行 Docker 构建，使用 yes 自动回答 root 提示
-          docker run ${DOCKER_ARGS} \
+          # 使用 yes 在宿主机生成 'y' 输入，通过管道和 -i 传递给容器
+          yes y | docker run -i ${DOCKER_ARGS} \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            sh -c "yes y | buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2" 2>&1 | tee build_full.log
+            buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
 
       - name: Upload full build log
         if: always()
