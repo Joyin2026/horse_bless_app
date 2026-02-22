@@ -42,15 +42,18 @@ sys.stderr.flush()
 
 # 将当前文件所在目录添加到资源搜索路径，确保能找到字体文件
 resource_add_path(os.path.dirname(__file__))
-
-# 注册中文字体，使用自定义名称 'Chinese'
+# 在文件开头（import之后，注册字体之前）添加
+print("=== Current directory:", os.path.dirname(__file__), file=sys.stderr)
+print("=== Files in current directory:", os.listdir(os.path.dirname(__file__)), file=sys.stderr)
+sys.stderr.flush()
+# 注册中文字体
 try:
     LabelBase.register(name='Chinese', fn_regular='chinese.ttf')
     print("Chinese font registered as 'Chinese'")
 except Exception as e:
     print(f"Failed to register chinese.ttf: {e}")
-    # 如果失败，回退到系统默认（可能导致乱码，但不崩溃）
-    LabelBase.register(name='Chinese', fn_regular='')
+    # 不再尝试注册空字符串，只是打印警告，让应用继续使用默认字体（可能乱码）
+    # 但至少不会崩溃
 
 # ---------- 全局常量 ----------
 APP_VERSION = "v1.7.8"
@@ -810,4 +813,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
