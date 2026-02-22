@@ -1,4 +1,4 @@
-name: Build APK (Docker) - Horse Bless - v1.7.6
+name: Build APK (Docker) - Horse Bless - v1.7.7
 
 on:
   workflow_dispatch:
