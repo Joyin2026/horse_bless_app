@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker
+      - name: Build in Docker (with rename inside container)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
@@ -49,18 +49,21 @@ jobs:
             DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 在宿主机发送单个 'y' 回答 root 警告，通过管道传递给容器
+          # 在容器内执行构建和重命名
           printf 'y\n' | docker run ${DOCKER_ARGS} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
             kivy/buildozer:latest \
-            android ${{ github.event.inputs.build_type }} --verbose --log_level=2 2>&1 | tee build_full.log
+            sh -c "
+              buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 &&
+              cd bin &&
+              mv blessapp-*.apk horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk
+            " 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成并重命名
-          if ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "APK generated successfully."
-            mv bin/*.apk "bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk"
+          # 检查 APK 是否生成（宿主机上检查）
+          if ls bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk 1> /dev/null 2>&1; then
+            echo "APK generated and renamed successfully."
           else
             echo "ERROR: APK not found! Build may have failed."
             tail -n 200 build_full.log
