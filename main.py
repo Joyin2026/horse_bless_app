@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福 （最终版）
-版本：v1.0.0
+版本：v1.8.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（6秒倒计时，每1秒自动切换，用户滑动时暂停，5秒无操作后恢复）
@@ -36,7 +36,7 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 
-APP_VERSION = "v1.0.0"
+APP_VERSION = "v1.8.0"
 
 # ---------- 注册系统字体（确保能找到中文字体）----------
 # Android 系统字体路径
@@ -787,3 +787,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
