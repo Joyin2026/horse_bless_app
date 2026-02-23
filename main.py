@@ -5,10 +5,10 @@ main.py - 马年送祝福（最终版）
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
-- 节日切换：两个下拉菜单（传统节日/行业节日），自动判断未来5天内节日为默认
+- 两个下拉菜单（传统/行业节日），自动判断默认节日（元宵节提前8天，其他5天）
 - 分类切换按钮
 - 祝福语数据从 data/bless.json 加载
-- 复制、分享、关于弹窗等
+- 修复下拉菜单乱码，添加加载失败提示
 """
 
 import kivy
@@ -25,7 +25,7 @@ from kivy.uix.carousel import Carousel
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.spinner import Spinner
+from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
@@ -96,26 +96,41 @@ def share_text(text):
         print('Share failed:', e)
         return False
 
+# ==================== 自定义 Spinner 选项（解决乱码）====================
+class ChineseSpinnerOption(SpinnerOption):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.font_name = 'Chinese'
+
+# 全局设置 Spinner 选项类
+Spinner.option_cls = ChineseSpinnerOption
+
 # ==================== 加载祝福语数据 ====================
 def load_blessings():
     json_path = os.path.join(os.path.dirname(__file__), 'data', 'bless.json')
+    print(f"尝试加载祝福语数据：{json_path}")
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        print("祝福语数据加载成功")
+        print("✅ 祝福语数据加载成功")
         return data
+    except FileNotFoundError:
+        print("❌ 文件不存在：data/bless.json")
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON 格式错误：{e}")
+        return {}
     except Exception as e:
-        print(f"加载祝福语失败: {e}")
-        # 返回空字典，避免崩溃
+        print(f"❌ 加载失败：{e}")
         return {}
 
 ALL_BLESSINGS = load_blessings()
 
-# 节日分组（传统节日、行业节日）
+# 节日分组
 TRADITIONAL = ['春节', '元宵节', '端午节', '中秋节']
 PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节', '国庆节']
 
-# 2026年节日日期（用于自动默认节日）
+# 2026年节日日期
 FESTIVAL_DATES_2026 = {
     '春节': (2, 17),
     '元宵节': (3, 3),
@@ -130,8 +145,20 @@ FESTIVAL_DATES_2026 = {
 }
 
 def get_default_festival():
-    """返回未来5天内即将到来的节日，否则返回春节"""
+    """返回默认选中的节日：
+       1. 如果当前日期距离元宵节 <= 8 天，且元宵节在未来，则返回元宵节
+       2. 否则，返回未来5天内最近的节日
+       3. 如果没有未来5天内的节日，返回春节
+    """
     today = datetime.now().date()
+    yuanxiao_date = datetime(2026, 3, 3).date()
+    yuanxiao_delta = (yuanxiao_date - today).days
+
+    # 优先判断元宵节是否在未来且距离 <= 8 天
+    if 0 <= yuanxiao_delta <= 8:
+        return '元宵节'
+
+    # 否则按5天规则查找
     best = None
     min_days = float('inf')
     for name, (month, day) in FESTIVAL_DATES_2026.items():
@@ -567,4 +594,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
