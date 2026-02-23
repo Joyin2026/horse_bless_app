@@ -108,30 +108,26 @@ Spinner.option_cls = ChineseSpinnerOption
 # ==================== 加载祝福语数据 ====================
 def load_blessings():
     import os
-    json_path = os.path.join(os.path.dirname(__file__), 'data', 'bless.json')
-    print("=" * 50)
-    print("当前文件目录:", os.path.dirname(__file__))
+    base_dir = os.path.dirname(__file__)
+    print("应用私有目录:", base_dir)
+    print("当前目录下的文件和文件夹:", os.listdir(base_dir))
+    data_dir = os.path.join(base_dir, 'data')
+    if os.path.exists(data_dir):
+        print("data 目录下的文件:", os.listdir(data_dir))
+    else:
+        print("data 目录不存在")
+    json_path = os.path.join(data_dir, 'bless.json')
     print("尝试加载:", json_path)
     print("文件是否存在:", os.path.exists(json_path))
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         print("✅ 祝福语数据加载成功")
-        print("包含的节日:", list(data.keys()))
-        # 打印第一个节日的分类，验证结构
-        first = list(data.keys())[0]
-        print(f"{first} 的分类: {list(data[first].keys())}")
         return data
-    except FileNotFoundError:
-        print("❌ 文件不存在")
-        return {}
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON 格式错误: {e}")
-        return {}
     except Exception as e:
-        print(f"❌ 其他错误: {e}")
+        print(f"❌ 加载失败: {e}")
         return {}
-
+        
 ALL_BLESSINGS = load_blessings()
 
 # 节日分组
@@ -602,5 +598,6 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
