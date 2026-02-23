@@ -60,14 +60,15 @@ jobs:
             -c "
               buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 &&
               cd bin &&
-              mv blessapp-*.apk horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk
+              file=\$(ls blessapp-* | head -n1) &&
+              mv \"\$file\" \"horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.\${file##*.}\"
             " 2>&1 | tee build_full.log
 
-          # 检查 APK 是否生成（宿主机上检查）
-          if ls bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk 1> /dev/null 2>&1; then
-            echo "APK generated and renamed successfully."
+          # 检查包是否生成（支持 .apk 或 .aab）
+          if ls bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.* 1> /dev/null 2>&1; then
+            echo "Package generated and renamed successfully."
           else
-            echo "ERROR: APK not found! Build may have failed."
+            echo "ERROR: No package file found in bin directory"
             tail -n 200 build_full.log
             exit 1
           fi
@@ -80,9 +81,9 @@ jobs:
           name: build-log
           path: build_full.log
 
-      - name: Upload APK
+      - name: Upload APK/AAB
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
-          path: bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk
+          path: bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.*
