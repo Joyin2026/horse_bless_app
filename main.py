@@ -741,7 +741,7 @@ class MainScreen(Screen):
                           size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
 
         info_texts = [
-            '应用名称：马年新春祝福',
+            '应用名称：马年送祝福',
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
@@ -787,4 +787,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
