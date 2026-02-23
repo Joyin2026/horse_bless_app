@@ -27,6 +27,9 @@ orientation = portrait
 icon.filename = %(source.dir)s/images/icon.png
 presplash.filename = %(source.dir)s/images/presplash.png
 
+# 新增：强制 release 构建生成 APK 文件（而非 AAB）
+android.release_artifact = apk
+
 android.accept_sdk_license = True
 android.private_storage = True
 
