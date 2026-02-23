@@ -135,20 +135,21 @@ ALL_BLESSINGS, load_error = load_blessings()
 
 # 节日分组
 TRADITIONAL = ['春节', '元宵节', '端午节', '中秋节']
-PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节', '国庆节']
+PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节', '国庆节','记者节']
 
 # 2026年节日日期
 FESTIVAL_DATES_2026 = {
     '春节': (2, 17),
-    '元宵节': (3, 3),
-    '端午节': (6, 19),
-    '中秋节': (9, 25),
-    '护士节': (5, 12),
-    '母亲节': (5, 10),
-    '父亲节': (6, 21),
-    '建军节': (8, 1),
-    '教师节': (9, 10),
-    '国庆节': (10, 1),
+    '元宵节（正月十五）': (3, 3),
+    '端午节（五月初五）': (6, 19),
+    '中秋节（八月十五）': (9, 25),
+    '护士节（5月12日）': (5, 12),
+    '母亲节（5月10日）': (5, 10),
+    '父亲节（6月21日）': (6, 21),
+    '建军节（8月1日）': (8, 1),
+    '教师节（9月10日）': (9, 10),
+    '国庆节（10月1日）': (10, 1),
+    '记者节（11月8日）': (11, 8),
 }
 
 def get_default_festival():
@@ -330,31 +331,7 @@ class MainScreen(Screen):
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
-
-        # 添加数据加载状态标签
-        if load_error != "成功":
-            self.status_label = Label(
-                text=f"❌ 数据加载失败: {load_error}",
-                size_hint=(1, None),
-                height=dp(50),
-                color=(1, 0, 0, 1),
-                font_name='Chinese',
-                halign='center',
-                valign='middle',
-                text_size=(Window.width - dp(20), None)
-            )
-            main_layout.add_widget(self.status_label)
-        else:
-            self.status_label = Label(
-                text="✅ 数据加载成功",
-                size_hint=(1, None),
-                height=dp(30),
-                color=(0, 1, 0, 1),
-                font_name='Chinese',
-                halign='center'
-            )
-            main_layout.add_widget(self.status_label)
-
+       
         # 两个并排的下拉菜单（固定标题）
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
@@ -643,3 +620,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
