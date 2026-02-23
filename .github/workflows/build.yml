@@ -1,4 +1,4 @@
-name: Build APK (Docker) - 最终版
+name: Build APK (Docker) - v1.8.0
 
 on:
   workflow_dispatch:
