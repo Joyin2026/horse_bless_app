@@ -8,7 +8,7 @@ version.filename = %(source.dir)s/main.py
 
 source.dir = .
 source.include_exts = py,png,jpg,txt,json
-source.include_patterns = images/*.png, images/*.jpg, data/bless.json
+source.include_patterns = images/*.png, images/*.jpg, data/*.json
 
 requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 
