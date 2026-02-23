@@ -5,9 +5,9 @@ main.py - 马年送祝福（最终版）
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
-- 两个下拉菜单（传统/行业节日），自动判断默认节日（元宵节提前8天，其他5天）
-- 分类切换按钮
-- 祝福语数据从 data/bless.json 加载
+- 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日
+- 自动判断默认节日（元宵节提前8天，其他5天）
+- 祝福语数据从 data/bless.json 加载，并在界面显示加载状态
 - 修复下拉菜单乱码，添加加载失败提示
 """
 
@@ -102,33 +102,36 @@ class ChineseSpinnerOption(SpinnerOption):
         super().__init__(**kwargs)
         self.font_name = 'Chinese'
 
-# 全局设置 Spinner 选项类
 Spinner.option_cls = ChineseSpinnerOption
 
 # ==================== 加载祝福语数据 ====================
 def load_blessings():
     import os
     base_dir = os.path.dirname(__file__)
-    print("应用私有目录:", base_dir)
-    print("当前目录下的文件和文件夹:", os.listdir(base_dir))
-    data_dir = os.path.join(base_dir, 'data')
-    if os.path.exists(data_dir):
-        print("data 目录下的文件:", os.listdir(data_dir))
-    else:
-        print("data 目录不存在")
-    json_path = os.path.join(data_dir, 'bless.json')
-    print("尝试加载:", json_path)
-    print("文件是否存在:", os.path.exists(json_path))
+    json_path = os.path.join(base_dir, 'data', 'bless.json')
+    # 为了在界面上显示错误，我们返回一个元组 (data, error_message)
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        print("✅ 祝福语数据加载成功")
-        return data
+        # 验证数据结构是否包含节日和分类
+        if not isinstance(data, dict):
+            return {}, "数据格式错误：根节点不是字典"
+        if len(data) == 0:
+            return {}, "数据为空"
+        # 可选：检查第一个节日的结构
+        first_festival = list(data.keys())[0]
+        if not isinstance(data[first_festival], dict):
+            return {}, f"节日 '{first_festival}' 的数据不是字典"
+        return data, "成功"
+    except FileNotFoundError:
+        return {}, f"文件不存在: {json_path}"
+    except json.JSONDecodeError as e:
+        return {}, f"JSON 解析错误: {e}"
     except Exception as e:
-        print(f"❌ 加载失败: {e}")
-        return {}
-        
-ALL_BLESSINGS = load_blessings()
+        return {}, f"未知错误: {e}"
+
+# 加载数据，同时获取错误信息
+ALL_BLESSINGS, load_error = load_blessings()
 
 # 节日分组
 TRADITIONAL = ['春节', '元宵节', '端午节', '中秋节']
@@ -149,20 +152,11 @@ FESTIVAL_DATES_2026 = {
 }
 
 def get_default_festival():
-    """返回默认选中的节日：
-       1. 如果当前日期距离元宵节 <= 8 天，且元宵节在未来，则返回元宵节
-       2. 否则，返回未来5天内最近的节日
-       3. 如果没有未来5天内的节日，返回春节
-    """
     today = datetime.now().date()
     yuanxiao_date = datetime(2026, 3, 3).date()
     yuanxiao_delta = (yuanxiao_date - today).days
-
-    # 优先判断元宵节是否在未来且距离 <= 8 天
     if 0 <= yuanxiao_delta <= 8:
         return '元宵节'
-
-    # 否则按5天规则查找
     best = None
     min_days = float('inf')
     for name, (month, day) in FESTIVAL_DATES_2026.items():
@@ -318,13 +312,10 @@ class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.default_festival = get_default_festival()
-        # 确定当前节日，确保数据存在
         if self.default_festival in ALL_BLESSINGS:
             self.current_festival = self.default_festival
         else:
-            # 如果默认节日数据缺失，取第一个传统节日
             self.current_festival = TRADITIONAL[0] if TRADITIONAL else list(ALL_BLESSINGS.keys())[0]
-        # 获取当前节日的第一个分类
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.selected_item = None
@@ -340,11 +331,34 @@ class MainScreen(Screen):
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
-        # 两个并排的下拉菜单
+        # 添加数据加载状态标签
+        if load_error != "成功":
+            self.status_label = Label(
+                text=f"❌ 数据加载失败: {load_error}",
+                size_hint=(1, None),
+                height=dp(50),
+                color=(1, 0, 0, 1),
+                font_name='Chinese',
+                halign='center',
+                valign='middle',
+                text_size=(Window.width - dp(20), None)
+            )
+            main_layout.add_widget(self.status_label)
+        else:
+            self.status_label = Label(
+                text="✅ 数据加载成功",
+                size_hint=(1, None),
+                height=dp(30),
+                color=(0, 1, 0, 1),
+                font_name='Chinese',
+                halign='center'
+            )
+            main_layout.add_widget(self.status_label)
+
+        # 两个并排的下拉菜单（固定标题）
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
-        # 传统节日下拉框
         self.traditional_spinner = Spinner(
-            text=self.current_festival if self.current_festival in TRADITIONAL else TRADITIONAL[0],
+            text='传统佳节',
             values=TRADITIONAL,
             size_hint=(0.5, 1),
             background_color=get_color_from_hex('#DAA520'),
@@ -352,9 +366,8 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.traditional_spinner.bind(text=self.on_traditional_spinner_select)
-        # 行业节日下拉框
         self.professional_spinner = Spinner(
-            text=self.current_festival if self.current_festival in PROFESSIONAL else PROFESSIONAL[0],
+            text='行业节日',
             values=PROFESSIONAL,
             size_hint=(0.5, 1),
             background_color=get_color_from_hex('#8B4513'),
@@ -362,10 +375,20 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.professional_spinner.bind(text=self.on_professional_spinner_select)
-
         spinner_layout.add_widget(self.traditional_spinner)
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
+
+        # 当前选中节日的小标签
+        self.current_festival_label = Label(
+            text=f"当前节日：{self.current_festival}",
+            size_hint=(1, None),
+            height=dp(30),
+            color=(0.5,0.1,0.1,1),
+            font_name='Chinese',
+            halign='center'
+        )
+        main_layout.add_widget(self.current_festival_label)
 
         # 分类切换按钮（横向滚动）
         self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
@@ -418,6 +441,7 @@ class MainScreen(Screen):
 
     def on_traditional_spinner_select(self, spinner, text):
         self.current_festival = text
+        self.current_festival_label.text = f"当前节日：{self.current_festival}"
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.update_category_buttons()
@@ -425,6 +449,7 @@ class MainScreen(Screen):
 
     def on_professional_spinner_select(self, spinner, text):
         self.current_festival = text
+        self.current_festival_label.text = f"当前节日：{self.current_festival}"
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.update_category_buttons()
@@ -460,7 +485,27 @@ class MainScreen(Screen):
     def show_current_page(self):
         self.list_layout.clear_widgets()
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
+        if not festival_data:
+            hint = Label(
+                text="该节日暂无数据或数据格式错误",
+                size_hint_y=None,
+                height=dp(80),
+                color=(1,0,0,1),
+                font_name='Chinese'
+            )
+            self.list_layout.add_widget(hint)
+            return
         blessings = festival_data.get(self.current_category, [])
+        if not blessings:
+            hint = Label(
+                text="该分类暂无祝福语",
+                size_hint_y=None,
+                height=dp(80),
+                color=(1,0,0,1),
+                font_name='Chinese'
+            )
+            self.list_layout.add_widget(hint)
+            return
         for text in blessings:
             btn = Button(
                 text=text,
@@ -598,6 +643,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
