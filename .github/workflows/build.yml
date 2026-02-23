@@ -32,30 +32,32 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build in Docker (with rename inside container)
+      - name: Build in Docker (with entrypoint override)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
           BUILD_DIR="${HOME}/.buildozer"
           
-          # 使用 -i 保持标准输入打开，不使用 -t
-          DOCKER_ARGS="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          # 基础 Docker 参数（不使用 -t）
+          DOCKER_BASE="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
           
+          # 添加 release 构建所需的挂载和变量
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-            DOCKER_ARGS="${DOCKER_ARGS} -v $PWD/keystore.jks:/app/keystore.jks"
-            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_FILE=/app/keystore.jks"
-            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}"
-            DOCKER_ARGS="${DOCKER_ARGS} -e KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}"
-            DOCKER_ARGS="${DOCKER_ARGS} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_BASE="${DOCKER_BASE} -v $PWD/keystore.jks:/app/keystore.jks"
+            DOCKER_BASE="${DOCKER_BASE} -e KEYSTORE_FILE=/app/keystore.jks"
+            DOCKER_BASE="${DOCKER_BASE} -e KEYSTORE_ALIAS=${{ secrets.KEY_ALIAS }}"
+            DOCKER_BASE="${DOCKER_BASE} -e KEYSTORE_PASS=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_BASE="${DOCKER_BASE} -e KEYALIAS_PASS=${{ secrets.KEY_PASSWORD }}"
           fi
 
-          # 在容器内执行构建和重命名
-          printf 'y\n' | docker run ${DOCKER_ARGS} \
+          # 发送单个 'y' 回答 root 警告，通过管道传递给容器
+          printf 'y\n' | docker run ${DOCKER_BASE} \
             -e BUILDOZER_FORCE_ROOT=1 \
             -e P4A_DOWNLOAD_RETRIES=10 \
             -e P4A_DOWNLOAD_TIMEOUT=120 \
+            --entrypoint /bin/sh \
             kivy/buildozer:latest \
-            sh -c "
+            -c "
               buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 &&
               cd bin &&
               mv blessapp-*.apk horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.apk
