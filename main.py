@@ -337,9 +337,9 @@ class MainScreen(Screen):
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.selected_item = None
         self.last_copied_text = None
-        self.has_selected = False  # 是否选中过祝福语
+        self.has_selected = False
         self.icon_bar_visible = True
-        self.icon_bar_timer = None
+        self.last_scroll_y = 1  # 上次滚动位置，用于判断方向
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
@@ -355,7 +355,7 @@ class MainScreen(Screen):
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
 
-        # 两个并排的下拉菜单（固定标题）
+        # 两个并排的下拉菜单
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
             text='传统佳节',
@@ -390,42 +390,48 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(self.current_festival_label)
 
-        # 分类切换按钮（横向滚动）
+        # 分类切换按钮
         self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
         self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
         self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # 祝福语列表
+        # 祝福语列表（可滚动）
         self.scroll_view = ScrollView()
         self.scroll_view.size_hint_y = 1
-        # 绑定滚动事件，当滚动时显示图标栏并重置计时器
         self.scroll_view.bind(scroll_y=self.on_scroll)
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部功能按钮和图标栏
-        self.bottom_layout = BoxLayout(orientation='vertical', size_hint=(1, None), height=dp(90), spacing=0)
+        # 底部区域（分享按钮 + 图标栏）
+        bottom_container = FloatLayout(size_hint=(1, None), height=dp(90))
         # 分享按钮
         self.share_btn = Button(
             text='发给微信好友',
             size_hint=(1, None),
             height=dp(50),
             background_normal='',
-            background_color=(0.67,0.67,0.67,1),  # 灰色
+            background_color=(0.67,0.67,0.67,1),
             color=(1,1,1,1),
             font_name='Chinese',
             font_size=sp(18),
             disabled=True
         )
         self.share_btn.bind(on_press=self.share_blessings)
-        self.bottom_layout.add_widget(self.share_btn)
+        # 分享按钮固定在底部偏上位置
+        self.share_btn.pos_hint = {'y': 0.5}
+        bottom_container.add_widget(self.share_btn)
 
-        # 图标栏（三个图标按钮）
-        self.icon_bar = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(10), padding=[dp(20),0,dp(20),0])
+        # 图标栏（初始位于分享按钮下方）
+        self.icon_bar = BoxLayout(
+            size_hint=(None, None),
+            size=(dp(180), dp(40)),  # 三个图标总宽度
+            spacing=dp(20)
+        )
+        self.icon_bar.pos_hint = {'center_x': 0.5, 'y': 0.15}  # 位于底部
         # 官网图标
         web_btn = Button(
             background_normal='images/icon_web.png',
@@ -457,44 +463,42 @@ class MainScreen(Screen):
         self.icon_bar.add_widget(web_btn)
         self.icon_bar.add_widget(email_btn)
         self.icon_bar.add_widget(about_btn)
-        self.bottom_layout.add_widget(self.icon_bar)
+        bottom_container.add_widget(self.icon_bar)
 
-        main_layout.add_widget(self.bottom_layout)
+        main_layout.add_widget(bottom_container)
 
         self.add_widget(main_layout)
         self.update_category_buttons()
         self.show_current_page()
-        # 初始化下拉菜单颜色（根据当前选中的节日属于哪个组）
         self.update_spinner_colors()
 
-        # 启动时图标栏显示，5秒后隐藏
-        self.show_icon_bar()
-        self.reset_icon_bar_timer()
-
     def on_scroll(self, instance, value):
-        # 只要滚动值发生变化（即用户滑动），就显示图标栏并重置定时器
-        self.show_icon_bar()
-        self.reset_icon_bar_timer()
+        """监听滚动，根据方向显示/隐藏图标栏"""
+        # 获取滚动方向：scroll_y 从 1（顶部）到 0（底部）
+        # 如果当前值小于上一次，表示向下滚动（列表向上滑动），隐藏图标栏
+        # 如果当前值大于上一次，表示向上滚动（列表向下滑动），显示图标栏
+        if value < self.last_scroll_y - 0.01:  # 向下滚动
+            self.hide_icon_bar_animated()
+        elif value > self.last_scroll_y + 0.01:  # 向上滚动
+            self.show_icon_bar_animated()
+        self.last_scroll_y = value
 
-    def show_icon_bar(self):
+    def show_icon_bar_animated(self):
         if not self.icon_bar_visible:
-            self.icon_bar.opacity = 1
-            self.icon_bar.disabled = False
+            anim = Animation(y=self.icon_bar.parent.height * 0.15, duration=0.3, t='out_quad')
+            anim.start(self.icon_bar)
             self.icon_bar_visible = True
 
-    def hide_icon_bar(self, dt=None):
+    def hide_icon_bar_animated(self):
         if self.icon_bar_visible:
-            self.icon_bar.opacity = 0
-            self.icon_bar.disabled = True
+            # 将图标栏移动到屏幕底部下方（隐藏）
+            target_y = -self.icon_bar.height - dp(10)
+            anim = Animation(y=target_y, duration=0.3, t='out_quad')
+            anim.start(self.icon_bar)
             self.icon_bar_visible = False
 
-    def reset_icon_bar_timer(self):
-        if self.icon_bar_timer:
-            self.icon_bar_timer.cancel()
-        self.icon_bar_timer = Clock.schedule_once(self.hide_icon_bar, 5)
-
+    # 其余方法（update_spinner_colors, on_traditional_spinner_select, 等）保持不变
     def update_spinner_colors(self):
-        """根据当前选中的节日更新两个下拉菜单的背景色"""
         if self.current_festival in TRADITIONAL:
             self.traditional_spinner.background_color = self.ACTIVE_BTN
             self.professional_spinner.background_color = self.DEFAULT_BTN
@@ -502,7 +506,6 @@ class MainScreen(Screen):
             self.traditional_spinner.background_color = self.DEFAULT_BTN
             self.professional_spinner.background_color = self.ACTIVE_BTN
         else:
-            # 默认都设为默认色
             self.traditional_spinner.background_color = self.DEFAULT_BTN
             self.professional_spinner.background_color = self.DEFAULT_BTN
 
@@ -605,7 +608,6 @@ class MainScreen(Screen):
         instance.color = (1, 1, 0, 1)
         self.selected_item = instance
 
-        # 启用分享按钮
         if not self.has_selected:
             self.has_selected = True
             self.share_btn.background_color = get_color_from_hex('#4CAF50')
@@ -714,3 +716,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
