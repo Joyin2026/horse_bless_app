@@ -37,6 +37,7 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
+from kivy.network.urlrequest import UrlRequest
 
 APP_VERSION = "v2.5.6"
 
@@ -775,22 +776,32 @@ class MainScreen(Screen):
         popup.open()
 
     def check_update(self, instance):
-        """从本地 data/update.json 检查更新"""
-        import json
-        base_dir = os.path.dirname(__file__)
-        update_path = os.path.join(base_dir, 'data', 'update.json')
+    """从网络检查更新"""
+    url = 'https://www.sjinyu.com/tools/bless/data/update.json'
+    show_toast('正在检查更新...')  # 可选提示
+
+    def on_success(req, result):
         try:
-            with open(update_path, 'r', encoding='utf-8') as f:
-                update_info = json.load(f)
-            version = update_info.get('version', '未知版本')
-            message = update_info.get('message', '无更新说明')
-            url = update_info.get('url', None)
-            self.show_update_popup(version, message, url)
-        except FileNotFoundError:
-            show_toast('目前已是最新版')
+            # 如果返回的是 JSON 字符串，解析它
+            if isinstance(result, str):
+                result = json.loads(result)
+            version = result.get('version', '未知版本')
+            message = result.get('message', '无更新说明')
+            download_url = result.get('url', None)
+            self.show_update_popup(version, message, download_url)
         except Exception as e:
-            print(f"检查更新出错: {e}")
-            show_toast('检查更新失败')
+            show_toast('解析更新信息失败')
+            print('Update parse error:', e)
+
+    def on_failure(req, result):
+        show_toast('检查更新失败，请稍后重试')
+        print('Update request failed:', result)
+
+    def on_error(req, error):
+        show_toast('网络连接错误')
+        print('Update request error:', error)
+
+    UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
     def show_update_popup(self, version, message, url=None):
         """显示更新信息的弹窗，如果有url则提供下载按钮"""
@@ -1062,6 +1073,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
