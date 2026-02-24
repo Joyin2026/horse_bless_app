@@ -339,7 +339,7 @@ class MainScreen(Screen):
         self.selected_item = None
         self.last_copied_text = None
         self.has_selected = False
-        self.footer_visible = True
+        self.footer_visible = False        # 初始隐藏
         self.last_scroll_y = 1
 
         # 颜色定义
@@ -431,7 +431,7 @@ class MainScreen(Screen):
             orientation='vertical',
             size_hint=(1, None),
             height=dp(80),
-            pos=(0, 0)
+            pos=(0, -dp(80))  # 初始隐藏于屏幕底部下方
         )
         # 设置背景色
         with self.footer.canvas.before:
@@ -515,9 +515,10 @@ class MainScreen(Screen):
         try:
             if not self.footer:
                 return
-            # 向下滚动隐藏，向上滚动显示
+            # 向下滚动（列表向上）隐藏图标栏
             if value < self.last_scroll_y - 0.01:
                 self.hide_footer_animated()
+            # 向上滚动（列表向下）显示图标栏
             elif value > self.last_scroll_y + 0.01:
                 self.show_footer_animated()
             self.last_scroll_y = value
@@ -528,7 +529,8 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
-            anim = Animation(y=0, duration=0.3, t='out_quad')
+            # 移动到分享按钮位置 (y=80)，覆盖按钮
+            anim = Animation(y=dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
         except Exception as e:
@@ -538,6 +540,7 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
+            # 隐藏到屏幕底部下方
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
@@ -1057,6 +1060,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
