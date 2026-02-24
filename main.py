@@ -9,7 +9,7 @@ main.py - 马年送祝福（最终版）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
-- 分享按钮动态启用，底部图标栏自动显示/隐藏
+- 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化
 - 版本更新检查（从网络获取，正确判断有无更新）
 """
@@ -256,7 +256,7 @@ class StartScreen(Screen):
 
     def _start_auto_slide(self):
         self._stop_auto_slide()
-        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 2)
+        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 3)
 
     def _stop_auto_slide(self):
         if self._auto_slide_trigger:
@@ -265,9 +265,9 @@ class StartScreen(Screen):
 
     def _start_enter_countdown(self):
         self._stop_enter_countdown()
-        self.countdown = 5
-        self.countdown_label.text = '5 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 2)
+        self.countdown = 6
+        self.countdown_label.text = '6 秒'
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -343,6 +343,7 @@ class MainScreen(Screen):
         self.has_selected = False
         self.footer_visible = False
         self.last_scroll_y = 1
+        self._footer_timer = None  # 用于自动隐藏的定时器
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
@@ -528,9 +529,16 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
+            # 取消之前的自动隐藏定时器
+            if self._footer_timer:
+                self._footer_timer.cancel()
+                self._footer_timer = None
+            # 显示图标栏
             anim = Animation(y=0, duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
+            # 设置3秒后自动隐藏
+            self._footer_timer = Clock.schedule_once(lambda dt: self.hide_footer_animated(), 3)
         except Exception as e:
             print("show_footer_animated error:", e)
 
@@ -538,6 +546,11 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
+            # 取消自动隐藏定时器
+            if self._footer_timer:
+                self._footer_timer.cancel()
+                self._footer_timer = None
+            # 隐藏图标栏
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
@@ -922,7 +935,6 @@ class MainScreen(Screen):
         button_layout.add_widget(cancel_btn)
 
         if is_latest or not url:
-            # 如果是最新版或没有下载链接，只显示一个占满的取消按钮（作为确定）
             button_layout.clear_widgets()
             cancel_btn.text = "确定"
             cancel_btn.size_hint_x = 1
@@ -1032,5 +1044,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
