@@ -9,8 +9,8 @@ main.py - 马年送祝福（最终版）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
-- 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
-- 下拉菜单颜色跟随激活组变化，下拉列表美观无分隔线
+- 分享按钮动态启用，底部图标栏自动显示/隐藏
+- 下拉菜单颜色跟随激活组变化
 - 版本更新检查（从网络获取，正确判断有无更新）
 """
 
@@ -29,7 +29,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner, SpinnerOption
-from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
@@ -120,33 +119,11 @@ def send_email(recipient):
     except Exception as e:
         print('Send email failed:', e)
 
-# ==================== 自定义下拉列表容器 ====================
-class CustomDropDown(DropDown):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # 移除默认背景，使用纯色
-        self.background_normal = ''
-        self.background_down = ''
-        self.background_color = (1, 1, 1, 1)  # 白色背景
-        self.border = (0, 0, 0, 0)            # 无边框
-        self.border_radius = [dp(5), dp(5), dp(5), dp(5)]
-        self.padding = 0                       # 无内边距
-        self.spacing = 0                        # 选项间无间距
-
-# ==================== 自定义 Spinner 选项（解决乱码+美化）====================
+# ==================== 自定义 Spinner 选项（解决乱码）====================
 class ChineseSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.font_name = 'Chinese'
-        # 清除默认背景图片，使用纯色背景
-        self.background_normal = ''
-        self.background_down = ''
-        self.background_color = (0.95, 0.95, 0.95, 1)  # 浅灰色
-        self.color = (0.1, 0.1, 0.1, 1)                # 深色文字
-        self.border = (0, 0, 0, 0)                      # 无边框
-        self.padding = [dp(15), dp(5)]
-        self.size_hint_y = None
-        self.height = dp(40)                            # 固定高度，使选项紧密排列
 
 Spinner.option_cls = ChineseSpinnerOption
 
@@ -366,7 +343,6 @@ class MainScreen(Screen):
         self.has_selected = False
         self.footer_visible = False
         self.last_scroll_y = 1
-        self._footer_timer = None  # 用于自动隐藏的定时器
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
@@ -406,11 +382,6 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.professional_spinner.bind(text=self.on_professional_spinner_select)
-
-        # 设置自定义下拉列表容器
-        self.traditional_spinner.dropdown_cls = CustomDropDown
-        self.professional_spinner.dropdown_cls = CustomDropDown
-
         spinner_layout.add_widget(self.traditional_spinner)
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
@@ -557,16 +528,9 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
-            # 取消之前的自动隐藏定时器
-            if self._footer_timer:
-                self._footer_timer.cancel()
-                self._footer_timer = None
-            # 显示图标栏
             anim = Animation(y=0, duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
-            # 设置3秒后自动隐藏
-            self._footer_timer = Clock.schedule_once(lambda dt: self.hide_footer_animated(), 3)
         except Exception as e:
             print("show_footer_animated error:", e)
 
@@ -574,11 +538,6 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
-            # 取消自动隐藏定时器
-            if self._footer_timer:
-                self._footer_timer.cancel()
-                self._footer_timer = None
-            # 隐藏图标栏
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
@@ -860,61 +819,63 @@ class MainScreen(Screen):
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
     def show_update_popup(self, latest_version, message, url=None, is_latest=False):
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.button import Button
-        from kivy.uix.label import Label
-        from kivy.uix.popup import Popup
-        from kivy.graphics import Color, RoundedRectangle, Rectangle
+    from kivy.uix.boxlayout import BoxLayout
+    from kivy.uix.button import Button
+    from kivy.uix.label import Label
+    from kivy.uix.popup import Popup
+    from kivy.graphics import Color, RoundedRectangle, Rectangle
 
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(250)))
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
-                     size=lambda *x: setattr(self.popup_bg, 'size', content.size))
+    content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                        size_hint=(None, None), size=(dp(320), dp(250)))
+    with content.canvas.before:
+        Color(1, 1, 1, 1)
+        self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+    content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
+                 size=lambda *x: setattr(self.popup_bg, 'size', content.size))
 
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
-        title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
+    title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+    with title_bar.canvas.before:
+        Color(0.5, 0.1, 0.1, 1)
+        self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+    title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
+                   size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
 
-        if is_latest:
-            title_text = "已是最新版"
-        else:
-            title_text = f"发现新版本 {latest_version}"
+    if is_latest:
+        title_text = "已是最新版"
+    else:
+        title_text = f"发现新版本 {latest_version}"
 
-        title_label = Label(
-            text=title_text,
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle',
-            size_hint_x=0.8,
-            font_name='Chinese'
-        )
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(30), dp(30)),
-            pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(title_label)
-        title_bar.add_widget(close_btn)
+    title_label = Label(
+        text=title_text,
+        color=(1,1,1,1),
+        halign='left',
+        valign='middle',
+        size_hint_x=0.8,
+        font_name='Chinese'
+    )
+    close_btn = Button(
+        text='X',
+        size_hint=(None, None),
+        size=(dp(30), dp(30)),
+        pos_hint={'right':1, 'center_y':0.5},
+        background_color=(0,0,0,0),
+        color=(1,1,1,1),
+        bold=True,
+        font_name='Chinese'
+    )
+    close_btn.bind(on_press=lambda x: popup.dismiss())
+    title_bar.add_widget(title_label)
+    title_bar.add_widget(close_btn)
 
-        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
+    content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
+    with content_area.canvas.before:
+        Color(1, 1, 1, 1)
+        self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+    content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
+                      size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
+    # 如果不是最新版，显示版本号；如果是最新版，显示友好提示
+    if not is_latest:
         version_label = Label(
             text=f'最新版本：{latest_version}',
             color=(0,0,0,1),
@@ -927,31 +888,31 @@ class MainScreen(Screen):
         version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
         content_area.add_widget(version_label)
 
-        msg_label = Label(
-            text=f'更新内容：{message}',
-            color=(0,0,0,1),
-            halign='left',
-            valign='top',
-            size_hint_y=None,
-            height=dp(80),
-            text_size=(content_area.width - dp(20), None),
+    msg_label = Label(
+        text=f'更新内容：{message}',
+        color=(0,0,0,1),
+        halign='left',
+        valign='top',
+        size_hint_y=None,
+        height=dp(80),
+        text_size=(content_area.width - dp(20), None),
+        font_name='Chinese'
+    )
+    msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
+    content_area.add_widget(msg_label)
+
+    button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
+    
+    if not is_latest and url:
+        download_btn = Button(
+            text='立即下载',
+            size_hint=(0.5, 1),
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1),
             font_name='Chinese'
         )
-        msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
-        content_area.add_widget(msg_label)
-
-        button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
-        if not is_latest and url:
-            download_btn = Button(
-                text='立即下载',
-                size_hint=(0.5, 1),
-                background_color=get_color_from_hex('#4CAF50'),
-                color=(1,1,1,1),
-                font_name='Chinese'
-            )
-            download_btn.bind(on_press=lambda x: (popup.dismiss(), open_website(url)))
-            button_layout.add_widget(download_btn)
-
+        download_btn.bind(on_press=lambda x: (popup.dismiss(), open_website(url)))
+        button_layout.add_widget(download_btn)
         cancel_btn = Button(
             text='以后再说',
             size_hint=(0.5, 1),
@@ -961,28 +922,32 @@ class MainScreen(Screen):
         )
         cancel_btn.bind(on_press=lambda x: popup.dismiss())
         button_layout.add_widget(cancel_btn)
-
-        if is_latest or not url:
-            button_layout.clear_widgets()
-            cancel_btn.text = "确定"
-            cancel_btn.size_hint_x = 1
-            cancel_btn.background_color = get_color_from_hex('#4CAF50')
-            button_layout.add_widget(cancel_btn)
-
-        content_area.add_widget(button_layout)
-
-        content.add_widget(title_bar)
-        content.add_widget(content_area)
-
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
+    else:
+        # 已是最新版，只显示一个“确定”按钮
+        ok_btn = Button(
+            text='确定',
+            size_hint=(1, 1),
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1),
+            font_name='Chinese'
         )
-        popup.open()
+        ok_btn.bind(on_press=lambda x: popup.dismiss())
+        button_layout.add_widget(ok_btn)
+
+    content_area.add_widget(button_layout)
+
+    content.add_widget(title_bar)
+    content.add_widget(content_area)
+
+    popup = Popup(
+        title='',
+        content=content,
+        size_hint=(None, None),
+        size=content.size,
+        background_color=(0,0,0,0),
+        auto_dismiss=False
+    )
+    popup.open()
 
     # ========== 轮播广告相关 ==========
     def load_top_ads(self):
@@ -1072,4 +1037,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
