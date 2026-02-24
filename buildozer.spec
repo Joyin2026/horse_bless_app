@@ -21,6 +21,7 @@ android.extra_env = PYJNIUS_CYTHONIZE=1
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 android.archs = arm64-v8a
 android.permissions = WRITE_EXTERNAL_STORAGE
+android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
 
 fullscreen = 1
 orientation = portrait
