@@ -37,7 +37,7 @@ jobs:
         run: |
           echo "KEYSTORE_BASE64 length: ${{ secrets.KEYSTORE_BASE64 }}" | wc -c
 
-            - name: Build in Docker (with entrypoint override)
+      - name: Build in Docker (with entrypoint override)
         run: |
           set -x
           mkdir -p "${HOME}/.buildozer"
