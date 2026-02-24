@@ -256,7 +256,7 @@ class StartScreen(Screen):
 
     def _start_auto_slide(self):
         self._stop_auto_slide()
-        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 3)
+        self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 2)
 
     def _stop_auto_slide(self):
         if self._auto_slide_trigger:
@@ -265,9 +265,9 @@ class StartScreen(Screen):
 
     def _start_enter_countdown(self):
         self._stop_enter_countdown()
-        self.countdown = 6
-        self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
+        self.countdown = 5
+        self.countdown_label.text = '5 秒'
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 2)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -1032,4 +1032,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
