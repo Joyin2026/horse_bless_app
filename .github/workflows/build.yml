@@ -1,4 +1,4 @@
-name: Build APK (Docker) - v2.6.101
+name: Build APK (Docker) - v2.6.102
 
 on:
   workflow_dispatch:
