@@ -149,12 +149,13 @@ def load_blessings():
 ALL_BLESSINGS, load_error = load_blessings()
 
 # 节日分组
-TRADITIONAL = ['春节', '元宵节', '端午节', '中秋节']
+TRADITIONAL = ['春节', '开工大吉','元宵节', '端午节', '中秋节']
 PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节', '国庆节', '记者节']
 
 # 2026年节日日期
 FESTIVAL_DATES_2026 = {
     '春节': (2, 17),
+    '开工大吉': (2, 24),
     '元宵节': (3, 3),
     '端午节': (6, 19),
     '中秋节': (9, 25),
@@ -725,7 +726,7 @@ class MainScreen(Screen):
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
-            '版权所有，侵权必究！'
+            '祝您马年万顺！马到成功！'
         ]
         for line in info_texts:
             lbl = Label(
@@ -904,3 +905,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
