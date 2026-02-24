@@ -400,7 +400,7 @@ class MainScreen(Screen):
         )
         self.traditional_spinner.bind(text=self.on_traditional_spinner_select)
         self.professional_spinner = Spinner(
-            text='行业节日',
+            text='阳历节日',
             values=PROFESSIONAL,
             size_hint=(0.5, 1),
             background_color=self.DEFAULT_BTN,
@@ -1080,6 +1080,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
