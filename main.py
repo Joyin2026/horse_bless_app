@@ -779,24 +779,24 @@ class MainScreen(Screen):
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
         show_toast('正在检查更新...')
 
-        def on_success(req, result):
-            try:
-                if isinstance(result, str):
-                    result = json.loads(result)
-                latest_version = result.get('version', '未知版本')
-                message = result.get('message', '无更新说明')
-                download_url = result.get('url', None)
+    def on_success(req, result):
+        try:
+            if isinstance(result, str):
+                result = json.loads(result)
+        latest_version = result.get('version', '未知版本')
+        message = result.get('message', '无更新说明')
+        download_url = result.get('url', None)
 
-                # 比较版本
-                if latest_version == APP_VERSION:
-                    # 已是最新版，不提供下载链接
-                    self.show_update_popup(latest_version, message, None, is_latest=True)
-                else:
-                    # 有新版本，提供下载链接
-                    self.show_update_popup(latest_version, message, download_url, is_latest=False)
-            except Exception as e:
-                show_toast('解析更新信息失败')
-                print('Update parse error:', e)
+        # 正确比较版本号
+        if not is_newer_version(latest_version, APP_VERSION):
+            # 已是最新版
+            self.show_update_popup(latest_version, message, None, is_latest=True)
+        else:
+            # 有更新
+            self.show_update_popup(latest_version, message, download_url, is_latest=False)
+        except Exception as e:
+            show_toast('解析更新信息失败')
+            print('Update parse error:', e)
 
         def on_failure(req, result):
             show_toast('检查更新失败，请稍后重试')
