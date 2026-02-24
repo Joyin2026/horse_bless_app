@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年送祝福
-版本：v2.6.101
+main.py - 马年送祝福（最终版）
+版本：v2.6.102
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
-- 顶部轮播图（从网络加载，支持 active 控制）
-- 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日
+- 顶部轮播图（从网络加载，支持 active 控制，自动切换）
+- 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏
 - 下拉菜单颜色跟随激活组变化
-- 版本更新检查（从网络获取）
+- 版本更新检查（从网络获取，正确判断有无更新）
 """
 
 import kivy
@@ -29,7 +29,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner, SpinnerOption
-from kivy.uix.image import Image
+from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
@@ -40,9 +40,8 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
-from kivy.uix.image import AsyncImage   # 正确
 
-APP_VERSION = "v2.6.101"
+APP_VERSION = "v2.6.102"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -357,6 +356,9 @@ class MainScreen(Screen):
         self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(150))
         main_layout.add_widget(self.top_carousel)
 
+        # 启动自动轮播（每3秒切换）
+        Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
+
         # 加载轮播广告（网络优先）
         self.load_top_ads()
 
@@ -391,14 +393,15 @@ class MainScreen(Screen):
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # ===== 当前节日标签（移至分类按钮下方）=====
+        # ===== 当前节日标签（移至分类按钮下方，加粗）=====
         self.current_festival_label = Label(
             text=f"当前节日：{self.current_festival}",
             size_hint=(1, None),
             height=dp(30),
             color=(0.5,0.1,0.1,1),
             font_name='Chinese',
-            halign='center'
+            halign='center',
+            bold=True  # 加粗
         )
         main_layout.add_widget(self.current_festival_label)
 
@@ -780,10 +783,17 @@ class MainScreen(Screen):
             try:
                 if isinstance(result, str):
                     result = json.loads(result)
-                version = result.get('version', '未知版本')
+                latest_version = result.get('version', '未知版本')
                 message = result.get('message', '无更新说明')
                 download_url = result.get('url', None)
-                self.show_update_popup(version, message, download_url)
+
+                # 比较版本
+                if latest_version == APP_VERSION:
+                    # 已是最新版，不提供下载链接
+                    self.show_update_popup(latest_version, message, None, is_latest=True)
+                else:
+                    # 有新版本，提供下载链接
+                    self.show_update_popup(latest_version, message, download_url, is_latest=False)
             except Exception as e:
                 show_toast('解析更新信息失败')
                 print('Update parse error:', e)
@@ -798,7 +808,8 @@ class MainScreen(Screen):
 
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
-    def show_update_popup(self, version, message, url=None):
+    def show_update_popup(self, latest_version, message, url=None, is_latest=False):
+        """显示更新信息的弹窗，根据 is_latest 决定标题和按钮"""
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.button import Button
         from kivy.uix.label import Label
@@ -820,8 +831,14 @@ class MainScreen(Screen):
         title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
 
+        # 根据是否最新设置标题
+        if is_latest:
+            title_text = "已是最新版"
+        else:
+            title_text = f"发现新版本 {latest_version}"
+
         title_label = Label(
-            text='发现新版本',
+            text=title_text,
             color=(1,1,1,1),
             halign='left',
             valign='middle',
@@ -849,8 +866,9 @@ class MainScreen(Screen):
         content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
+        # 版本信息
         version_label = Label(
-            text=f'最新版本：{version}',
+            text=f'最新版本：{latest_version}',
             color=(0,0,0,1),
             halign='left',
             valign='middle',
@@ -861,6 +879,7 @@ class MainScreen(Screen):
         version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
         content_area.add_widget(version_label)
 
+        # 更新内容
         msg_label = Label(
             text=f'更新内容：{message}',
             color=(0,0,0,1),
@@ -875,7 +894,7 @@ class MainScreen(Screen):
         content_area.add_widget(msg_label)
 
         button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
-        if url:
+        if not is_latest and url:
             download_btn = Button(
                 text='立即下载',
                 size_hint=(0.5, 1),
@@ -896,9 +915,11 @@ class MainScreen(Screen):
         cancel_btn.bind(on_press=lambda x: popup.dismiss())
         button_layout.add_widget(cancel_btn)
 
-        if not url:
+        if is_latest or not url:
             cancel_btn.size_hint_x = 1
-            button_layout.remove_widget(cancel_btn)
+            # 如果只有取消按钮，可以调整布局，这里简单处理：按钮占满
+            # 但为了美观，可以移除之前添加的按钮并重新添加占满的取消按钮
+            button_layout.clear_widgets()
             button_layout.add_widget(cancel_btn)
 
         content_area.add_widget(button_layout)
@@ -933,10 +954,13 @@ class MainScreen(Screen):
                     img_url = ad.get('image_url')
                     link_url = ad.get('redirect_url')
                     if img_url:
-                        img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
-                        if link_url:
-                            img.bind(on_touch_down=lambda instance, touch, url=link_url: self.on_ad_click(instance, touch, url))
-                        self.top_carousel.add_widget(img)
+                        try:
+                            img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
+                            if link_url:
+                                img.bind(on_touch_down=lambda instance, touch, url=link_url: self.on_ad_click(instance, touch, url))
+                            self.top_carousel.add_widget(img)
+                        except Exception as e:
+                            print(f"加载网络图片 {img_url} 失败: {e}")
                 if not active_ads:
                     self.load_fallback_ads()
             except Exception as e:
@@ -962,6 +986,9 @@ class MainScreen(Screen):
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
             img_path = f'images/top{i:02d}.jpg'  # 生成 top01.jpg, top02.jpg, ...
+            if not os.path.exists(img_path):
+                print(f"备用图片 {img_path} 不存在，已跳过")
+                continue
             try:
                 img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
                 img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
@@ -998,4 +1025,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
