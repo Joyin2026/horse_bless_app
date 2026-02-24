@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.103
+版本：v2.6.104
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -41,7 +41,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.103"
+APP_VERSION = "v2.6.104"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -401,7 +401,7 @@ class MainScreen(Screen):
             color=(0.5,0.1,0.1,1),
             font_name='Chinese',
             halign='center',
-            bold=True  # 加粗
+            bold=True
         )
         main_layout.add_widget(self.current_festival_label)
 
@@ -775,28 +775,38 @@ class MainScreen(Screen):
         popup.open()
 
     # ========== 版本更新 ==========
+    def parse_version(self, version_str):
+        """将版本字符串 'v2.6.102' 转换为整数列表 [2,6,102]"""
+        if version_str.startswith('v'):
+            version_str = version_str[1:]
+        parts = version_str.split('.')
+        return [int(p) for p in parts]
+
+    def is_newer_version(self, latest, current):
+        """比较两个版本号，如果 latest > current 返回 True"""
+        return self.parse_version(latest) > self.parse_version(current)
+
     def check_update(self, instance):
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
         show_toast('正在检查更新...')
 
-    def on_success(req, result):
-        try:
-            if isinstance(result, str):
-                result = json.loads(result)
-        latest_version = result.get('version', '未知版本')
-        message = result.get('message', '无更新说明')
-        download_url = result.get('url', None)
+        def on_success(req, result):
+            try:
+                if isinstance(result, str):
+                    result = json.loads(result)
+                latest_version = result.get('version', '未知版本')
+                message = result.get('message', '无更新说明')
+                download_url = result.get('url', None)
 
-        # 正确比较版本号
-        if not is_newer_version(latest_version, APP_VERSION):
-            # 已是最新版
-            self.show_update_popup(latest_version, message, None, is_latest=True)
-        else:
-            # 有更新
-            self.show_update_popup(latest_version, message, download_url, is_latest=False)
-        except Exception as e:
-            show_toast('解析更新信息失败')
-            print('Update parse error:', e)
+                if not self.is_newer_version(latest_version, APP_VERSION):
+                    # 已是最新版
+                    self.show_update_popup(latest_version, message, None, is_latest=True)
+                else:
+                    # 有更新
+                    self.show_update_popup(latest_version, message, download_url, is_latest=False)
+            except Exception as e:
+                show_toast('解析更新信息失败')
+                print('Update parse error:', e)
 
         def on_failure(req, result):
             show_toast('检查更新失败，请稍后重试')
@@ -809,7 +819,6 @@ class MainScreen(Screen):
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
     def show_update_popup(self, latest_version, message, url=None, is_latest=False):
-        """显示更新信息的弹窗，根据 is_latest 决定标题和按钮"""
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.button import Button
         from kivy.uix.label import Label
@@ -831,7 +840,6 @@ class MainScreen(Screen):
         title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
 
-        # 根据是否最新设置标题
         if is_latest:
             title_text = "已是最新版"
         else:
@@ -866,7 +874,6 @@ class MainScreen(Screen):
         content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
-        # 版本信息
         version_label = Label(
             text=f'最新版本：{latest_version}',
             color=(0,0,0,1),
@@ -879,7 +886,6 @@ class MainScreen(Screen):
         version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
         content_area.add_widget(version_label)
 
-        # 更新内容
         msg_label = Label(
             text=f'更新内容：{message}',
             color=(0,0,0,1),
@@ -916,10 +922,11 @@ class MainScreen(Screen):
         button_layout.add_widget(cancel_btn)
 
         if is_latest or not url:
-            cancel_btn.size_hint_x = 1
-            # 如果只有取消按钮，可以调整布局，这里简单处理：按钮占满
-            # 但为了美观，可以移除之前添加的按钮并重新添加占满的取消按钮
+            # 如果是最新版或没有下载链接，只显示一个占满的取消按钮（作为确定）
             button_layout.clear_widgets()
+            cancel_btn.text = "确定"
+            cancel_btn.size_hint_x = 1
+            cancel_btn.background_color = get_color_from_hex('#4CAF50')
             button_layout.add_widget(cancel_btn)
 
         content_area.add_widget(button_layout)
@@ -985,7 +992,7 @@ class MainScreen(Screen):
         """备用加载本地图片，文件名与服务器一致：top01.jpg ~ top05.jpg"""
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
-            img_path = f'images/top{i:02d}.jpg'  # 生成 top01.jpg, top02.jpg, ...
+            img_path = f'images/top{i:02d}.jpg'
             if not os.path.exists(img_path):
                 print(f"备用图片 {img_path} 不存在，已跳过")
                 continue
@@ -1025,4 +1032,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
