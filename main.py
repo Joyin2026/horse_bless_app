@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.108
+版本：v2.6.109
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.108"
+APP_VERSION = "v2.6.109"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -868,8 +868,10 @@ class MainScreen(Screen):
         from kivy.uix.popup import Popup
         from kivy.graphics import Color, RoundedRectangle, Rectangle
 
+        # 根据是否最新版调整弹窗高度
+        popup_height = 220 if is_latest else 250  # 最新版更紧凑
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(250)))
+                            size_hint=(None, None), size=(dp(320), dp(popup_height)))
         with content.canvas.before:
             Color(1, 1, 1, 1)
             self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
@@ -910,14 +912,16 @@ class MainScreen(Screen):
         title_bar.add_widget(title_label)
         title_bar.add_widget(close_btn)
 
-        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
+        # 内容区域内边距微调，最新版可适当减少上边距
+        content_area_padding = (dp(10), dp(8)) if is_latest else (dp(15), dp(10))
+        content_area = BoxLayout(orientation='vertical', padding=content_area_padding, spacing=dp(5))
         with content_area.canvas.before:
             Color(1, 1, 1, 1)
             self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
         content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
-        # 如果不是最新版，显示版本号；如果是最新版，不显示版本号
+        # 如果不是最新版，显示版本号
         if not is_latest:
             version_label = Label(
                 text=f'最新版本：{latest_version}',
@@ -1080,7 +1084,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
