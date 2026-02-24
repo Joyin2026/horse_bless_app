@@ -963,10 +963,10 @@ class MainScreen(Screen):
         """备用加载本地图片（支持 .jpg 和 .png）"""
         self.top_carousel.clear_widgets()
         for i in range(1, 5):
-            # 先尝试 jpg
-            img_path = f'images/ad{i}.jpg'
+            # 先尝试top*.jpg
+            img_path = f'images/top{i:02d}.jpg'
             if not os.path.exists(img_path):
-                img_path = f'images/ad{i}.png'
+                img_path = f'images/ad{i:02d}.png'
             try:
                 img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
                 # 点击本地图片默认打开官网
@@ -994,3 +994,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
