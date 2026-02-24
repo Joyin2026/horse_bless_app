@@ -960,21 +960,18 @@ class MainScreen(Screen):
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
     def load_fallback_ads(self):
-        """备用加载本地图片（支持 .jpg 和 .png）"""
+        """备用加载本地图片（直接使用 ad1.png ~ ad5.png）"""
         self.top_carousel.clear_widgets()
-        for i in range(1, 5):
-            # 先尝试top*.jpg
-            img_path = f'images/top{i:02d}.jpg'
-            if not os.path.exists(img_path):
-                img_path = f'images/ad{i:02d}.png'
+        for i in range(1, 6):  # 1 到 5
+            img_path = f'images/ad{i}.png'  # 直接使用 ad1.png 等
             try:
                 img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
                 # 点击本地图片默认打开官网
-                img.bind(on_touch_down=lambda instance, touch: open_website('https://www.sjinyu.com'))
+                img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch, path))
                 self.top_carousel.add_widget(img)
             except Exception as e:
                 print(f"加载备用图片 {img_path} 失败: {e}")
-                # 如果图片加载失败，忽略（不添加该图片）
+                # 跳过失败图片，不影响其他图片
 
     def on_ad_click(self, instance, touch, url):
         """点击轮播图时打开链接"""
@@ -994,4 +991,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
