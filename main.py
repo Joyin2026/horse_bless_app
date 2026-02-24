@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-main.py - 马年送祝福（最终版）
-版本：v2.6.099
+main.py - 马年送祝福
+版本：v2.6.101
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -40,9 +40,9 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
-from kivy.uix.asyncimage import AsyncImage   # 新增导入
+from kivy.uix.asyncimage import AsyncImage
 
-APP_VERSION = "v2.6.099"
+APP_VERSION = "v2.6.101"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -130,7 +130,6 @@ Spinner.option_cls = ChineseSpinnerOption
 
 # ==================== 加载祝福语数据 ====================
 def load_blessings():
-    import os
     base_dir = os.path.dirname(__file__)
     json_path = os.path.join(base_dir, 'data', 'bless.json')
     try:
@@ -343,7 +342,7 @@ class MainScreen(Screen):
         self.selected_item = None
         self.last_copied_text = None
         self.has_selected = False
-        self.footer_visible = False          # 初始隐藏
+        self.footer_visible = False
         self.last_scroll_y = 1
 
         # 颜色定义
@@ -354,11 +353,11 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部轮播图（替换原来的静态图片）=====
+        # ===== 顶部轮播图 =====
         self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(150))
         main_layout.add_widget(self.top_carousel)
 
-        # 加载轮播广告
+        # 加载轮播广告（网络优先）
         self.load_top_ads()
 
         # ===== 两个并排的下拉菜单 =====
@@ -509,6 +508,7 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
+    # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
         try:
             if not self.footer:
@@ -541,6 +541,7 @@ class MainScreen(Screen):
         except Exception as e:
             print("hide_footer_animated error:", e)
 
+    # ========== 下拉菜单 ==========
     def update_spinner_colors(self):
         if self.current_festival in TRADITIONAL:
             self.traditional_spinner.background_color = self.ACTIVE_BTN
@@ -570,6 +571,7 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
+    # ========== 分类按钮 ==========
     def update_category_buttons(self):
         self.category_layout.clear_widgets()
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
@@ -593,6 +595,7 @@ class MainScreen(Screen):
         self.update_category_buttons()
         self.show_current_page()
 
+    # ========== 祝福语列表 ==========
     def show_current_page(self):
         self.list_layout.clear_widgets()
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
@@ -639,6 +642,7 @@ class MainScreen(Screen):
             btn.default_bg_color = (1, 1, 1, 0.9)
             self.list_layout.add_widget(btn)
 
+    # ========== 复制与分享 ==========
     def on_copy(self, instance):
         try:
             print("on_copy triggered")
@@ -687,6 +691,7 @@ class MainScreen(Screen):
         else:
             show_toast('请先选择一条祝福')
 
+    # ========== 关于弹窗 ==========
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(220)))
@@ -766,8 +771,8 @@ class MainScreen(Screen):
         )
         popup.open()
 
+    # ========== 版本更新 ==========
     def check_update(self, instance):
-        """从网络检查更新"""
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
         show_toast('正在检查更新...')
 
@@ -794,7 +799,6 @@ class MainScreen(Screen):
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
     def show_update_popup(self, version, message, url=None):
-        """显示更新信息的弹窗，如果有url则提供下载按钮"""
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.button import Button
         from kivy.uix.label import Label
@@ -912,7 +916,7 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ===== 新增轮播广告相关方法 =====
+    # ========== 轮播广告相关 ==========
     def load_top_ads(self):
         """从网络加载顶部轮播图，仅显示 active 为 true 的广告并按顺序显示"""
         url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
@@ -921,17 +925,10 @@ class MainScreen(Screen):
             try:
                 if isinstance(result, str):
                     result = json.loads(result)
-                
-                # 过滤出 active 为 true 的广告
                 ads_list = result.get('ads', [])
                 active_ads = [ad for ad in ads_list if ad.get('active') is True]
-                
-                # 按 display_order 排序
                 active_ads.sort(key=lambda ad: ad.get('display_order', 999))
-                
-                # 清空现有轮播图
                 self.top_carousel.clear_widgets()
-                
                 for ad in active_ads:
                     img_url = ad.get('image_url')
                     link_url = ad.get('redirect_url')
@@ -940,11 +937,8 @@ class MainScreen(Screen):
                         if link_url:
                             img.bind(on_touch_down=lambda instance, touch, url=link_url: self.on_ad_click(instance, touch, url))
                         self.top_carousel.add_widget(img)
-                
-                # 如果没有激活的广告，加载备用图片
                 if not active_ads:
                     self.load_fallback_ads()
-                    
             except Exception as e:
                 print('解析广告数据失败:', e)
                 self.load_fallback_ads()
@@ -957,26 +951,39 @@ class MainScreen(Screen):
             print('广告请求错误:', error)
             self.load_fallback_ads()
         
-        UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
+        try:
+            UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
+        except Exception as e:
+            print('UrlRequest 异常:', e)
+            self.load_fallback_ads()
 
     def load_fallback_ads(self):
-        """备用加载本地图片（直接使用 ad1.png ~ ad5.png）"""
+        """备用加载本地图片，文件名与服务器一致：top01.jpg ~ top05.jpg"""
         self.top_carousel.clear_widgets()
-        for i in range(1, 6):  # 1 到 5
-            img_path = f'images/ad{i}.png'  # 直接使用 ad1.png 等
+        for i in range(1, 6):
+            img_path = f'images/top{i:02d}.jpg'  # 生成 top01.jpg, top02.jpg, ...
             try:
                 img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
-                # 点击本地图片默认打开官网
-                img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch, path))
+                img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                 self.top_carousel.add_widget(img)
             except Exception as e:
                 print(f"加载备用图片 {img_path} 失败: {e}")
-                # 跳过失败图片，不影响其他图片
+
+    def on_fallback_ad_click(self, instance, touch):
+        """备用广告点击事件"""
+        try:
+            if instance.collide_point(*touch.pos):
+                open_website('https://www.sjinyu.com')
+        except Exception as e:
+            print("on_fallback_ad_click 异常:", e)
 
     def on_ad_click(self, instance, touch, url):
         """点击轮播图时打开链接"""
-        if instance.collide_point(*touch.pos):
-            open_website(url)
+        try:
+            if instance.collide_point(*touch.pos):
+                open_website(url)
+        except Exception as e:
+            print("on_ad_click 异常:", e)
 
 
 class BlessApp(App):
@@ -991,5 +998,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
