@@ -1072,3 +1072,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
