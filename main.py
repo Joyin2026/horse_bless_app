@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.3.5
+版本：v2.4.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日
 - 自动判断默认节日（元宵节提前8天，其他5天）
-- 祝福语数据从 data/bless.json 加载，并在界面显示加载状态
-- 修复下拉菜单乱码，添加加载失败提示
+- 祝福语数据从 data/bless.json 加载
+- 分享按钮动态启用，底部图标栏自动显示/隐藏
+- 下拉菜单颜色跟随激活组变化
 """
 
 import kivy
@@ -36,7 +37,7 @@ from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 
-APP_VERSION = "v2.3.5"
+APP_VERSION = "v2.4.0"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -76,6 +77,7 @@ PythonActivity = autoclass('org.kivy.android.PythonActivity')
 Intent = autoclass('android.content.Intent')
 Toast = autoclass('android.widget.Toast')
 String = autoclass('java.lang.String')
+Uri = autoclass('android.net.Uri')
 context = PythonActivity.mActivity
 
 def show_toast(message):
@@ -96,6 +98,23 @@ def share_text(text):
         print('Share failed:', e)
         return False
 
+def open_website(url):
+    try:
+        intent = Intent()
+        intent.setAction(Intent.ACTION_VIEW)
+        intent.setData(Uri.parse(url))
+        context.startActivity(intent)
+    except Exception as e:
+        print('Open website failed:', e)
+
+def send_email(recipient):
+    try:
+        intent = Intent(Intent.ACTION_SENDTO)
+        intent.setData(Uri.parse('mailto:' + recipient))
+        context.startActivity(intent)
+    except Exception as e:
+        print('Send email failed:', e)
+
 # ==================== 自定义 Spinner 选项（解决乱码）====================
 class ChineseSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
@@ -109,16 +128,13 @@ def load_blessings():
     import os
     base_dir = os.path.dirname(__file__)
     json_path = os.path.join(base_dir, 'data', 'bless.json')
-    # 为了在界面上显示错误，我们返回一个元组 (data, error_message)
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        # 验证数据结构是否包含节日和分类
         if not isinstance(data, dict):
             return {}, "数据格式错误：根节点不是字典"
         if len(data) == 0:
             return {}, "数据为空"
-        # 可选：检查第一个节日的结构
         first_festival = list(data.keys())[0]
         if not isinstance(data[first_festival], dict):
             return {}, f"节日 '{first_festival}' 的数据不是字典"
@@ -130,7 +146,6 @@ def load_blessings():
     except Exception as e:
         return {}, f"未知错误: {e}"
 
-# 加载数据，同时获取错误信息
 ALL_BLESSINGS, load_error = load_blessings()
 
 # 节日分组
@@ -139,17 +154,17 @@ PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节',
 
 # 2026年节日日期
 FESTIVAL_DATES_2026 = {
-    '春节（正月初一）': (2, 17),
-    '元宵节（正月十五）': (3, 3),
-    '端午节（五月初五）': (6, 19),
-    '中秋节（八月十五）': (9, 25),
-    '护士节（5月12日）': (5, 12),
-    '母亲节（5月10日）': (5, 10),
-    '父亲节（6月21日）': (6, 21),
-    '建军节（8月1日）': (8, 1),
-    '教师节（9月10日）': (9, 10),
-    '国庆节（10月1日）': (10, 1),
-    '记者节（11月8日）': (11, 8),
+    '春节': (2, 17),
+    '元宵节': (3, 3),
+    '端午节': (6, 19),
+    '中秋节': (9, 25),
+    '护士节': (5, 12),
+    '母亲节': (5, 10),
+    '父亲节': (6, 21),
+    '建军节': (8, 1),
+    '教师节': (9, 10),
+    '国庆节': (10, 1),
+    '记者节': (11, 8),
 }
 
 def get_default_festival():
@@ -170,6 +185,7 @@ def get_default_festival():
 
 # ==================== 开屏页面 ====================
 class StartScreen(Screen):
+    # ... (保持原样，略)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -321,6 +337,13 @@ class MainScreen(Screen):
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.selected_item = None
         self.last_copied_text = None
+        self.has_selected = False  # 是否选中过祝福语
+        self.icon_bar_visible = True
+        self.icon_bar_timer = None
+
+        # 颜色定义
+        self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
+        self.ACTIVE_BTN = get_color_from_hex('#FFCC99')
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
@@ -331,14 +354,14 @@ class MainScreen(Screen):
                         size_hint=(1,1), pos_hint={'x':0,'y':0})
         top_container.add_widget(top_img)
         main_layout.add_widget(top_container)
-       
+
         # 两个并排的下拉菜单（固定标题）
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
             text='传统佳节',
             values=TRADITIONAL,
             size_hint=(0.5, 1),
-            background_color=get_color_from_hex('#DAA520'),
+            background_color=self.DEFAULT_BTN,
             color=(1,1,1,1),
             font_name='Chinese'
         )
@@ -347,7 +370,7 @@ class MainScreen(Screen):
             text='行业节日',
             values=PROFESSIONAL,
             size_hint=(0.5, 1),
-            background_color=get_color_from_hex('#8B4513'),
+            background_color=self.DEFAULT_BTN,
             color=(1,1,1,1),
             font_name='Chinese'
         )
@@ -377,44 +400,111 @@ class MainScreen(Screen):
         # 祝福语列表
         self.scroll_view = ScrollView()
         self.scroll_view.size_hint_y = 1
+        # 绑定滚动事件，当滚动时显示图标栏并重置计时器
+        self.scroll_view.bind(scroll_y=self.on_scroll)
         self.list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部功能按钮
-        bottom_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(8))
-        share_btn = Button(
+        # 底部功能按钮和图标栏
+        self.bottom_layout = BoxLayout(orientation='vertical', size_hint=(1, None), height=dp(90), spacing=0)
+        # 分享按钮
+        self.share_btn = Button(
             text='发给微信好友',
-            background_color=get_color_from_hex('#4CAF50'),
+            size_hint=(1, None),
+            height=dp(50),
+            background_normal='',
+            background_color=(0.67,0.67,0.67,1),  # 灰色
             color=(1,1,1,1),
-            font_name='Chinese'
+            font_name='Chinese',
+            font_size=sp(18),
+            disabled=True
         )
-        share_btn.bind(on_press=self.share_blessings)
-        bottom_layout.add_widget(share_btn)
-        main_layout.add_widget(bottom_layout)
+        self.share_btn.bind(on_press=self.share_blessings)
+        self.bottom_layout.add_widget(self.share_btn)
 
-        # 底部状态栏
-        status_bar = BoxLayout(size_hint=(1, None), height=dp(30), padding=0)
-        with status_bar.canvas.before:
-            Color(0.2, 0.2, 0.2, 1)
-            self.status_rect = Rectangle(size=status_bar.size, pos=status_bar.pos)
-        status_bar.bind(size=self._update_status_rect, pos=self._update_status_rect)
-        copyright_btn = Button(
-            text='Copyright © 2026 卓影工作室·瑾煜. All Rights Reserved',
-            color=get_color_from_hex('#DAA520'),
-            font_size=sp(8),
-            background_color=(0,0,0,0),
-            bold=True,
-            font_name='Chinese'
+        # 图标栏（三个图标按钮）
+        self.icon_bar = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(10), padding=[dp(20),0,dp(20),0])
+        # 官网图标
+        web_btn = Button(
+            background_normal='images/icon_web.png',
+            background_down='images/icon_web.png',
+            size_hint=(None, 1),
+            width=dp(40),
+            border=(0,0,0,0)
         )
-        copyright_btn.bind(on_press=self.show_about_popup)
-        status_bar.add_widget(copyright_btn)
-        main_layout.add_widget(status_bar)
+        web_btn.bind(on_press=lambda x: open_website('https://www.sjinyu.com'))
+        # 邮件图标
+        email_btn = Button(
+            background_normal='images/icon_email.png',
+            background_down='images/icon_email.png',
+            size_hint=(None, 1),
+            width=dp(40),
+            border=(0,0,0,0)
+        )
+        email_btn.bind(on_press=lambda x: send_email('jinyu@sjinyu.com'))
+        # 关于图标
+        about_btn = Button(
+            background_normal='images/icon_about.png',
+            background_down='images/icon_about.png',
+            size_hint=(None, 1),
+            width=dp(40),
+            border=(0,0,0,0)
+        )
+        about_btn.bind(on_press=self.show_about_popup)
+
+        self.icon_bar.add_widget(web_btn)
+        self.icon_bar.add_widget(email_btn)
+        self.icon_bar.add_widget(about_btn)
+        self.bottom_layout.add_widget(self.icon_bar)
+
+        main_layout.add_widget(self.bottom_layout)
 
         self.add_widget(main_layout)
         self.update_category_buttons()
         self.show_current_page()
+        # 初始化下拉菜单颜色（根据当前选中的节日属于哪个组）
+        self.update_spinner_colors()
+
+        # 启动时图标栏显示，5秒后隐藏
+        self.show_icon_bar()
+        self.reset_icon_bar_timer()
+
+    def on_scroll(self, instance, value):
+        # 只要滚动值发生变化（即用户滑动），就显示图标栏并重置定时器
+        self.show_icon_bar()
+        self.reset_icon_bar_timer()
+
+    def show_icon_bar(self):
+        if not self.icon_bar_visible:
+            self.icon_bar.opacity = 1
+            self.icon_bar.disabled = False
+            self.icon_bar_visible = True
+
+    def hide_icon_bar(self, dt=None):
+        if self.icon_bar_visible:
+            self.icon_bar.opacity = 0
+            self.icon_bar.disabled = True
+            self.icon_bar_visible = False
+
+    def reset_icon_bar_timer(self):
+        if self.icon_bar_timer:
+            self.icon_bar_timer.cancel()
+        self.icon_bar_timer = Clock.schedule_once(self.hide_icon_bar, 5)
+
+    def update_spinner_colors(self):
+        """根据当前选中的节日更新两个下拉菜单的背景色"""
+        if self.current_festival in TRADITIONAL:
+            self.traditional_spinner.background_color = self.ACTIVE_BTN
+            self.professional_spinner.background_color = self.DEFAULT_BTN
+        elif self.current_festival in PROFESSIONAL:
+            self.traditional_spinner.background_color = self.DEFAULT_BTN
+            self.professional_spinner.background_color = self.ACTIVE_BTN
+        else:
+            # 默认都设为默认色
+            self.traditional_spinner.background_color = self.DEFAULT_BTN
+            self.professional_spinner.background_color = self.DEFAULT_BTN
 
     def on_traditional_spinner_select(self, spinner, text):
         self.current_festival = text
@@ -423,6 +513,7 @@ class MainScreen(Screen):
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.update_category_buttons()
         self.show_current_page()
+        self.update_spinner_colors()
 
     def on_professional_spinner_select(self, spinner, text):
         self.current_festival = text
@@ -431,6 +522,7 @@ class MainScreen(Screen):
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.update_category_buttons()
         self.show_current_page()
+        self.update_spinner_colors()
 
     def update_category_buttons(self):
         self.category_layout.clear_widgets()
@@ -454,10 +546,6 @@ class MainScreen(Screen):
         self.current_category = category
         self.update_category_buttons()
         self.show_current_page()
-
-    def _update_status_rect(self, instance, value):
-        self.status_rect.pos = instance.pos
-        self.status_rect.size = instance.size
 
     def show_current_page(self):
         self.list_layout.clear_widgets()
@@ -516,6 +604,12 @@ class MainScreen(Screen):
         instance.background_color = (0.5, 0.1, 0.1, 1)
         instance.color = (1, 1, 0, 1)
         self.selected_item = instance
+
+        # 启用分享按钮
+        if not self.has_selected:
+            self.has_selected = True
+            self.share_btn.background_color = get_color_from_hex('#4CAF50')
+            self.share_btn.disabled = False
 
     def share_blessings(self, instance):
         if self.last_copied_text:
@@ -620,10 +714,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
-
-
-
