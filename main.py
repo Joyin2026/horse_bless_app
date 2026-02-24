@@ -338,12 +338,13 @@ class MainScreen(Screen):
         self.selected_item = None
         self.last_copied_text = None
         self.has_selected = False
-        self.icon_bar_visible = True
-        self.last_scroll_y = 1  # 上次滚动位置，用于判断方向
+        self.footer_visible = True
+        self.last_scroll_y = 1
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
         self.ACTIVE_BTN = get_color_from_hex('#FFCC99')
+        self.FOOTER_BG = get_color_from_hex('#333300')
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
@@ -406,8 +407,8 @@ class MainScreen(Screen):
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部区域（分享按钮 + 图标栏）
-        bottom_container = FloatLayout(size_hint=(1, None), height=dp(90))
+        # 底部区域（分享按钮 + 带背景的图标栏）
+        bottom_container = FloatLayout(size_hint=(1, None), height=dp(140))
         # 分享按钮
         self.share_btn = Button(
             text='发给微信好友',
@@ -421,17 +422,30 @@ class MainScreen(Screen):
             disabled=True
         )
         self.share_btn.bind(on_press=self.share_blessings)
-        # 分享按钮固定在底部偏上位置
-        self.share_btn.pos_hint = {'y': 0.5}
+        self.share_btn.pos = (0, dp(80))
         bottom_container.add_widget(self.share_btn)
 
-        # 图标栏（初始位于分享按钮下方）
-        self.icon_bar = BoxLayout(
+        # 图标栏（带背景、图标和文字）
+        self.footer = BoxLayout(
+            orientation='vertical',
+            size_hint=(1, None),
+            height=dp(80),
+            pos=(0, 0)
+        )
+        # 设置背景色
+        with self.footer.canvas.before:
+            Color(*self.FOOTER_BG)
+            self.footer_bg = Rectangle(pos=self.footer.pos, size=self.footer.size)
+        self.footer.bind(pos=lambda instance, value: setattr(self.footer_bg, 'pos', value))
+        self.footer.bind(size=lambda instance, value: setattr(self.footer_bg, 'size', value))
+
+        # 图标水平居中布局（四个图标）
+        icon_layout = BoxLayout(
             size_hint=(None, None),
-            size=(dp(180), dp(40)),  # 三个图标总宽度
+            size=(dp(240), dp(40)),  # 四个图标，每个40，间距20，总宽 4*40+3*20=160+60=220，取240留边
+            pos_hint={'center_x': 0.5},
             spacing=dp(20)
         )
-        self.icon_bar.pos_hint = {'center_x': 0.5, 'y': 0.15}  # 位于底部
         # 官网图标
         web_btn = Button(
             background_normal='images/icon_web.png',
@@ -459,11 +473,35 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         about_btn.bind(on_press=self.show_about_popup)
+        # 更新图标
+        update_btn = Button(
+            background_normal='images/icon_update.png',
+            background_down='images/icon_update.png',
+            size_hint=(None, 1),
+            width=dp(40),
+            border=(0,0,0,0)
+        )
+        update_btn.bind(on_press=self.check_update)
 
-        self.icon_bar.add_widget(web_btn)
-        self.icon_bar.add_widget(email_btn)
-        self.icon_bar.add_widget(about_btn)
-        bottom_container.add_widget(self.icon_bar)
+        icon_layout.add_widget(web_btn)
+        icon_layout.add_widget(email_btn)
+        icon_layout.add_widget(about_btn)
+        icon_layout.add_widget(update_btn)
+
+        # 版权文字
+        copyright_label = Label(
+            text='Copyright Reserved © Sjinyu.com 2025-2026',
+            size_hint=(1, None),
+            height=dp(20),
+            color=(1,1,1,1),
+            font_size=sp(10),
+            font_name='Chinese',
+            halign='center'
+        )
+
+        self.footer.add_widget(icon_layout)
+        self.footer.add_widget(copyright_label)
+        bottom_container.add_widget(self.footer)
 
         main_layout.add_widget(bottom_container)
 
@@ -472,32 +510,130 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
+    def check_update(self, instance):
+        """检查更新：读取 data/update.json，若有更新则弹窗显示，否则提示最新版"""
+        import json
+        base_dir = os.path.dirname(__file__)
+        update_path = os.path.join(base_dir, 'data', 'update.json')
+        try:
+            with open(update_path, 'r', encoding='utf-8') as f:
+                update_info = json.load(f)
+            version = update_info.get('version', '未知版本')
+            message = update_info.get('message', '无更新说明')
+            # 显示更新弹窗
+            self.show_update_popup(version, message)
+        except FileNotFoundError:
+            show_toast('目前已是最新版')
+        except Exception as e:
+            print(f"检查更新出错: {e}")
+            show_toast('检查更新失败')
+
+    def show_update_popup(self, version, message):
+        """显示更新信息的弹窗"""
+        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                            size_hint=(None, None), size=(dp(300), dp(200)))
+        # 背景圆角
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+        content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
+                     size=lambda *x: setattr(self.popup_bg, 'size', content.size))
+
+        # 标题栏
+        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+        with title_bar.canvas.before:
+            Color(0.5, 0.1, 0.1, 1)
+            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+        title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
+                       size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
+
+        title_label = Label(
+            text='发现新版本',
+            color=(1,1,1,1),
+            halign='left',
+            valign='middle',
+            size_hint_x=0.8,
+            font_name='Chinese'
+        )
+        close_btn = Button(
+            text='X',
+            size_hint=(None, None),
+            size=(dp(30), dp(30)),
+            pos_hint={'right':1, 'center_y':0.5},
+            background_color=(0,0,0,0),
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        title_bar.add_widget(title_label)
+        title_bar.add_widget(close_btn)
+
+        # 内容区域
+        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
+        with content_area.canvas.before:
+            Color(1, 1, 1, 1)
+            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
+                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
+
+        version_label = Label(
+            text=f'最新版本：{version}',
+            color=(0,0,0,1),
+            halign='left',
+            valign='middle',
+            size_hint_y=None,
+            height=dp(25),
+            font_name='Chinese'
+        )
+        version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
+        content_area.add_widget(version_label)
+
+        msg_label = Label(
+            text=f'更新内容：{message}',
+            color=(0,0,0,1),
+            halign='left',
+            valign='top',
+            size_hint_y=None,
+            height=dp(100),
+            text_size=(content_area.width - dp(20), None),
+            font_name='Chinese'
+        )
+        msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
+        content_area.add_widget(msg_label)
+
+        content.add_widget(title_bar)
+        content.add_widget(content_area)
+
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(None, None),
+            size=content.size,
+            background_color=(0,0,0,0),
+            auto_dismiss=False
+        )
+        popup.open()
+
     def on_scroll(self, instance, value):
-        """监听滚动，根据方向显示/隐藏图标栏"""
-        # 获取滚动方向：scroll_y 从 1（顶部）到 0（底部）
-        # 如果当前值小于上一次，表示向下滚动（列表向上滑动），隐藏图标栏
-        # 如果当前值大于上一次，表示向上滚动（列表向下滑动），显示图标栏
-        if value < self.last_scroll_y - 0.01:  # 向下滚动
-            self.hide_icon_bar_animated()
-        elif value > self.last_scroll_y + 0.01:  # 向上滚动
-            self.show_icon_bar_animated()
+        if value < self.last_scroll_y - 0.01:
+            self.hide_footer_animated()
+        elif value > self.last_scroll_y + 0.01:
+            self.show_footer_animated()
         self.last_scroll_y = value
 
-    def show_icon_bar_animated(self):
-        if not self.icon_bar_visible:
-            anim = Animation(y=self.icon_bar.parent.height * 0.15, duration=0.3, t='out_quad')
-            anim.start(self.icon_bar)
-            self.icon_bar_visible = True
+    def show_footer_animated(self):
+        if not self.footer_visible:
+            anim = Animation(y=0, duration=0.3, t='out_quad')
+            anim.start(self.footer)
+            self.footer_visible = True
 
-    def hide_icon_bar_animated(self):
-        if self.icon_bar_visible:
-            # 将图标栏移动到屏幕底部下方（隐藏）
-            target_y = -self.icon_bar.height - dp(10)
-            anim = Animation(y=target_y, duration=0.3, t='out_quad')
-            anim.start(self.icon_bar)
-            self.icon_bar_visible = False
+    def hide_footer_animated(self):
+        if self.footer_visible:
+            anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
+            anim.start(self.footer)
+            self.footer_visible = False
 
-    # 其余方法（update_spinner_colors, on_traditional_spinner_select, 等）保持不变
     def update_spinner_colors(self):
         if self.current_festival in TRADITIONAL:
             self.traditional_spinner.background_color = self.ACTIVE_BTN
@@ -674,7 +810,7 @@ class MainScreen(Screen):
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
-            '版权所有，侵权必究！'
+            '感谢使用本应用，祝万福！'
         ]
         for line in info_texts:
             lbl = Label(
@@ -716,4 +852,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
