@@ -149,8 +149,8 @@ def load_blessings():
 ALL_BLESSINGS, load_error = load_blessings()
 
 # 节日分组
-TRADITIONAL = ['春节', '开工大吉','元宵节', '端午节', '中秋节']
-PROFESSIONAL = ['护士节', '母亲节', '父亲节', '建军节', '教师节', '国庆节', '记者节']
+TRADITIONAL = ['春节', '开工大吉','元宵节', '母亲节', '端午节', '父亲节','中秋节']
+PROFESSIONAL = ['护士节', '建军节', '教师节', '国庆节', '记者节']
 
 # 2026年节日日期
 FESTIVAL_DATES_2026 = {
@@ -905,4 +905,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
