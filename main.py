@@ -414,7 +414,7 @@ class MainScreen(Screen):
         
         # 分享按钮（置于底部，高度50dp，上方留30dp空白）
         self.share_btn = Button(
-            text='发给微信好友',
+            text='通过微信/QQ/短信祝福好友',
             size_hint=(1, None),
             height=dp(50),
             background_normal='',
@@ -546,9 +546,6 @@ class MainScreen(Screen):
             self.footer_visible = False
         except Exception as e:
             print("hide_footer_animated error:", e)
-
-    # 以下原有方法保持不变（update_spinner_colors, on_traditional_spinner_select, 等）
-    # 为保持代码完整，此处省略重复部分，您需要保留原有其他方法。
 
     def update_spinner_colors(self):
         if self.current_festival in TRADITIONAL:
@@ -776,172 +773,32 @@ class MainScreen(Screen):
         popup.open()
 
     def check_update(self, instance):
-    """从网络检查更新"""
-    url = 'https://www.sjinyu.com/tools/bless/data/update.json'
-    show_toast('正在检查更新...')  # 可选提示
+        """从网络检查更新"""
+        url = 'https://www.sjinyu.com/tools/bless/data/update.json'
+        show_toast('正在检查更新...')
 
-    def on_success(req, result):
-        try:
-            # 如果返回的是 JSON 字符串，解析它
-            if isinstance(result, str):
-                result = json.loads(result)
-            version = result.get('version', '未知版本')
-            message = result.get('message', '无更新说明')
-            download_url = result.get('url', None)
-            self.show_update_popup(version, message, download_url)
-        except Exception as e:
-            show_toast('解析更新信息失败')
-            print('Update parse error:', e)
+        def on_success(req, result):
+            try:
+                if isinstance(result, str):
+                    result = json.loads(result)
+                version = result.get('version', '未知版本')
+                message = result.get('message', '无更新说明')
+                download_url = result.get('url', None)
+                self.show_update_popup(version, message, download_url)
+            except Exception as e:
+                show_toast('解析更新信息失败')
+                print('Update parse error:', e)
 
-    def on_failure(req, result):
-        show_toast('检查更新失败，请稍后重试')
-        print('Update request failed:', result)
+        def on_failure(req, result):
+            show_toast('检查更新失败，请稍后重试')
+            print('Update request failed:', result)
 
-    def on_error(req, error):
-        show_toast('网络连接错误')
-        print('Update request error:', error)
+        def on_error(req, error):
+            show_toast('网络连接错误')
+            print('Update request error:', error)
 
-    UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
+        UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
-    def show_update_popup(self, version, message, url=None):
-        """显示更新信息的弹窗，如果有url则提供下载按钮"""
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.button import Button
-        from kivy.uix.label import Label
-        from kivy.uix.popup import Popup
-        from kivy.graphics import Color, RoundedRectangle, Rectangle
-
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(250)))
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
-                     size=lambda *x: setattr(self.popup_bg, 'size', content.size))
-
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
-        title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
-
-        title_label = Label(
-            text='发现新版本',
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle',
-            size_hint_x=0.8,
-            font_name='Chinese'
-        )
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(30), dp(30)),
-            pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(title_label)
-        title_bar.add_widget(close_btn)
-
-        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
-
-        version_label = Label(
-            text=f'最新版本：{version}',
-            color=(0,0,0,1),
-            halign='left',
-            valign='middle',
-            size_hint_y=None,
-            height=dp(25),
-            font_name='Chinese'
-        )
-        version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
-        content_area.add_widget(version_label)
-
-        msg_label = Label(
-            text=f'更新内容：{message}',
-            color=(0,0,0,1),
-            halign='left',
-            valign='top',
-            size_hint_y=None,
-            height=dp(80),
-            text_size=(content_area.width - dp(20), None),
-            font_name='Chinese'
-        )
-        msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
-        content_area.add_widget(msg_label)
-
-        button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
-        if url:
-            download_btn = Button(
-                text='立即下载',
-                size_hint=(0.5, 1),
-                background_color=get_color_from_hex('#4CAF50'),
-                color=(1,1,1,1),
-                font_name='Chinese'
-            )
-            download_btn.bind(on_press=lambda x: (popup.dismiss(), open_website(url)))
-            button_layout.add_widget(download_btn)
-
-        cancel_btn = Button(
-            text='以后再说',
-            size_hint=(0.5, 1),
-            background_color=get_color_from_hex('#9E9E9E'),
-            color=(1,1,1,1),
-            font_name='Chinese'
-        )
-        cancel_btn.bind(on_press=lambda x: popup.dismiss())
-        button_layout.add_widget(cancel_btn)
-
-        if not url:
-            cancel_btn.size_hint_x = 1
-            button_layout.remove_widget(cancel_btn)
-            button_layout.add_widget(cancel_btn)
-
-        content_area.add_widget(button_layout)
-
-        content.add_widget(title_bar)
-        content.add_widget(content_area)
-
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
-        )
-        popup.open()
-
-    # 新增：检查更新方法
-    def check_update(self, instance):
-        """从本地 data/update.json 检查更新"""
-        import json
-        base_dir = os.path.dirname(__file__)
-        update_path = os.path.join(base_dir, 'data', 'update.json')
-        try:
-            with open(update_path, 'r', encoding='utf-8') as f:
-                update_info = json.load(f)
-            version = update_info.get('version', '未知版本')
-            message = update_info.get('message', '无更新说明')
-            url = update_info.get('url', None)
-            self.show_update_popup(version, message, url)
-        except FileNotFoundError:
-            show_toast('目前已是最新版')
-        except Exception as e:
-            print(f"检查更新出错: {e}")
-            show_toast('检查更新失败')
-
-    # 新增：显示更新弹窗
     def show_update_popup(self, version, message, url=None):
         """显示更新信息的弹窗，如果有url则提供下载按钮"""
         from kivy.uix.boxlayout import BoxLayout
@@ -1073,13 +930,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
-
-
-
-
-
-
