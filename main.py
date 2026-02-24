@@ -339,7 +339,7 @@ class MainScreen(Screen):
         self.selected_item = None
         self.last_copied_text = None
         self.has_selected = False
-        self.footer_visible = False        # 初始隐藏
+        self.footer_visible = False          # 初始隐藏
         self.last_scroll_y = 1
 
         # 颜色定义
@@ -408,9 +408,10 @@ class MainScreen(Screen):
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部区域（分享按钮 + 带背景的图标栏）
-        bottom_container = FloatLayout(size_hint=(1, None), height=dp(140))
-        # 分享按钮
+        # 底部区域（高度 = 图标栏高度 80dp，分享按钮和图标栏重叠放置）
+        bottom_container = FloatLayout(size_hint=(1, None), height=dp(80))
+        
+        # 分享按钮（置于底部，高度50dp，上方留30dp空白）
         self.share_btn = Button(
             text='发给微信好友',
             size_hint=(1, None),
@@ -423,15 +424,15 @@ class MainScreen(Screen):
             disabled=True
         )
         self.share_btn.bind(on_press=self.share_blessings)
-        self.share_btn.pos = (0, dp(80))
+        self.share_btn.pos = (0, 0)          # 贴底
         bottom_container.add_widget(self.share_btn)
 
-        # 图标栏（带背景、图标和文字）
+        # 图标栏（初始隐藏于屏幕下方，高度80dp，显示时上移至y=0覆盖分享按钮）
         self.footer = BoxLayout(
             orientation='vertical',
             size_hint=(1, None),
             height=dp(80),
-            pos=(0, -dp(80))  # 初始隐藏于屏幕底部下方
+            pos=(0, -dp(80))                 # 初始隐藏
         )
         # 设置背景色
         with self.footer.canvas.before:
@@ -529,8 +530,7 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
-            # 移动到分享按钮位置 (y=80)，覆盖按钮
-            anim = Animation(y=dp(80), duration=0.3, t='out_quad')
+            anim = Animation(y=0, duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
         except Exception as e:
@@ -540,12 +540,14 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
-            # 隐藏到屏幕底部下方
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
         except Exception as e:
             print("hide_footer_animated error:", e)
+
+    # 以下原有方法保持不变（update_spinner_colors, on_traditional_spinner_select, 等）
+    # 为保持代码完整，此处省略重复部分，您需要保留原有其他方法。
 
     def update_spinner_colors(self):
         if self.current_festival in TRADITIONAL:
@@ -1060,6 +1062,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
