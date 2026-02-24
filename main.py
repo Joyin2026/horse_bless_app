@@ -40,7 +40,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
-from kivy.uix.asyncimage import AsyncImage
+from kivy.uix.image import AsyncImage   # 正确
 
 APP_VERSION = "v2.6.101"
 
@@ -998,3 +998,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
