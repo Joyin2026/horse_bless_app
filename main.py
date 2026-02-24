@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.105
+版本：v2.6.106
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -10,7 +10,7 @@ main.py - 马年送祝福（最终版）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
-- 下拉菜单颜色跟随激活组变化
+- 下拉菜单颜色跟随激活组变化，下拉列表美观无分隔线
 - 版本更新检查（从网络获取，正确判断有无更新）
 """
 
@@ -29,6 +29,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner, SpinnerOption
+from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
@@ -41,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.105"
+APP_VERSION = "v2.6.106"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -119,11 +120,33 @@ def send_email(recipient):
     except Exception as e:
         print('Send email failed:', e)
 
-# ==================== 自定义 Spinner 选项（解决乱码）====================
+# ==================== 自定义下拉列表容器 ====================
+class CustomDropDown(DropDown):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # 移除默认背景，使用纯色
+        self.background_normal = ''
+        self.background_down = ''
+        self.background_color = (1, 1, 1, 1)  # 白色背景
+        self.border = (0, 0, 0, 0)            # 无边框
+        self.border_radius = [dp(5), dp(5), dp(5), dp(5)]
+        self.padding = 0                       # 无内边距
+        self.spacing = 0                        # 选项间无间距
+
+# ==================== 自定义 Spinner 选项（解决乱码+美化）====================
 class ChineseSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.font_name = 'Chinese'
+        # 清除默认背景图片，使用纯色背景
+        self.background_normal = ''
+        self.background_down = ''
+        self.background_color = (0.95, 0.95, 0.95, 1)  # 浅灰色
+        self.color = (0.1, 0.1, 0.1, 1)                # 深色文字
+        self.border = (0, 0, 0, 0)                      # 无边框
+        self.padding = [dp(15), dp(5)]
+        self.size_hint_y = None
+        self.height = dp(40)                            # 固定高度，使选项紧密排列
 
 Spinner.option_cls = ChineseSpinnerOption
 
@@ -383,6 +406,11 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.professional_spinner.bind(text=self.on_professional_spinner_select)
+
+        # 设置自定义下拉列表容器
+        self.traditional_spinner.dropdown_cls = CustomDropDown
+        self.professional_spinner.dropdown_cls = CustomDropDown
+
         spinner_layout.add_widget(self.traditional_spinner)
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
