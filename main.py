@@ -185,7 +185,6 @@ def get_default_festival():
 
 # ==================== 开屏页面 ====================
 class StartScreen(Screen):
-    # ... (保持原样，略)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
@@ -510,111 +509,6 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
-    def check_update(self, instance):
-        """检查更新：读取 data/update.json，若有更新则弹窗显示，否则提示最新版"""
-        import json
-        base_dir = os.path.dirname(__file__)
-        update_path = os.path.join(base_dir, 'data', 'update.json')
-        try:
-            with open(update_path, 'r', encoding='utf-8') as f:
-                update_info = json.load(f)
-            version = update_info.get('version', '未知版本')
-            message = update_info.get('message', '无更新说明')
-            # 显示更新弹窗
-            self.show_update_popup(version, message)
-        except FileNotFoundError:
-            show_toast('目前已是最新版')
-        except Exception as e:
-            print(f"检查更新出错: {e}")
-            show_toast('检查更新失败')
-
-    def show_update_popup(self, version, message):
-        """显示更新信息的弹窗"""
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(300), dp(200)))
-        # 背景圆角
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
-                     size=lambda *x: setattr(self.popup_bg, 'size', content.size))
-
-        # 标题栏
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
-        title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
-
-        title_label = Label(
-            text='发现新版本',
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle',
-            size_hint_x=0.8,
-            font_name='Chinese'
-        )
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(30), dp(30)),
-            pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(title_label)
-        title_bar.add_widget(close_btn)
-
-        # 内容区域
-        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
-
-        version_label = Label(
-            text=f'最新版本：{version}',
-            color=(0,0,0,1),
-            halign='left',
-            valign='middle',
-            size_hint_y=None,
-            height=dp(25),
-            font_name='Chinese'
-        )
-        version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
-        content_area.add_widget(version_label)
-
-        msg_label = Label(
-            text=f'更新内容：{message}',
-            color=(0,0,0,1),
-            halign='left',
-            valign='top',
-            size_hint_y=None,
-            height=dp(100),
-            text_size=(content_area.width - dp(20), None),
-            font_name='Chinese'
-        )
-        msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
-        content_area.add_widget(msg_label)
-
-        content.add_widget(title_bar)
-        content.add_widget(content_area)
-
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
-        )
-        popup.open()
-
     def on_scroll(self, instance, value):
         if value < self.last_scroll_y - 0.01:
             self.hide_footer_animated()
@@ -733,21 +627,42 @@ class MainScreen(Screen):
             self.list_layout.add_widget(btn)
 
     def on_copy(self, instance):
-        text = instance.blessing_text
-        Clipboard.copy(text)
-        self.last_copied_text = text
-        show_toast('祝福语已复制')
-        if self.selected_item and self.selected_item != instance:
-            self.selected_item.background_color = self.selected_item.default_bg_color
-            self.selected_item.color = (0.1, 0.1, 0.1, 1)
-        instance.background_color = (0.5, 0.1, 0.1, 1)
-        instance.color = (1, 1, 0, 1)
-        self.selected_item = instance
+        try:
+            print("on_copy triggered")
+            text = instance.blessing_text
+            if not text:
+                print("错误：按钮没有 blessing_text 属性")
+                return
 
-        if not self.has_selected:
-            self.has_selected = True
-            self.share_btn.background_color = get_color_from_hex('#4CAF50')
-            self.share_btn.disabled = False
+            Clipboard.copy(text)
+            print("剪贴板已复制")
+
+            self.last_copied_text = text
+
+            try:
+                show_toast('祝福语已复制')
+            except Exception as e:
+                print("Toast 失败:", e)
+
+            if self.selected_item and self.selected_item != instance:
+                self.selected_item.background_color = (1, 1, 1, 0.9)
+                self.selected_item.color = (0.1, 0.1, 0.1, 1)
+                self.selected_item.canvas.ask_update()
+
+            instance.background_color = (0.5, 0.1, 0.1, 1)
+            instance.color = (1, 1, 0, 1)
+            instance.canvas.ask_update()
+
+            self.selected_item = instance
+
+            if not self.has_selected:
+                self.has_selected = True
+                self.share_btn.background_color = get_color_from_hex('#4CAF50')
+                self.share_btn.disabled = False
+
+            print("视觉反馈已应用")
+        except Exception as e:
+            print("on_copy 发生异常:", e)
 
     def share_blessings(self, instance):
         if self.last_copied_text:
@@ -810,7 +725,7 @@ class MainScreen(Screen):
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：contactme@sjinyu.com',
-            '感谢使用本应用，祝万福！'
+            '版权所有，侵权必究！'
         ]
         for line in info_texts:
             lbl = Label(
@@ -838,6 +753,144 @@ class MainScreen(Screen):
         )
         popup.open()
 
+    # 新增：检查更新方法
+    def check_update(self, instance):
+        """从本地 data/update.json 检查更新"""
+        import json
+        base_dir = os.path.dirname(__file__)
+        update_path = os.path.join(base_dir, 'data', 'update.json')
+        try:
+            with open(update_path, 'r', encoding='utf-8') as f:
+                update_info = json.load(f)
+            version = update_info.get('version', '未知版本')
+            message = update_info.get('message', '无更新说明')
+            url = update_info.get('url', None)
+            self.show_update_popup(version, message, url)
+        except FileNotFoundError:
+            show_toast('目前已是最新版')
+        except Exception as e:
+            print(f"检查更新出错: {e}")
+            show_toast('检查更新失败')
+
+    # 新增：显示更新弹窗
+    def show_update_popup(self, version, message, url=None):
+        """显示更新信息的弹窗，如果有url则提供下载按钮"""
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.button import Button
+        from kivy.uix.label import Label
+        from kivy.uix.popup import Popup
+        from kivy.graphics import Color, RoundedRectangle, Rectangle
+
+        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                            size_hint=(None, None), size=(dp(320), dp(250)))
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            self.popup_bg = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+        content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
+                     size=lambda *x: setattr(self.popup_bg, 'size', content.size))
+
+        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+        with title_bar.canvas.before:
+            Color(0.5, 0.1, 0.1, 1)
+            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+        title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
+                       size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
+
+        title_label = Label(
+            text='发现新版本',
+            color=(1,1,1,1),
+            halign='left',
+            valign='middle',
+            size_hint_x=0.8,
+            font_name='Chinese'
+        )
+        close_btn = Button(
+            text='X',
+            size_hint=(None, None),
+            size=(dp(30), dp(30)),
+            pos_hint={'right':1, 'center_y':0.5},
+            background_color=(0,0,0,0),
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        title_bar.add_widget(title_label)
+        title_bar.add_widget(close_btn)
+
+        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
+        with content_area.canvas.before:
+            Color(1, 1, 1, 1)
+            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
+        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
+                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
+
+        version_label = Label(
+            text=f'最新版本：{version}',
+            color=(0,0,0,1),
+            halign='left',
+            valign='middle',
+            size_hint_y=None,
+            height=dp(25),
+            font_name='Chinese'
+        )
+        version_label.bind(width=lambda *x, l=version_label: setattr(l, 'text_size', (l.width, None)))
+        content_area.add_widget(version_label)
+
+        msg_label = Label(
+            text=f'更新内容：{message}',
+            color=(0,0,0,1),
+            halign='left',
+            valign='top',
+            size_hint_y=None,
+            height=dp(80),
+            text_size=(content_area.width - dp(20), None),
+            font_name='Chinese'
+        )
+        msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
+        content_area.add_widget(msg_label)
+
+        button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
+        if url:
+            download_btn = Button(
+                text='立即下载',
+                size_hint=(0.5, 1),
+                background_color=get_color_from_hex('#4CAF50'),
+                color=(1,1,1,1),
+                font_name='Chinese'
+            )
+            download_btn.bind(on_press=lambda x: (popup.dismiss(), open_website(url)))
+            button_layout.add_widget(download_btn)
+
+        cancel_btn = Button(
+            text='以后再说',
+            size_hint=(0.5, 1),
+            background_color=get_color_from_hex('#9E9E9E'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
+        cancel_btn.bind(on_press=lambda x: popup.dismiss())
+        button_layout.add_widget(cancel_btn)
+
+        if not url:
+            cancel_btn.size_hint_x = 1
+            button_layout.remove_widget(cancel_btn)
+            button_layout.add_widget(cancel_btn)
+
+        content_area.add_widget(button_layout)
+
+        content.add_widget(title_bar)
+        content.add_widget(content_area)
+
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(None, None),
+            size=content.size,
+            background_color=(0,0,0,0),
+            auto_dismiss=False
+        )
+        popup.open()
 
 class BlessApp(App):
     def build(self):
@@ -849,9 +902,5 @@ class BlessApp(App):
         sm.add_widget(MainScreen(name='main'))
         return sm
 
-
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
