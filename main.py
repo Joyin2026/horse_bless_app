@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.022
+版本：v2.7.0
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
+- 顶部轮播图（从网络加载，支持 active 控制）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏
 - 下拉菜单颜色跟随激活组变化
+- 版本更新检查（从网络获取）
 """
 
 import kivy
@@ -38,8 +40,9 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
+from kivy.uix.asyncimage import AsyncImage   # 新增导入
 
-APP_VERSION = "v2.6.022"
+APP_VERSION = "v2.7.0"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -351,14 +354,14 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # 顶部图片
-        top_container = FloatLayout(size_hint_y=None, height=dp(150))
-        top_img = Image(source='images/top.jpg', allow_stretch=True, keep_ratio=False,
-                        size_hint=(1,1), pos_hint={'x':0,'y':0})
-        top_container.add_widget(top_img)
-        main_layout.add_widget(top_container)
+        # ===== 顶部轮播图（替换原来的静态图片）=====
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(150))
+        main_layout.add_widget(self.top_carousel)
 
-        # 两个并排的下拉菜单
+        # 加载轮播广告
+        self.load_top_ads()
+
+        # ===== 两个并排的下拉菜单 =====
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
             text='传统佳节',
@@ -382,7 +385,14 @@ class MainScreen(Screen):
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
 
-        # 当前选中节日的小标签
+        # ===== 分类切换按钮（横向滚动）=====
+        self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
+        self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
+        self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
+        self.category_scroll.add_widget(self.category_layout)
+        main_layout.add_widget(self.category_scroll)
+
+        # ===== 当前节日标签（移至分类按钮下方）=====
         self.current_festival_label = Label(
             text=f"当前节日：{self.current_festival}",
             size_hint=(1, None),
@@ -393,14 +403,7 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(self.current_festival_label)
 
-        # 分类切换按钮
-        self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
-        self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
-        self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
-        self.category_scroll.add_widget(self.category_layout)
-        main_layout.add_widget(self.category_scroll)
-
-        # 祝福语列表（可滚动）
+        # ===== 祝福语列表 =====
         self.scroll_view = ScrollView()
         self.scroll_view.size_hint_y = 1
         self.scroll_view.bind(scroll_y=self.on_scroll)
@@ -409,10 +412,10 @@ class MainScreen(Screen):
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # 底部区域（高度 = 图标栏高度 80dp，分享按钮和图标栏重叠放置）
+        # ===== 底部区域 =====
         bottom_container = FloatLayout(size_hint=(1, None), height=dp(80))
         
-        # 分享按钮（置于底部，高度50dp，上方留30dp空白）
+        # 分享按钮
         self.share_btn = Button(
             text='通过微信/QQ/短信祝福好友',
             size_hint=(1, None),
@@ -425,31 +428,28 @@ class MainScreen(Screen):
             disabled=True
         )
         self.share_btn.bind(on_press=self.share_blessings)
-        self.share_btn.pos = (0, 0)          # 贴底
+        self.share_btn.pos = (0, 0)
         bottom_container.add_widget(self.share_btn)
 
-        # 图标栏（初始隐藏于屏幕下方，高度80dp，显示时上移至y=0覆盖分享按钮）
+        # 图标栏
         self.footer = BoxLayout(
             orientation='vertical',
             size_hint=(1, None),
             height=dp(80),
-            pos=(0, -dp(80))                 # 初始隐藏
+            pos=(0, -dp(80))
         )
-        # 设置背景色
         with self.footer.canvas.before:
             Color(*self.FOOTER_BG)
             self.footer_bg = Rectangle(pos=self.footer.pos, size=self.footer.size)
         self.footer.bind(pos=lambda instance, value: setattr(self.footer_bg, 'pos', value))
         self.footer.bind(size=lambda instance, value: setattr(self.footer_bg, 'size', value))
 
-        # 图标水平居中布局（四个图标）
         icon_layout = BoxLayout(
             size_hint=(None, None),
             size=(dp(240), dp(40)),
             pos_hint={'center_x': 0.5},
             spacing=dp(20)
         )
-        # 官网图标
         web_btn = Button(
             background_normal='images/icon_web.png',
             background_down='images/icon_web.png',
@@ -458,7 +458,6 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         web_btn.bind(on_press=lambda x: open_website('https://www.sjinyu.com'))
-        # 邮件图标
         email_btn = Button(
             background_normal='images/icon_email.png',
             background_down='images/icon_email.png',
@@ -467,7 +466,6 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         email_btn.bind(on_press=lambda x: send_email('jinyu@sjinyu.com'))
-        # 关于图标
         about_btn = Button(
             background_normal='images/icon_about.png',
             background_down='images/icon_about.png',
@@ -476,7 +474,6 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         about_btn.bind(on_press=self.show_about_popup)
-        # 更新图标
         update_btn = Button(
             background_normal='images/icon_update.png',
             background_down='images/icon_update.png',
@@ -491,7 +488,6 @@ class MainScreen(Screen):
         icon_layout.add_widget(about_btn)
         icon_layout.add_widget(update_btn)
 
-        # 版权文字
         copyright_label = Label(
             text='Copyright Reserved © Sjinyu.com 2025-2026',
             size_hint=(1, None),
@@ -517,10 +513,8 @@ class MainScreen(Screen):
         try:
             if not self.footer:
                 return
-            # 向下滚动（列表向上）隐藏图标栏
             if value < self.last_scroll_y - 0.01:
                 self.hide_footer_animated()
-            # 向上滚动（列表向下）显示图标栏
             elif value > self.last_scroll_y + 0.01:
                 self.show_footer_animated()
             self.last_scroll_y = value
@@ -917,6 +911,69 @@ class MainScreen(Screen):
             auto_dismiss=False
         )
         popup.open()
+
+    # ===== 新增轮播广告相关方法 =====
+    def load_top_ads(self):
+        """从网络加载顶部轮播图，仅显示 active 为 true 的广告并按顺序显示"""
+        url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
+        
+        def on_success(req, result):
+            try:
+                if isinstance(result, str):
+                    result = json.loads(result)
+                
+                # 过滤出 active 为 true 的广告
+                ads_list = result.get('ads', [])
+                active_ads = [ad for ad in ads_list if ad.get('active') is True]
+                
+                # 按 display_order 排序
+                active_ads.sort(key=lambda ad: ad.get('display_order', 999))
+                
+                # 清空现有轮播图
+                self.top_carousel.clear_widgets()
+                
+                for ad in active_ads:
+                    img_url = ad.get('image_url')
+                    link_url = ad.get('redirect_url')
+                    if img_url:
+                        img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
+                        if link_url:
+                            img.bind(on_touch_down=lambda instance, touch, url=link_url: self.on_ad_click(instance, touch, url))
+                        self.top_carousel.add_widget(img)
+                
+                # 如果没有激活的广告，加载备用图片
+                if not active_ads:
+                    self.load_fallback_ads()
+                    
+            except Exception as e:
+                print('解析广告数据失败:', e)
+                self.load_fallback_ads()
+        
+        def on_failure(req, result):
+            print('广告请求失败:', result)
+            self.load_fallback_ads()
+        
+        def on_error(req, error):
+            print('广告请求错误:', error)
+            self.load_fallback_ads()
+        
+        UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
+
+    def load_fallback_ads(self):
+        """备用加载本地图片（例如 images/ad1.png ~ ad4.png）"""
+        self.top_carousel.clear_widgets()
+        for i in range(1, 5):
+            img_path = f'images/ad{i}.png'
+            img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+            # 点击本地图片默认打开官网
+            img.bind(on_touch_down=lambda instance, touch: open_website('https://www.sjinyu.com'))
+            self.top_carousel.add_widget(img)
+
+    def on_ad_click(self, instance, touch, url):
+        """点击轮播图时打开链接"""
+        if instance.collide_point(*touch.pos):
+            open_website(url)
+
 
 class BlessApp(App):
     def build(self):
