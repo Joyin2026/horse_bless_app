@@ -36,6 +36,7 @@ from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
+from kivy.animation import Animation
 
 APP_VERSION = "v2.5.5"
 
@@ -1056,6 +1057,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
