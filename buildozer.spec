@@ -24,7 +24,7 @@ android.archs = arm64-v8a
 android.gradle_dependencies = 'com.android.support:support-annotations:28.0.0'
 
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
-android.add_src_patterns = lib/arm64-v8a/libc++_shared.so
+
 
 fullscreen = 1
 orientation = portrait
