@@ -249,7 +249,7 @@ class StartScreen(Screen):
         top_right = BoxLayout(size_hint=(None, None), size=(dp(160), dp(40)),
                               pos_hint={'right': 1, 'top': 1}, spacing=dp(5))
         self.countdown_label = Label(
-            text='6 秒',
+            text='3 秒',
             size_hint=(None, None),
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
@@ -290,9 +290,9 @@ class StartScreen(Screen):
 
     def _start_enter_countdown(self):
         self._stop_enter_countdown()
-        self.countdown = 6
-        self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
+        self.countdown = 3
+        self.countdown_label.text = '3 秒'
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -819,7 +819,7 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ========== 帮助弹窗（带滚动） ==========
+    # ========== 帮助弹窗（带滚动，序号永不掉行） ==========
     def show_help_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(280)))
@@ -861,33 +861,56 @@ class MainScreen(Screen):
 
         # 可滚动的内容区域
         scroll_view = ScrollView(size_hint=(1, 1), bar_width=dp(4), bar_color=(0.5, 0.5, 0.5, 0.5))
-        inner_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(20), dp(10), dp(15), dp(15)), spacing=dp(8))
+        inner_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(10), dp(10), dp(10), dp(15)), spacing=dp(8))
         inner_layout.bind(minimum_height=inner_layout.setter('height'))
 
         help_items = [
-            '1. 选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。',
-            '2. 切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。',
-            '3. 复制祝福：点击任意祝福语卡片，内容自动复制到剪贴板并高亮。',
-            '4. 分享祝福：复制祝福后，底部绿色按钮可用，点击可通过微信/QQ/短信分享。',
-            '5. 其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。'
+            ('1.', '选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。'),
+            ('2.', '切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。'),
+            ('3.', '复制祝福：点击任意祝福语卡片，内容自动复制到剪贴板并高亮。'),
+            ('4.', '分享祝福：复制祝福后，底部绿色按钮可用，点击可通过微信/QQ/短信分享。'),
+            ('5.', '其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。')
         ]
-        for line in help_items:
-            lbl = Label(
-                text=line,
+        for num, text in help_items:
+            # 水平布局：左侧序号，右侧内容
+            item_layout = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
+            # 序号标签，固定宽度
+            num_label = Label(
+                text=num,
+                color=(0,0,0,1),
+                halign='right',
+                valign='top',
+                size_hint=(None, None),
+                width=dp(30),
+                height=dp(40),  # 初始高度，之后会被内容撑起，但序号一般单行，所以固定高度也行
+                font_name='Chinese',
+                text_size=(dp(30), None)
+            )
+            # 内容标签，自动换行
+            content_label = Label(
+                text=text,
                 color=(0,0,0,1),
                 halign='left',
                 valign='top',
                 size_hint_y=None,
-                height=dp(40),  # 初始高度，之后会被 texture_size 调整
-                text_size=(inner_layout.width - dp(35), None),  # 初始宽度，减去左右内边距
+                height=dp(40),  # 初始高度，之后调整
+                text_size=(inner_layout.width - dp(45), None),  # 预留序号宽度和间距
                 font_name='Chinese'
             )
             # 绑定宽度变化更新 text_size 的宽度，并根据实际内容调整高度
-            lbl.bind(
-                width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width - dp(35), None)),
-                texture_size=lambda *x, l=lbl: setattr(l, 'height', l.texture_size[1] + dp(5))
+            content_label.bind(
+                width=lambda *x, l=content_label: setattr(l, 'text_size', (l.width, None)),
+                texture_size=lambda *x, l=content_label: setattr(l, 'height', l.texture_size[1] + dp(5))
             )
-            inner_layout.add_widget(lbl)
+            # 内容标签的高度变化时，更新 item_layout 的高度
+            content_label.bind(height=lambda *x, layout=item_layout: layout.setter('height')(layout, content_label.height))
+            # 序号标签高度跟随内容标签（保持一致）
+            content_label.bind(height=lambda *x, nl=num_label: setattr(nl, 'height', content_label.height))
+
+            item_layout.add_widget(num_label)
+            item_layout.add_widget(content_label)
+
+            inner_layout.add_widget(item_layout)
 
         scroll_view.add_widget(inner_layout)
         content.add_widget(title_bar)
