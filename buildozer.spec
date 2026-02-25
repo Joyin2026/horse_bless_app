@@ -29,6 +29,7 @@ presplash.filename = %(source.dir)s/images/presplash.png
 
 android.accept_sdk_license = True
 android.private_storage = True
+android.release_artifact = apk
 
 [buildozer]
 log_level = 2
