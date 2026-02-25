@@ -1354,57 +1354,20 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        # 强制隐藏状态栏，确保全屏显示
-        try:
-            from jnius import autoclass
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            WindowManager = autoclass('android.view.WindowManager')
-            View = autoclass('android.view.View')
-            activity = PythonActivity.mActivity
-            if activity:
-                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                decor_view = activity.getWindow().getDecorView()
-                ui_options = (
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                )
-                decor_view.setSystemUiVisibility(ui_options)
-        except Exception as e:
-            print("设置全屏标志失败:", e)
-
         Window.borderless = True
         Window.fullscreen = True
         Window.size = Window.system_size
-        Window.top = 0
-        Window.left = 0
+       # Window.top = 0
+       # Window.left = 0
 
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         sm.add_widget(InfoScreen(name='info'))
         return sm
-
     def on_start(self):
-        try:
-            from jnius import autoclass
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            WindowManager = autoclass('android.view.WindowManager')
-            View = autoclass('android.view.View')
-            activity = PythonActivity.mActivity
-            if activity:
-                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                decor_view = activity.getWindow().getDecorView()
-                ui_options = (
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                )
-                decor_view.setSystemUiVisibility(ui_options)
-        except Exception as e:
-            print("on_start 全屏设置失败:", e)
-
-        print(f"Window position: top={Window.top}, left={Window.left}, size={Window.size}")
+        print("应用已启动")
 
 if __name__ == '__main__':
     BlessApp().run()
+
