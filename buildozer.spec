@@ -33,7 +33,7 @@ icon.filename = %(source.dir)s/images/icon.png
 presplash.filename = %(source.dir)s/images/presplash.png
 
 # 暂时禁用签名，构建 debug 版本以便获取更多信息
-# android.release_artifact = apk  # 注释掉
+android.release_artifact = apk
 android.accept_sdk_license = True
 android.private_storage = True
 
