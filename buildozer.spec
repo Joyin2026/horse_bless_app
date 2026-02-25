@@ -11,7 +11,7 @@ source.include_exts = py,png,jpg,txt,json,ttf
 source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
 # 依赖：python3 指定版本以提高稳定性，kivy 使用 2.1.0，pyjnius 用于 Android 原生调用，urllib3 用于网络请求（可选）
-requirements = python3==3.9.9, kivy==2.1.0, pyjnius, urllib3
+requirements = python3, kivy==2.2.0, pyjnius, urllib3
 
 # Android 目标 API 和 NDK 版本（NDK 必须 >=25 以满足 python-for-android 要求）
 android.api = 30
