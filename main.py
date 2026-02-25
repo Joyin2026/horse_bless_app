@@ -640,8 +640,8 @@ class InfoScreen(Screen):
             show_toast('请输入反馈内容')
             return
 
-        # 发送反馈到服务器（请替换为实际API地址）
-        url = 'https://www.sjinyu.com/tools/bless/data/feedback.php' # API
+        # 发送反馈到服务器
+        url = 'https://www.sjinyu.com/tools/bless/data/feedback.php'
         data = json.dumps({
             'name': name,
             'email': email,
@@ -653,12 +653,13 @@ class InfoScreen(Screen):
             self.go_back(None)
 
         def on_failure(req, result):
+            print('❌ 提交失败，HTTP状态码:', req.resp_status)
+            print('返回内容:', result)
             show_toast('提交失败，请稍后重试')
-            print('Feedback failure:', result)
 
         def on_error(req, error):
+            print('❌ 网络错误:', error)
             show_toast('网络错误，请检查连接')
-            print('Feedback error:', error)
 
         UrlRequest(url, req_body=data, req_headers={'Content-Type': 'application/json'},
                    on_success=on_success, on_failure=on_failure, on_error=on_error, method='POST')
@@ -809,7 +810,6 @@ class MainScreen(Screen):
         )
         email_btn.bind(on_press=lambda x: send_email('jinyu@sjinyu.com'))
 
-        # 原来的“关于”和“帮助”按钮都跳转到信息页面
         about_btn = Button(
             background_normal='images/icon_about.png',
             background_down='images/icon_about.png',
@@ -860,16 +860,6 @@ class MainScreen(Screen):
         if not self._update_checked:
             self._check_update_silent()
             self._update_checked = True
-
-    # ---------- 以下保持原 MainScreen 其余方法不变（滚动控制、下拉菜单、分类、复制分享、更新检查、轮播广告等）----------
-    # 由于篇幅限制，这里省略原有方法的代码，但在最终输出中必须包含所有原有方法。
-    # 实际在回答中，需要将 MainScreen 的所有方法完整包含，但在此为了简洁，仅示意。
-    # 完整代码将包含所有原有方法（on_scroll, show_footer_animated, hide_footer_animated,
-    # update_spinner_colors, on_traditional_spinner_select, on_professional_spinner_select,
-    # update_category_buttons, switch_category, show_current_page, on_copy, share_blessings,
-    # parse_version, is_newer_version, _check_update_silent, show_update_popup,
-    # load_top_ads, load_fallback_ads, on_fallback_ad_click, on_ad_click 等）。
-    # 此处省略以节省长度，实际返回代码时会包含全部。
 
     # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
