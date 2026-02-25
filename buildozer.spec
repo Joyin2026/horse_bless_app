@@ -10,7 +10,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,txt,json
 source.include_patterns = images/*.png, images/*.jpg, data/*.json
 
-requirements = python3, kivy==2.3.1, pyjnius==1.6.0, filetype
+requirements = python3, kivy==2.3.1, pyjnius==1.5.0, filetype
 
 source.main = main.py
 
