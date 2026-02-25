@@ -21,7 +21,7 @@ android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 android.archs = arm64-v8a
 
 # 添加必要的 Gradle 依赖
-android.gradle_dependencies = 'com.android.support:support-annotations:28.0.0'
+#android.gradle_dependencies = 'com.android.support:support-annotations:28.0.0'
 
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
 
