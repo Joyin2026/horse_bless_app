@@ -39,6 +39,8 @@ jobs:
           BUILD_DIR="${HOME}/.buildozer"
           
           DOCKER_BASE="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          # 👇 添加 JNIUS_PLATFORM 环境变量，解决 pyjnius 编译问题
+          DOCKER_BASE="${DOCKER_BASE} -e JNIUS_PLATFORM=android"
           
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
             DOCKER_BASE="${DOCKER_BASE} -v $PWD/keystore.jks:/app/keystore.jks"
