@@ -26,7 +26,7 @@ source.include_exts = py,png,jpg,jpeg,txt,json
 source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
 # (list) 项目依赖的 Python 模块（指定版本以确保稳定）
-requirements = python3, kivy==2.3.1, pyjnius==1.6.0
+requirements = python3, kivy==2.3.1, pyjnius==1.5.0
 
 # (str) 应用入口文件
 source.main = main.py
@@ -75,7 +75,7 @@ android.private_storage = True
 android.release_artifact = apk
 
 # (str) 额外的编译环境变量（用于 pyjnius 的 Cython 编译）
-android.extra_env = PYJNIUS_CYTHONIZE=1
+android.extra_env = PYJNIUS_CYTHONIZE=1, JNIUS_PLATFORM=android
 
 # ---------- 以下为 Buildozer 通用配置 ----------
 [buildozer]
