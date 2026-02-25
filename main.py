@@ -12,6 +12,7 @@ main.py - 马年送祝福（最终版）
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
 - 版本更新检查（进入主界面时静默检查，有更新自动弹窗）
+- 信息页面：整合操作指南、应用功能、关于信息、反馈建议（在线提交）
 """
 
 import kivy
@@ -19,6 +20,7 @@ import sys
 import os
 import json
 import traceback
+import re
 from datetime import datetime
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -32,6 +34,7 @@ from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
@@ -352,6 +355,318 @@ class StartScreen(Screen):
     def go_main(self, *args):
         self.manager.current = 'main'
 
+# ==================== 信息页面 ====================
+class InfoScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.name_input = None
+        self.email_input = None
+        self.feedback_input = None
+        self.build_ui()
+
+    def build_ui(self):
+        # 主布局：淡青蓝色背景
+        main_layout = FloatLayout()
+        with main_layout.canvas.before:
+            Color(*get_color_from_hex('#E0F7FA'))  # 淡青蓝
+            self.bg_rect = Rectangle(pos=main_layout.pos, size=main_layout.size)
+        main_layout.bind(pos=self.update_bg, size=self.update_bg)
+
+        # 顶部返回栏
+        top_bar = BoxLayout(size_hint=(1, None), height=dp(50), padding=(dp(10), 0))
+        back_btn = Button(
+            text='<',
+            size_hint=(None, 1),
+            width=dp(40),
+            background_normal='',
+            background_color=(0,0,0,0),
+            color=(0,0,0,1),
+            font_size=sp(30),
+            bold=True
+        )
+        back_btn.bind(on_press=self.go_back)
+        top_bar.add_widget(back_btn)
+        # 占位
+        top_bar.add_widget(Label())
+        main_layout.add_widget(top_bar)
+
+        # 可滚动的内容区域
+        scroll_view = ScrollView(size_hint=(1, 1), pos_hint={'top': 0.95}, bar_width=dp(4), bar_color=(0.5,0.5,0.5,0.5))
+        content_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(15), dp(10), dp(15), dp(20)), spacing=dp(15))
+        content_layout.bind(minimum_height=content_layout.setter('height'))
+
+        # ---- 操作指南 ----
+        content_layout.add_widget(self.create_section_title('操作指南'))
+        guide_items = [
+            ('1.', '选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。'),
+            ('2.', '切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。'),
+            ('3.', '复制祝福：点击任意祝福语卡片，内容自动复制到剪贴板并高亮。'),
+            ('4.', '分享祝福：复制祝福后，底部绿色按钮可用，点击可通过微信/QQ/短信分享。'),
+            ('5.', '其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。')
+        ]
+        for num, text in guide_items:
+            item = self.create_guide_item(num, text)
+            content_layout.add_widget(item)
+
+        # ---- 应用功能 ----
+        content_layout.add_widget(self.create_section_title('应用功能'))
+        func_text = """
+• 开屏广告轮播
+• 顶部轮播图（网络加载，支持 active 控制）
+• 自动判断默认节日（元宵节提前3天，其他2天）
+• 祝福语数据从 data/bless.json 加载
+• 分享按钮动态启用，底部图标栏自动显示/隐藏
+• 下拉菜单颜色跟随激活组变化，下拉列表美观
+• 版本更新检查（进入主界面静默检查，有更新自动弹窗）
+        """
+        func_label = Label(
+            text=func_text,
+            color=(0,0,0,1),
+            halign='left',
+            valign='top',
+            size_hint_y=None,
+            height=dp(140),
+            text_size=(content_layout.width - dp(30), None),
+            font_name='Chinese'
+        )
+        func_label.bind(width=lambda *x, l=func_label: setattr(l, 'text_size', (l.width - dp(30), None)),
+                        texture_size=lambda *x, l=func_label: setattr(l, 'height', l.texture_size[1] + dp(5)))
+        content_layout.add_widget(func_label)
+
+        # ---- 关于信息 ----
+        content_layout.add_widget(self.create_section_title('关于信息'))
+        about_texts = [
+            f'应用名称：马年送祝福',
+            f'应用版本：{APP_VERSION}',
+            f'应用开发：瑾 煜',
+            f'反馈邮箱：jinyu@sjinyu.com',
+            f'版权所有，侵权必究！'
+        ]
+        for line in about_texts:
+            lbl = Label(
+                text=line,
+                color=(0,0,0,1),
+                halign='left',
+                valign='middle',
+                size_hint_y=None,
+                height=dp(25),
+                font_name='Chinese'
+            )
+            lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
+            content_layout.add_widget(lbl)
+
+        # ---- 反馈建议 ----
+        content_layout.add_widget(self.create_section_title('反馈建议'))
+
+        # 姓名
+        name_label = Label(
+            text='您的姓名（称呼）：',
+            color=(0,0,0,1),
+            halign='left',
+            size_hint_y=None,
+            height=dp(25),
+            font_name='Chinese'
+        )
+        name_label.bind(width=lambda *x, l=name_label: setattr(l, 'text_size', (l.width, None)))
+        content_layout.add_widget(name_label)
+
+        self.name_input = TextInput(
+            hint_text='请输入您的姓名',
+            size_hint_y=None,
+            height=dp(40),
+            font_name='Chinese',
+            background_color=(1,1,1,1),
+            foreground_color=(0,0,0,1)
+        )
+        content_layout.add_widget(self.name_input)
+
+        # 邮箱
+        email_label = Label(
+            text='联系方式（电邮）：',
+            color=(0,0,0,1),
+            halign='left',
+            size_hint_y=None,
+            height=dp(25),
+            font_name='Chinese'
+        )
+        email_label.bind(width=lambda *x, l=email_label: setattr(l, 'text_size', (l.width, None)))
+        content_layout.add_widget(email_label)
+
+        self.email_input = TextInput(
+            hint_text='请输入您的电子邮箱',
+            size_hint_y=None,
+            height=dp(40),
+            font_name='Chinese',
+            background_color=(1,1,1,1),
+            foreground_color=(0,0,0,1)
+        )
+        content_layout.add_widget(self.email_input)
+
+        # 反馈内容
+        feedback_label = Label(
+            text='反馈与建议：',
+            color=(0,0,0,1),
+            halign='left',
+            size_hint_y=None,
+            height=dp(25),
+            font_name='Chinese'
+        )
+        feedback_label.bind(width=lambda *x, l=feedback_label: setattr(l, 'text_size', (l.width, None)))
+        content_layout.add_widget(feedback_label)
+
+        self.feedback_input = TextInput(
+            text='请将您的反馈与建议写在这里',
+            size_hint_y=None,
+            height=dp(100),
+            font_name='Chinese',
+            background_color=(1,1,1,1),
+            foreground_color=(0.5,0.5,0.5,1),
+            multiline=True
+        )
+        self.feedback_input.bind(focus=self.on_feedback_focus)
+        content_layout.add_widget(self.feedback_input)
+
+        # 按钮水平居中
+        btn_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(20), padding=(dp(20),0))
+        submit_btn = Button(
+            text='提交',
+            size_hint=(0.5, 1),
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
+        submit_btn.bind(on_press=self.submit_feedback)
+        cancel_btn = Button(
+            text='取消',
+            size_hint=(0.5, 1),
+            background_color=get_color_from_hex('#9E9E9E'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
+        cancel_btn.bind(on_press=self.go_back)
+        btn_layout.add_widget(submit_btn)
+        btn_layout.add_widget(cancel_btn)
+        content_layout.add_widget(btn_layout)
+
+        scroll_view.add_widget(content_layout)
+        main_layout.add_widget(scroll_view)
+
+        self.add_widget(main_layout)
+
+    def update_bg(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+
+    def create_section_title(self, text):
+        lbl = Label(
+            text=text,
+            color=get_color_from_hex('#006064'),
+            bold=True,
+            font_size=sp(18),
+            size_hint_y=None,
+            height=dp(40),
+            halign='left',
+            valign='middle',
+            font_name='Chinese'
+        )
+        lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
+        return lbl
+
+    def create_guide_item(self, num, text):
+        item = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
+        num_label = Label(
+            text=num,
+            color=(0,0,0,1),
+            halign='right',
+            valign='top',
+            size_hint=(None, None),
+            width=dp(30),
+            height=dp(40),
+            font_name='Chinese',
+            text_size=(dp(30), None)
+        )
+        content_label = Label(
+            text=text,
+            color=(0,0,0,1),
+            halign='left',
+            valign='top',
+            size_hint_y=None,
+            height=dp(40),
+            text_size=(self.width - dp(45), None),
+            font_name='Chinese'
+        )
+        content_label.bind(
+            width=lambda *x, l=content_label: setattr(l, 'text_size', (l.width, None)),
+            texture_size=lambda *x, l=content_label: setattr(l, 'height', l.texture_size[1] + dp(5))
+        )
+        content_label.bind(height=lambda *x, layout=item: layout.setter('height')(layout, content_label.height))
+        content_label.bind(height=lambda *x, nl=num_label: setattr(nl, 'height', content_label.height))
+
+        item.add_widget(num_label)
+        item.add_widget(content_label)
+        return item
+
+    def on_feedback_focus(self, instance, value):
+        if value:
+            if instance.text == '请将您的反馈与建议写在这里':
+                instance.text = ''
+                instance.foreground_color = (0,0,0,1)
+        else:
+            if not instance.text.strip():
+                instance.text = '请将您的反馈与建议写在这里'
+                instance.foreground_color = (0.5,0.5,0.5,1)
+
+    def validate_email(self, email):
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(pattern, email) is not None
+
+    def submit_feedback(self, instance):
+        name = self.name_input.text.strip()
+        email = self.email_input.text.strip()
+        content = self.feedback_input.text.strip()
+        if content == '请将您的反馈与建议写在这里':
+            content = ''
+
+        if not name:
+            show_toast('请输入您的姓名')
+            return
+        if not email:
+            show_toast('请输入您的电子邮箱')
+            return
+        if not self.validate_email(email):
+            show_toast('邮箱格式不正确')
+            return
+        if not content:
+            show_toast('请输入反馈内容')
+            return
+
+        # 发送反馈到服务器（请替换为实际API地址）
+        url = 'https://www.sjinyu.com/tools/bless/data/feedback.php' # API
+        data = json.dumps({
+            'name': name,
+            'email': email,
+            'content': content
+        })
+
+        def on_success(req, result):
+            show_toast('反馈提交成功，感谢您的支持！')
+            self.go_back(None)
+
+        def on_failure(req, result):
+            show_toast('提交失败，请稍后重试')
+            print('Feedback failure:', result)
+
+        def on_error(req, error):
+            show_toast('网络错误，请检查连接')
+            print('Feedback error:', error)
+
+        UrlRequest(url, req_body=data, req_headers={'Content-Type': 'application/json'},
+                   on_success=on_success, on_failure=on_failure, on_error=on_error, method='POST')
+        show_toast('正在提交...')
+
+    def go_back(self, instance):
+        self.manager.current = 'main'
+
 # ==================== 主页面 ====================
 class MainScreen(Screen):
     def __init__(self, **kwargs):
@@ -368,8 +683,8 @@ class MainScreen(Screen):
         self.has_selected = False
         self.footer_visible = False
         self.last_scroll_y = 1
-        self._footer_timer = None  # 用于自动隐藏的定时器
-        self._update_checked = False  # 标记是否已检查更新
+        self._footer_timer = None
+        self._update_checked = False
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
@@ -382,11 +697,7 @@ class MainScreen(Screen):
         # ===== 顶部轮播图 =====
         self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(150))
         main_layout.add_widget(self.top_carousel)
-
-        # 启动自动轮播（每3秒切换）
         Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
-
-        # 加载轮播广告（网络优先）
         self.load_top_ads()
 
         # ===== 两个并排的下拉菜单 =====
@@ -409,8 +720,6 @@ class MainScreen(Screen):
             font_name='Chinese'
         )
         self.professional_spinner.bind(text=self.on_professional_spinner_select)
-
-        # 设置自定义下拉列表容器
         self.traditional_spinner.dropdown_cls = CustomDropDown
         self.professional_spinner.dropdown_cls = CustomDropDown
 
@@ -418,14 +727,14 @@ class MainScreen(Screen):
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
 
-        # ===== 分类切换按钮（横向滚动）=====
+        # ===== 分类切换按钮 =====
         self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
         self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
         self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # ===== 当前节日标签（移至分类按钮下方，加粗）=====
+        # ===== 当前节日标签 =====
         self.current_festival_label = Label(
             text=f"当前节日：{self.current_festival}",
             size_hint=(1, None),
@@ -448,8 +757,6 @@ class MainScreen(Screen):
 
         # ===== 底部区域 =====
         bottom_container = FloatLayout(size_hint=(1, None), height=dp(80))
-        
-        # 分享按钮
         self.share_btn = Button(
             text='通过微信/QQ/短信祝福好友',
             size_hint=(1, None),
@@ -492,6 +799,7 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         web_btn.bind(on_press=lambda x: open_website('https://www.sjinyu.com'))
+
         email_btn = Button(
             background_normal='images/icon_email.png',
             background_down='images/icon_email.png',
@@ -500,6 +808,8 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         email_btn.bind(on_press=lambda x: send_email('jinyu@sjinyu.com'))
+
+        # 原来的“关于”和“帮助”按钮都跳转到信息页面
         about_btn = Button(
             background_normal='images/icon_about.png',
             background_down='images/icon_about.png',
@@ -507,15 +817,16 @@ class MainScreen(Screen):
             width=dp(40),
             border=(0,0,0,0)
         )
-        about_btn.bind(on_press=self.show_about_popup)
+        about_btn.bind(on_press=self.go_to_info)
+
         help_btn = Button(
-            background_normal='images/icon_help.png',  # 用户后续可替换为帮助图标
+            background_normal='images/icon_help.png',
             background_down='images/icon_help.png',
             size_hint=(None, 1),
             width=dp(40),
             border=(0,0,0,0)
         )
-        help_btn.bind(on_press=self.show_help_popup)
+        help_btn.bind(on_press=self.go_to_info)
 
         icon_layout.add_widget(web_btn)
         icon_layout.add_widget(email_btn)
@@ -535,7 +846,6 @@ class MainScreen(Screen):
         self.footer.add_widget(icon_layout)
         self.footer.add_widget(copyright_label)
         bottom_container.add_widget(self.footer)
-
         main_layout.add_widget(bottom_container)
 
         self.add_widget(main_layout)
@@ -543,11 +853,23 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
+    def go_to_info(self, instance):
+        self.manager.current = 'info'
+
     def on_enter(self):
-        # 进入主界面时静默检查更新（仅一次）
         if not self._update_checked:
             self._check_update_silent()
             self._update_checked = True
+
+    # ---------- 以下保持原 MainScreen 其余方法不变（滚动控制、下拉菜单、分类、复制分享、更新检查、轮播广告等）----------
+    # 由于篇幅限制，这里省略原有方法的代码，但在最终输出中必须包含所有原有方法。
+    # 实际在回答中，需要将 MainScreen 的所有方法完整包含，但在此为了简洁，仅示意。
+    # 完整代码将包含所有原有方法（on_scroll, show_footer_animated, hide_footer_animated,
+    # update_spinner_colors, on_traditional_spinner_select, on_professional_spinner_select,
+    # update_category_buttons, switch_category, show_current_page, on_copy, share_blessings,
+    # parse_version, is_newer_version, _check_update_silent, show_update_popup,
+    # load_top_ads, load_fallback_ads, on_fallback_ad_click, on_ad_click 等）。
+    # 此处省略以节省长度，实际返回代码时会包含全部。
 
     # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
@@ -566,15 +888,12 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
-            # 取消之前的自动隐藏定时器
             if self._footer_timer:
                 self._footer_timer.cancel()
                 self._footer_timer = None
-            # 显示图标栏
             anim = Animation(y=0, duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
-            # 设置3秒后自动隐藏
             self._footer_timer = Clock.schedule_once(lambda dt: self.hide_footer_animated(), 3)
         except Exception as e:
             print("show_footer_animated error:", e)
@@ -583,11 +902,9 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
-            # 取消自动隐藏定时器
             if self._footer_timer:
                 self._footer_timer.cancel()
                 self._footer_timer = None
-            # 隐藏图标栏
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
@@ -744,198 +1061,14 @@ class MainScreen(Screen):
         else:
             show_toast('请先选择一条祝福')
 
-    # ========== 关于弹窗 ==========
-    def show_about_popup(self, instance):
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(220)))
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.bg_rect, 'pos', content.pos),
-                     size=lambda *x: setattr(self.bg_rect, 'size', content.size))
-
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.title_rect = RoundedRectangle(pos=title_bar.pos, size=title_bar.size, radius=[dp(10), dp(10), 0, 0])
-        title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
-
-        title_label = Label(
-            text='关于',
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle',
-            size_hint_x=0.8,
-            font_name='Chinese'
-        )
-        title_bar.add_widget(title_label)
-
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(30), dp(30)),
-            pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(close_btn)
-
-        content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
-
-        info_texts = [
-            '应用名称：马年送祝福',
-            '应用版本：' + APP_VERSION,
-            '应用开发：瑾 煜',
-            '反馈建议：jinyu@sjinyu.com',
-            '版权所有，侵权必究！'
-        ]
-        for line in info_texts:
-            lbl = Label(
-                text=line,
-                color=(0,0,0,1),
-                halign='left',
-                valign='middle',
-                size_hint_y=None,
-                height=dp(25),
-                font_name='Chinese'
-            )
-            lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
-            content_area.add_widget(lbl)
-
-        content.add_widget(title_bar)
-        content.add_widget(content_area)
-
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
-        )
-        popup.open()
-
-    # ========== 帮助弹窗（带滚动，序号永不掉行） ==========
-    def show_help_popup(self, instance):
-        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(280)))
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            self.help_bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
-        content.bind(pos=lambda *x: setattr(self.help_bg_rect, 'pos', content.pos),
-                     size=lambda *x: setattr(self.help_bg_rect, 'size', content.size))
-
-        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)
-            self.help_title_rect = RoundedRectangle(pos=title_bar.pos, size=title_bar.size, radius=[dp(10), dp(10), 0, 0])
-        title_bar.bind(pos=lambda *x: setattr(self.help_title_rect, 'pos', title_bar.pos),
-                       size=lambda *x: setattr(self.help_title_rect, 'size', title_bar.size))
-
-        title_label = Label(
-            text='使用帮助',
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle',
-            size_hint_x=0.8,
-            font_name='Chinese'
-        )
-        title_bar.add_widget(title_label)
-
-        close_btn = Button(
-            text='X',
-            size_hint=(None, None),
-            size=(dp(30), dp(30)),
-            pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
-            color=(1,1,1,1),
-            bold=True,
-            font_name='Chinese'
-        )
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        title_bar.add_widget(close_btn)
-
-        # 可滚动的内容区域
-        scroll_view = ScrollView(size_hint=(1, 1), bar_width=dp(4), bar_color=(0.5, 0.5, 0.5, 0.5))
-        inner_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(10), dp(10), dp(10), dp(15)), spacing=dp(8))
-        inner_layout.bind(minimum_height=inner_layout.setter('height'))
-
-        help_items = [
-            ('1.', '选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。'),
-            ('2.', '切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。'),
-            ('3.', '复制祝福：点击任意祝福语卡片，内容自动复制到剪贴板并高亮。'),
-            ('4.', '分享祝福：复制祝福后，底部绿色按钮可用，点击可通过微信/QQ/短信分享。'),
-            ('5.', '其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。')
-        ]
-        for num, text in help_items:
-            # 水平布局：左侧序号，右侧内容
-            item_layout = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
-            # 序号标签，固定宽度
-            num_label = Label(
-                text=num,
-                color=(0,0,0,1),
-                halign='right',
-                valign='top',
-                size_hint=(None, None),
-                width=dp(30),
-                height=dp(40),  # 初始高度，之后会被内容撑起，但序号一般单行，所以固定高度也行
-                font_name='Chinese',
-                text_size=(dp(30), None)
-            )
-            # 内容标签，自动换行
-            content_label = Label(
-                text=text,
-                color=(0,0,0,1),
-                halign='left',
-                valign='top',
-                size_hint_y=None,
-                height=dp(40),  # 初始高度，之后调整
-                text_size=(inner_layout.width - dp(45), None),  # 预留序号宽度和间距
-                font_name='Chinese'
-            )
-            # 绑定宽度变化更新 text_size 的宽度，并根据实际内容调整高度
-            content_label.bind(
-                width=lambda *x, l=content_label: setattr(l, 'text_size', (l.width, None)),
-                texture_size=lambda *x, l=content_label: setattr(l, 'height', l.texture_size[1] + dp(5))
-            )
-            # 内容标签的高度变化时，更新 item_layout 的高度
-            content_label.bind(height=lambda *x, layout=item_layout: layout.setter('height')(layout, content_label.height))
-            # 序号标签高度跟随内容标签（保持一致）
-            content_label.bind(height=lambda *x, nl=num_label: setattr(nl, 'height', content_label.height))
-
-            item_layout.add_widget(num_label)
-            item_layout.add_widget(content_label)
-
-            inner_layout.add_widget(item_layout)
-
-        scroll_view.add_widget(inner_layout)
-        content.add_widget(title_bar)
-        content.add_widget(scroll_view)
-
-        popup = Popup(
-            title='',
-            content=content,
-            size_hint=(None, None),
-            size=content.size,
-            background_color=(0,0,0,0),
-            auto_dismiss=False
-        )
-        popup.open()
-
     # ========== 静默检查更新 ==========
     def parse_version(self, version_str):
-        """将版本字符串 'v2.6.102' 转换为整数列表 [2,6,102]"""
         if version_str.startswith('v'):
             version_str = version_str[1:]
         parts = version_str.split('.')
         return [int(p) for p in parts]
 
     def is_newer_version(self, latest, current):
-        """比较两个版本号，如果 latest > current 返回 True"""
         return self.parse_version(latest) > self.parse_version(current)
 
     def _check_update_silent(self):
@@ -950,19 +1083,14 @@ class MainScreen(Screen):
                 download_url = result.get('url', None)
 
                 if self.is_newer_version(latest_version, APP_VERSION):
-                    # 有更新，弹窗提示
                     self.show_update_popup(latest_version, message, download_url, is_latest=False)
-                # 无更新则静默，不弹窗
             except Exception as e:
-                # 解析失败静默处理
                 print('静默更新检查解析失败:', e)
 
         def on_failure(req, result):
-            # 失败静默
             print('静默更新检查请求失败:', result)
 
         def on_error(req, error):
-            # 错误静默
             print('静默更新检查网络错误:', error)
 
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
@@ -974,8 +1102,7 @@ class MainScreen(Screen):
         from kivy.uix.popup import Popup
         from kivy.graphics import Color, RoundedRectangle, Rectangle
 
-        # 根据是否最新版调整弹窗高度
-        popup_height = 180 if is_latest else 250  # 最新版更紧凑，且没有按钮
+        popup_height = 180 if is_latest else 250
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(popup_height)))
         with content.canvas.before:
@@ -1020,7 +1147,6 @@ class MainScreen(Screen):
 
         content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
 
-        # 如果不是最新版，显示版本号
         if not is_latest:
             version_label = Label(
                 text=f'最新版本：{latest_version}',
@@ -1048,7 +1174,6 @@ class MainScreen(Screen):
         content_area.add_widget(msg_label)
 
         if not is_latest and url:
-            # 有更新时显示两个按钮
             button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
             download_btn = Button(
                 text='立即下载',
@@ -1069,7 +1194,6 @@ class MainScreen(Screen):
             button_layout.add_widget(download_btn)
             button_layout.add_widget(cancel_btn)
             content_area.add_widget(button_layout)
-        # 最新版没有按钮，仅靠关闭按钮 X 关闭
 
         content.add_widget(title_bar)
         content.add_widget(content_area)
@@ -1086,9 +1210,8 @@ class MainScreen(Screen):
 
     # ========== 轮播广告相关 ==========
     def load_top_ads(self):
-        """从网络加载顶部轮播图，仅显示 active 为 true 的广告并按顺序显示"""
         url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
-        
+
         def on_success(req, result):
             try:
                 if isinstance(result, str):
@@ -1113,15 +1236,15 @@ class MainScreen(Screen):
             except Exception as e:
                 print('解析广告数据失败:', e)
                 self.load_fallback_ads()
-        
+
         def on_failure(req, result):
             print('广告请求失败:', result)
             self.load_fallback_ads()
-        
+
         def on_error(req, error):
             print('广告请求错误:', error)
             self.load_fallback_ads()
-        
+
         try:
             UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
         except Exception as e:
@@ -1129,7 +1252,6 @@ class MainScreen(Screen):
             self.load_fallback_ads()
 
     def load_fallback_ads(self):
-        """备用加载本地图片，文件名与服务器一致：top01.jpg ~ top05.jpg"""
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
             img_path = f'images/top{i:02d}.jpg'
@@ -1144,7 +1266,6 @@ class MainScreen(Screen):
                 print(f"加载备用图片 {img_path} 失败: {e}")
 
     def on_fallback_ad_click(self, instance, touch):
-        """备用广告点击事件"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website('https://www.sjinyu.com')
@@ -1152,7 +1273,6 @@ class MainScreen(Screen):
             print("on_fallback_ad_click 异常:", e)
 
     def on_ad_click(self, instance, touch, url):
-        """点击轮播图时打开链接"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website(url)
@@ -1162,7 +1282,7 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
-        # 强制隐藏状态栏，确保全屏显示（针对小米15Pro等设备）
+        # 强制隐藏状态栏，确保全屏显示
         try:
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
@@ -1179,9 +1299,8 @@ class BlessApp(App):
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
+        sm.add_widget(InfoScreen(name='info'))
         return sm
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
