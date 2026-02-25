@@ -819,10 +819,10 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ========== 帮助弹窗 ==========
+    # ========== 帮助弹窗（带滚动） ==========
     def show_help_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
-                            size_hint=(None, None), size=(dp(320), dp(250)))
+                            size_hint=(None, None), size=(dp(320), dp(280)))
         with content.canvas.before:
             Color(1, 1, 1, 1)
             self.help_bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
@@ -859,7 +859,10 @@ class MainScreen(Screen):
         close_btn.bind(on_press=lambda x: popup.dismiss())
         title_bar.add_widget(close_btn)
 
-        content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(10), dp(15), dp(15)), spacing=dp(8))
+        # 可滚动的内容区域
+        scroll_view = ScrollView(size_hint=(1, 1), bar_width=dp(4), bar_color=(0.5, 0.5, 0.5, 0.5))
+        inner_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(20), dp(10), dp(15), dp(15)), spacing=dp(8))
+        inner_layout.bind(minimum_height=inner_layout.setter('height'))
 
         help_items = [
             '1. 选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。',
@@ -875,16 +878,20 @@ class MainScreen(Screen):
                 halign='left',
                 valign='top',
                 size_hint_y=None,
-                height=dp(40),
-                text_size=(content_area.width - dp(20), None),
+                height=dp(40),  # 初始高度，之后会被 texture_size 调整
+                text_size=(inner_layout.width - dp(35), None),  # 初始宽度，减去左右内边距
                 font_name='Chinese'
             )
-            lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width - dp(20), None)),
-                     texture_size=lambda *x, l=lbl: setattr(l, 'height', l.texture_size[1] + dp(5)))
-            content_area.add_widget(lbl)
+            # 绑定宽度变化更新 text_size 的宽度，并根据实际内容调整高度
+            lbl.bind(
+                width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width - dp(35), None)),
+                texture_size=lambda *x, l=lbl: setattr(l, 'height', l.texture_size[1] + dp(5))
+            )
+            inner_layout.add_widget(lbl)
 
+        scroll_view.add_widget(inner_layout)
         content.add_widget(title_bar)
-        content.add_widget(content_area)
+        content.add_widget(scroll_view)
 
         popup = Popup(
             title='',
