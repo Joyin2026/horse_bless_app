@@ -23,7 +23,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,txt,json
 
 # (list) 需要精确包含的文件模式（可选，与 include_exts 互补）
-source.include_patterns = images/*.png, images/*.jpg, data/*.json
+source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
 # (list) 项目依赖的 Python 模块（指定版本以确保稳定）
 requirements = python3, kivy==2.3.1, pyjnius==1.6.0
@@ -33,6 +33,7 @@ source.main = main.py
 
 # (list) Android 权限
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
+android.native_graphics = False
 
 # (int) Android SDK API 级别
 android.api = 33
