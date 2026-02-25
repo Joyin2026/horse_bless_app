@@ -12,7 +12,7 @@ main.py - 马年送祝福（最终版）
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
 - 版本更新检查（进入主界面时静默检查，有更新自动弹窗）
-- 信息页面：整合操作指南、应用功能、关于信息、反馈建议（在线提交）
+- 信息页面：整合操作指南、应用功能、关于信息、反馈建议、分享二维码
 """
 
 import kivy
@@ -21,6 +21,7 @@ import os
 import json
 import traceback
 import re
+import urllib.parse
 from datetime import datetime
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -46,6 +47,8 @@ from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
 APP_VERSION = "v2.6.110"
+DOWNLOAD_URL = "https://www.sjinyu.com/tools/bless/release/lastest.apk"
+SHARE_TEXT = "我正在用【马年送祝福】APP给亲朋好友送祝福，该APP内有各类节日祝福语1000+条，特别好用！现推荐给你，下载地址：" + DOWNLOAD_URL
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -355,7 +358,7 @@ class StartScreen(Screen):
     def go_main(self, *args):
         self.manager.current = 'main'
 
-# ==================== 优化后的信息页面 ====================
+# ==================== 信息页面（含二维码分享）====================
 class InfoScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -398,7 +401,7 @@ class InfoScreen(Screen):
         content_layout = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            padding=(dp(20), dp(10), dp(15), dp(30)),  # 增加底部内边距确保按钮显示
+            padding=(dp(20), dp(10), dp(15), dp(30)),
             spacing=dp(20)
         )
         content_layout.bind(minimum_height=content_layout.setter('height'))
@@ -433,7 +436,7 @@ class InfoScreen(Screen):
             valign='top',
             size_hint_y=None,
             height=dp(140),
-            text_size=(content_layout.width - dp(40), None),  # 减去左右内边距
+            text_size=(content_layout.width - dp(40), None),
             font_name='Chinese',
             line_height=1.5
         )
@@ -441,7 +444,6 @@ class InfoScreen(Screen):
             width=lambda *x, l=func_label: setattr(l, 'text_size', (l.width, None)),
             texture_size=lambda *x, l=func_label: setattr(l, 'height', l.texture_size[1] + dp(5))
         )
-        # 内容增加左边距
         func_label_container = BoxLayout(padding=[dp(25), 0, 0, 0], size_hint_y=None)
         func_label_container.add_widget(func_label)
         func_label_container.bind(height=func_label.setter('height'))
@@ -467,7 +469,6 @@ class InfoScreen(Screen):
                 font_name='Chinese'
             )
             lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
-            # 增加左边距
             container = BoxLayout(padding=[dp(25), 0, 0, 0], size_hint_y=None)
             container.add_widget(lbl)
             container.bind(height=lbl.setter('height'))
@@ -493,10 +494,10 @@ class InfoScreen(Screen):
             size_hint_y=None,
             height=dp(40),
             font_name='Chinese',
-            background_color=(0.96, 0.96, 0.96, 1),  # 浅灰背景
+            background_color=(0.96, 0.96, 0.96, 1),
             foreground_color=(0,0,0,0.9),
             hint_text_color=(0.7,0.7,0.7,1),
-            border=(0,0,0,0)  # 无边框
+            border=(0,0,0,0)
         )
         content_layout.add_widget(self.name_input)
 
@@ -542,7 +543,7 @@ class InfoScreen(Screen):
             height=dp(100),
             font_name='Chinese',
             background_color=(0.96, 0.96, 0.96, 1),
-            foreground_color=(0.7,0.7,0.7,1),  # 初始灰色
+            foreground_color=(0.7,0.7,0.7,1),
             border=(0,0,0,0),
             multiline=True
         )
@@ -571,8 +572,39 @@ class InfoScreen(Screen):
         btn_layout.add_widget(cancel_btn)
         content_layout.add_widget(btn_layout)
 
-        # 底部额外留白
-        content_layout.add_widget(Label(size_hint_y=None, height=dp(20)))
+        # ---- 分享应用版块（二维码） ----
+        content_layout.add_widget(self.create_section('📲', '分享应用'))
+
+        # 生成二维码图片 URL（使用在线API）
+        encoded_text = urllib.parse.quote(SHARE_TEXT)
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_text}"
+
+        # 二维码图片
+        qr_image = AsyncImage(
+            source=qr_url,
+            size_hint=(None, None),
+            size=(dp(200), dp(200)),
+            pos_hint={'center_x': 0.5}
+        )
+        # 将图片放在居中布局中
+        image_container = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(210))
+        image_container.add_widget(qr_image)
+        content_layout.add_widget(image_container)
+
+        # 提示文字
+        share_label = Label(
+            text='扫一扫下载APP，分享给好友',
+            color=(0,0,0,0.8),
+            halign='center',
+            size_hint_y=None,
+            height=dp(30),
+            font_name='Chinese'
+        )
+        share_label.bind(width=lambda *x, l=share_label: setattr(l, 'text_size', (l.width, None)))
+        content_layout.add_widget(share_label)
+
+        # 额外底部空白，确保输入法弹出时能滚动到可见区域
+        content_layout.add_widget(Label(size_hint_y=None, height=dp(50)))
 
         scroll_view.add_widget(content_layout)
         main_layout.add_widget(scroll_view)
@@ -641,7 +673,7 @@ class InfoScreen(Screen):
             valign='top',
             size_hint_y=None,
             height=dp(40),
-            text_size=(self.width - dp(55), None),  # 减去左边距和序号宽度
+            text_size=(self.width - dp(55), None),
             font_name='Chinese',
             line_height=1.4
         )
@@ -1330,9 +1362,7 @@ class BlessApp(App):
             View = autoclass('android.view.View')
             activity = PythonActivity.mActivity
             if activity:
-                # 添加全屏标志
                 activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                # 隐藏导航栏并启用沉浸模式
                 decor_view = activity.getWindow().getDecorView()
                 ui_options = (
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
@@ -1346,7 +1376,6 @@ class BlessApp(App):
         Window.borderless = True
         Window.fullscreen = True
         Window.size = Window.system_size
-        # 强制窗口位置归零（确保贴顶）
         Window.top = 0
         Window.left = 0
 
@@ -1357,7 +1386,6 @@ class BlessApp(App):
         return sm
 
     def on_start(self):
-        """应用启动后再次确保全屏"""
         try:
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
@@ -1376,7 +1404,6 @@ class BlessApp(App):
         except Exception as e:
             print("on_start 全屏设置失败:", e)
 
-        # 打印窗口位置用于调试
         print(f"Window position: top={Window.top}, left={Window.left}, size={Window.size}")
 
 if __name__ == '__main__':
