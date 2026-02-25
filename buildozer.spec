@@ -10,10 +10,10 @@ source.dir = .
 source.include_exts = py,png,jpg,txt,json
 source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
-requirements = python3,kivy==2.2.1,pyjnius==1.4.0,urllib3
+requirements = python3,kivy==2.1.0
 
 
-android.api = 33
+android.api = 30
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
