@@ -249,7 +249,7 @@ class StartScreen(Screen):
         top_right = BoxLayout(size_hint=(None, None), size=(dp(160), dp(40)),
                               pos_hint={'right': 1, 'top': 1}, spacing=dp(5))
         self.countdown_label = Label(
-            text='6 秒',
+            text='3 秒',
             size_hint=(None, None),
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
@@ -290,8 +290,8 @@ class StartScreen(Screen):
 
     def _start_enter_countdown(self):
         self._stop_enter_countdown()
-        self.countdown = 6
-        self.countdown_label.text = '6 秒'
+        self.countdown = 3
+        self.countdown_label.text = '3 秒'
         self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
 
     def _stop_enter_countdown(self):
@@ -1149,3 +1149,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
