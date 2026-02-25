@@ -15,9 +15,7 @@ main.py - 马年送祝福（最终版）
 - 信息页面：整合操作指南、应用功能、关于信息、反馈建议、分享二维码
 """
 
-import kivy
 import sys
-import os
 import json
 import traceback
 import re
@@ -45,6 +43,26 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
+
+import os
+try:
+    with open('/data/local/tmp/app_debug.log', 'w') as f:
+        f.write('1. start\n')
+except: pass
+
+import kivy
+try:
+    with open('/data/local/tmp/app_debug.log', 'a') as f:
+        f.write('2. after kivy import\n')
+except: pass
+
+# 在 App 的 build 方法中也添加
+def build(self):
+    try:
+        with open('/data/local/tmp/app_debug.log', 'a') as f:
+            f.write('3. build method\n')
+    except: pass
+ 
 
 APP_VERSION = "v2.6.110"
 DOWNLOAD_URL = "https://www.sjinyu.com/tools/bless/release/lastest.apk"
@@ -1370,4 +1388,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
