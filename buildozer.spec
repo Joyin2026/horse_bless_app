@@ -1,8 +1,7 @@
 [app]
 title = 马年送祝福
 package.name = blessapp
-package.domain = com.sjinyu.bless
-
+package.domain = com.sjinyu
 version.regex = APP_VERSION = ["']v(.*?)["']
 version.filename = %(source.dir)s/main.py
 
