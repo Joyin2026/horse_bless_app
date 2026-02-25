@@ -26,7 +26,7 @@ source.include_exts = py,png,jpg,jpeg,txt,json
 source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
 # (list) 项目依赖的 Python 模块（指定版本以确保稳定）
-requirements = python3, kivy==2.3.1, pyjnius==1.5.0
+requirements = python3, kivy==2.3.1, pyjnius==1.6.0, filetype
 
 # (str) 应用入口文件
 source.main = main.py
