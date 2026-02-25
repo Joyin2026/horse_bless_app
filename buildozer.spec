@@ -14,7 +14,6 @@ android.api = 33               # 与 NDK 25b 更匹配
 android.minapi = 21
 android.ndk = 25b               # 保持 NDK 25b
 android.sdk = 33
-android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 android.archs = arm64-v8a
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
 
