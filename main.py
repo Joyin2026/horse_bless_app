@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.111
+版本：v2.6.110
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -45,7 +45,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.111"
+APP_VERSION = "v2.6.110"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -1381,4 +1381,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
