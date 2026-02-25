@@ -249,7 +249,7 @@ class StartScreen(Screen):
         top_right = BoxLayout(size_hint=(None, None), size=(dp(160), dp(40)),
                               pos_hint={'right': 1, 'top': 1}, spacing=dp(5))
         self.countdown_label = Label(
-            text='3 秒',
+            text='6 秒',
             size_hint=(None, None),
             size=(dp(60), dp(40)),
             color=(1,1,1,1),
@@ -290,8 +290,8 @@ class StartScreen(Screen):
 
     def _start_enter_countdown(self):
         self._stop_enter_countdown()
-        self.countdown = 3
-        self.countdown_label.text = '3 秒'
+        self.countdown = 6
+        self.countdown_label.text = '6 秒'
         self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
 
     def _stop_enter_countdown(self):
@@ -1139,6 +1139,17 @@ class MainScreen(Screen):
 
 class BlessApp(App):
     def build(self):
+        # 强制隐藏状态栏，确保全屏显示（针对小米15Pro等设备）
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            WindowManager = autoclass('android.view.WindowManager')
+            activity = PythonActivity.mActivity
+            if activity:
+                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        except Exception as e:
+            print("设置全屏标志失败:", e)
+
         Window.borderless = True
         Window.fullscreen = True
         Window.size = Window.system_size
@@ -1149,4 +1160,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
