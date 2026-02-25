@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.109
+版本：v2.6.110
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -11,7 +11,7 @@ main.py - 马年送祝福（最终版）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
-- 版本更新检查（从网络获取，正确判断有无更新，弹窗优化）
+- 版本更新检查（进入主界面时静默检查，有更新自动弹窗）
 """
 
 import kivy
@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.109"
+APP_VERSION = "v2.6.110"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -369,6 +369,7 @@ class MainScreen(Screen):
         self.footer_visible = False
         self.last_scroll_y = 1
         self._footer_timer = None  # 用于自动隐藏的定时器
+        self._update_checked = False  # 标记是否已检查更新
 
         # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
@@ -507,19 +508,19 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         about_btn.bind(on_press=self.show_about_popup)
-        update_btn = Button(
-            background_normal='images/icon_update.png',
-            background_down='images/icon_update.png',
+        help_btn = Button(
+            background_normal='images/icon_help.png',  # 用户后续可替换为帮助图标
+            background_down='images/icon_help.png',
             size_hint=(None, 1),
             width=dp(40),
             border=(0,0,0,0)
         )
-        update_btn.bind(on_press=self.check_update)
+        help_btn.bind(on_press=self.show_help_popup)
 
         icon_layout.add_widget(web_btn)
         icon_layout.add_widget(email_btn)
         icon_layout.add_widget(about_btn)
-        icon_layout.add_widget(update_btn)
+        icon_layout.add_widget(help_btn)
 
         copyright_label = Label(
             text='Copyright Reserved © Sjinyu.com 2025-2026',
@@ -541,6 +542,12 @@ class MainScreen(Screen):
         self.update_category_buttons()
         self.show_current_page()
         self.update_spinner_colors()
+
+    def on_enter(self):
+        # 进入主界面时静默检查更新（仅一次）
+        if not self._update_checked:
+            self._check_update_silent()
+            self._update_checked = True
 
     # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
@@ -750,7 +757,7 @@ class MainScreen(Screen):
         title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
         with title_bar.canvas.before:
             Color(0.5, 0.1, 0.1, 1)
-            self.title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+            self.title_rect = RoundedRectangle(pos=title_bar.pos, size=title_bar.size, radius=[dp(10), dp(10), 0, 0])
         title_bar.bind(pos=lambda *x: setattr(self.title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.title_rect, 'size', title_bar.size))
 
@@ -778,11 +785,6 @@ class MainScreen(Screen):
         title_bar.add_widget(close_btn)
 
         content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.content_rect, 'size', content_area.size))
 
         info_texts = [
             '应用名称：马年送祝福',
@@ -817,7 +819,84 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ========== 版本更新 ==========
+    # ========== 帮助弹窗 ==========
+    def show_help_popup(self, instance):
+        content = BoxLayout(orientation='vertical', spacing=0, padding=0,
+                            size_hint=(None, None), size=(dp(320), dp(250)))
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            self.help_bg_rect = RoundedRectangle(pos=content.pos, size=content.size, radius=[dp(10)])
+        content.bind(pos=lambda *x: setattr(self.help_bg_rect, 'pos', content.pos),
+                     size=lambda *x: setattr(self.help_bg_rect, 'size', content.size))
+
+        title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
+        with title_bar.canvas.before:
+            Color(0.5, 0.1, 0.1, 1)
+            self.help_title_rect = RoundedRectangle(pos=title_bar.pos, size=title_bar.size, radius=[dp(10), dp(10), 0, 0])
+        title_bar.bind(pos=lambda *x: setattr(self.help_title_rect, 'pos', title_bar.pos),
+                       size=lambda *x: setattr(self.help_title_rect, 'size', title_bar.size))
+
+        title_label = Label(
+            text='使用帮助',
+            color=(1,1,1,1),
+            halign='left',
+            valign='middle',
+            size_hint_x=0.8,
+            font_name='Chinese'
+        )
+        title_bar.add_widget(title_label)
+
+        close_btn = Button(
+            text='X',
+            size_hint=(None, None),
+            size=(dp(30), dp(30)),
+            pos_hint={'right':1, 'center_y':0.5},
+            background_color=(0,0,0,0),
+            color=(1,1,1,1),
+            bold=True,
+            font_name='Chinese'
+        )
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        title_bar.add_widget(close_btn)
+
+        content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(10), dp(15), dp(15)), spacing=dp(8))
+
+        help_items = [
+            '1. 选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。',
+            '2. 切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。',
+            '3. 复制祝福：点击任意祝福语卡片，内容自动复制到剪贴板并高亮。',
+            '4. 分享祝福：复制祝福后，底部绿色按钮可用，点击可通过微信/QQ/短信分享。',
+            '5. 其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。'
+        ]
+        for line in help_items:
+            lbl = Label(
+                text=line,
+                color=(0,0,0,1),
+                halign='left',
+                valign='top',
+                size_hint_y=None,
+                height=dp(40),
+                text_size=(content_area.width - dp(20), None),
+                font_name='Chinese'
+            )
+            lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width - dp(20), None)),
+                     texture_size=lambda *x, l=lbl: setattr(l, 'height', l.texture_size[1] + dp(5)))
+            content_area.add_widget(lbl)
+
+        content.add_widget(title_bar)
+        content.add_widget(content_area)
+
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(None, None),
+            size=content.size,
+            background_color=(0,0,0,0),
+            auto_dismiss=False
+        )
+        popup.open()
+
+    # ========== 静默检查更新 ==========
     def parse_version(self, version_str):
         """将版本字符串 'v2.6.102' 转换为整数列表 [2,6,102]"""
         if version_str.startswith('v'):
@@ -829,9 +908,8 @@ class MainScreen(Screen):
         """比较两个版本号，如果 latest > current 返回 True"""
         return self.parse_version(latest) > self.parse_version(current)
 
-    def check_update(self, instance):
+    def _check_update_silent(self):
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
-        show_toast('正在检查更新...')
 
         def on_success(req, result):
             try:
@@ -841,23 +919,21 @@ class MainScreen(Screen):
                 message = result.get('message', '无更新说明')
                 download_url = result.get('url', None)
 
-                if not self.is_newer_version(latest_version, APP_VERSION):
-                    # 已是最新版
-                    self.show_update_popup(latest_version, message, None, is_latest=True)
-                else:
-                    # 有更新
+                if self.is_newer_version(latest_version, APP_VERSION):
+                    # 有更新，弹窗提示
                     self.show_update_popup(latest_version, message, download_url, is_latest=False)
+                # 无更新则静默，不弹窗
             except Exception as e:
-                show_toast('解析更新信息失败')
-                print('Update parse error:', e)
+                # 解析失败静默处理
+                print('静默更新检查解析失败:', e)
 
         def on_failure(req, result):
-            show_toast('检查更新失败，请稍后重试')
-            print('Update request failed:', result)
+            # 失败静默
+            print('静默更新检查请求失败:', result)
 
         def on_error(req, error):
-            show_toast('网络连接错误')
-            print('Update request error:', error)
+            # 错误静默
+            print('静默更新检查网络错误:', error)
 
         UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
 
@@ -869,7 +945,7 @@ class MainScreen(Screen):
         from kivy.graphics import Color, RoundedRectangle, Rectangle
 
         # 根据是否最新版调整弹窗高度
-        popup_height = 220 if is_latest else 250  # 最新版更紧凑
+        popup_height = 180 if is_latest else 250  # 最新版更紧凑，且没有按钮
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(popup_height)))
         with content.canvas.before:
@@ -881,7 +957,7 @@ class MainScreen(Screen):
         title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
         with title_bar.canvas.before:
             Color(0.5, 0.1, 0.1, 1)
-            self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
+            self.popup_title_rect = RoundedRectangle(pos=title_bar.pos, size=title_bar.size, radius=[dp(10), dp(10), 0, 0])
         title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
 
@@ -912,14 +988,7 @@ class MainScreen(Screen):
         title_bar.add_widget(title_label)
         title_bar.add_widget(close_btn)
 
-        # 内容区域内边距微调，最新版可适当减少上边距
-        content_area_padding = (dp(10), dp(8)) if is_latest else (dp(15), dp(10))
-        content_area = BoxLayout(orientation='vertical', padding=content_area_padding, spacing=dp(5))
-        with content_area.canvas.before:
-            Color(1, 1, 1, 1)
-            self.popup_content_rect = Rectangle(pos=content_area.pos, size=content_area.size)
-        content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
-                          size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
+        content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(10)), spacing=dp(5))
 
         # 如果不是最新版，显示版本号
         if not is_latest:
@@ -948,9 +1017,9 @@ class MainScreen(Screen):
         msg_label.bind(width=lambda *x, l=msg_label: setattr(l, 'text_size', (l.width - dp(20), None)))
         content_area.add_widget(msg_label)
 
-        button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
-        
         if not is_latest and url:
+            # 有更新时显示两个按钮
+            button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10), padding=(dp(10),0))
             download_btn = Button(
                 text='立即下载',
                 size_hint=(0.5, 1),
@@ -959,7 +1028,6 @@ class MainScreen(Screen):
                 font_name='Chinese'
             )
             download_btn.bind(on_press=lambda x: (popup.dismiss(), open_website(url)))
-            button_layout.add_widget(download_btn)
             cancel_btn = Button(
                 text='以后再说',
                 size_hint=(0.5, 1),
@@ -968,20 +1036,10 @@ class MainScreen(Screen):
                 font_name='Chinese'
             )
             cancel_btn.bind(on_press=lambda x: popup.dismiss())
+            button_layout.add_widget(download_btn)
             button_layout.add_widget(cancel_btn)
-        else:
-            # 已是最新版，只显示一个“确定”按钮
-            ok_btn = Button(
-                text='确定',
-                size_hint=(1, 1),
-                background_color=get_color_from_hex('#4CAF50'),
-                color=(1,1,1,1),
-                font_name='Chinese'
-            )
-            ok_btn.bind(on_press=lambda x: popup.dismiss())
-            button_layout.add_widget(ok_btn)
-
-        content_area.add_widget(button_layout)
+            content_area.add_widget(button_layout)
+        # 最新版没有按钮，仅靠关闭按钮 X 关闭
 
         content.add_widget(title_bar)
         content.add_widget(content_area)
