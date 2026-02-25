@@ -16,7 +16,7 @@ android.api = 30
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 30
-android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b  # 确保路径正确
+android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 
 android.archs = arm64-v8a
 
