@@ -7,7 +7,7 @@ main.py - 马年送祝福（最终版）
 - 开屏广告轮播
 - 顶部轮播图（从网络加载，支持 active 控制，自动切换）
 - 两个固定标题的下拉菜单（传统佳节/阳历节日），小标签显示当前选中节日（加粗）
-- 自动判断默认节日（元宵节提前8天，其他5天）
+- 自动判断默认节日（元宵节提前3天，其他2天）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
@@ -200,14 +200,14 @@ def get_default_festival():
     today = datetime.now().date()
     yuanxiao_date = datetime(2026, 3, 3).date()
     yuanxiao_delta = (yuanxiao_date - today).days
-    if 0 <= yuanxiao_delta <= 8:
+    if 0 <= yuanxiao_delta <= 3:
         return '元宵节'
     best = None
     min_days = float('inf')
     for name, (month, day) in FESTIVAL_DATES_2026.items():
         festival_date = datetime(2026, month, day).date()
         delta = (festival_date - today).days
-        if 0 <= delta <= 5 and delta < min_days:
+        if 0 <= delta <= 2 and delta < min_days:
             min_days = delta
             best = name
     return best if best else '春节'
@@ -1183,4 +1183,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
