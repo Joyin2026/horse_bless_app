@@ -19,7 +19,6 @@ import kivy
 import sys
 import os
 import json
-import traceback
 import re
 from datetime import datetime
 from kivy.app import App
@@ -44,6 +43,35 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
+
+import traceback
+
+def log_exception(exc_type, exc_value, exc_traceback):
+    trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    # 输出到 logcat（可通过 adb logcat 看到）
+    print('=' * 50)
+    print('FATAL PYTHON EXCEPTION:')
+    print(trace)
+    print('=' * 50)
+    # 同时写入文件（需要 WRITE_EXTERNAL_STORAGE 权限）
+    try:
+        with open('/sdcard/crash_detail.log', 'a') as f:
+            f.write(trace)
+    except:
+        pass
+
+sys.excepthook = log_exception
+
+# 在应用入口处再包裹一层
+if __name__ == '__main__':
+    try:
+        BlessApp().run()
+    except Exception as e:
+        print('Unhandled exception in main:', e)
+        traceback.print_exc()
+        # 强制退出，避免后续 native 崩溃
+        import os
+        os._exit(1)
 
 APP_VERSION = "v2.6.111"
 
@@ -1381,4 +1409,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
