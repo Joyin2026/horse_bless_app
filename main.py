@@ -355,7 +355,7 @@ class StartScreen(Screen):
     def go_main(self, *args):
         self.manager.current = 'main'
 
-# ==================== 信息页面 ====================
+# ==================== 优化后的信息页面 ====================
 class InfoScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -365,19 +365,19 @@ class InfoScreen(Screen):
         self.build_ui()
 
     def build_ui(self):
-        # 主布局：淡青蓝色背景
+        # 主布局：FloatLayout 用于绝对定位返回按钮
         main_layout = FloatLayout()
         with main_layout.canvas.before:
             Color(*get_color_from_hex('#E0F7FA'))  # 淡青蓝
             self.bg_rect = Rectangle(pos=main_layout.pos, size=main_layout.size)
         main_layout.bind(pos=self.update_bg, size=self.update_bg)
 
-        # 顶部返回栏
-        top_bar = BoxLayout(size_hint=(1, None), height=dp(50), padding=(dp(10), 0))
+        # 返回按钮：绝对定位在左上角
         back_btn = Button(
             text='<',
-            size_hint=(None, 1),
-            width=dp(40),
+            size_hint=(None, None),
+            size=(dp(50), dp(50)),
+            pos_hint={'x': 0, 'top': 1},
             background_normal='',
             background_color=(0,0,0,0),
             color=(0,0,0,1),
@@ -385,18 +385,26 @@ class InfoScreen(Screen):
             bold=True
         )
         back_btn.bind(on_press=self.go_back)
-        top_bar.add_widget(back_btn)
-        # 占位
-        top_bar.add_widget(Label())
-        main_layout.add_widget(top_bar)
+        main_layout.add_widget(back_btn)
 
-        # 可滚动的内容区域
-        scroll_view = ScrollView(size_hint=(1, 1), pos_hint={'top': 0.95}, bar_width=dp(4), bar_color=(0.5,0.5,0.5,0.5))
-        content_layout = BoxLayout(orientation='vertical', size_hint_y=None, padding=(dp(15), dp(10), dp(15), dp(20)), spacing=dp(15))
+        # 可滚动的内容区域（留出顶部空间）
+        scroll_view = ScrollView(
+            size_hint=(1, 0.95),
+            pos_hint={'top': 0.95},
+            bar_width=dp(4),
+            bar_color=(0.5,0.5,0.5,0.5)
+        )
+        # 主内容布局：垂直排列，左边距统一为 dp(20)，右边距 dp(15)
+        content_layout = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            padding=(dp(20), dp(10), dp(15), dp(30)),  # 增加底部内边距确保按钮显示
+            spacing=dp(20)
+        )
         content_layout.bind(minimum_height=content_layout.setter('height'))
 
-        # ---- 操作指南 ----
-        content_layout.add_widget(self.create_section_title('操作指南'))
+        # ---- 操作指南版块 ----
+        content_layout.add_widget(self.create_section('📌', '操作指南'))
         guide_items = [
             ('1.', '选择节日：点击顶部下拉菜单，选择“传统佳节”或“阳历节日”下的具体节日。'),
             ('2.', '切换分类：横向滑动分类按钮，选择祝福语类别（如“给长辈”、“给朋友”等）。'),
@@ -405,36 +413,42 @@ class InfoScreen(Screen):
             ('5.', '其他功能：底部图标栏可访问官网、发送反馈邮件、查看关于信息。')
         ]
         for num, text in guide_items:
-            item = self.create_guide_item(num, text)
-            content_layout.add_widget(item)
+            content_layout.add_widget(self.create_guide_item(num, text))
 
-        # ---- 应用功能 ----
-        content_layout.add_widget(self.create_section_title('应用功能'))
-        func_text = """
-• 开屏广告轮播
-• 顶部轮播图（网络加载，支持 active 控制）
-• 自动判断默认节日（元宵节提前3天，其他2天）
-• 祝福语数据从 data/bless.json 加载
-• 分享按钮动态启用，底部图标栏自动显示/隐藏
-• 下拉菜单颜色跟随激活组变化，下拉列表美观
-• 版本更新检查（进入主界面静默检查，有更新自动弹窗）
-        """
+        # ---- 应用功能版块 ----
+        content_layout.add_widget(self.create_section('⚙️', '应用功能'))
+        func_text = (
+            "• 开屏广告轮播\n"
+            "• 顶部轮播图（网络加载，支持 active 控制）\n"
+            "• 自动判断默认节日（元宵节提前3天，其他2天）\n"
+            "• 祝福语数据从 data/bless.json 加载\n"
+            "• 分享按钮动态启用，底部图标栏自动显示/隐藏\n"
+            "• 下拉菜单颜色跟随激活组变化，下拉列表美观\n"
+            "• 版本更新检查（进入主界面静默检查，有更新自动弹窗）"
+        )
         func_label = Label(
             text=func_text,
-            color=(0,0,0,1),
+            color=(0,0,0,0.9),
             halign='left',
             valign='top',
             size_hint_y=None,
             height=dp(140),
-            text_size=(content_layout.width - dp(30), None),
-            font_name='Chinese'
+            text_size=(content_layout.width - dp(40), None),  # 减去左右内边距
+            font_name='Chinese',
+            line_height=1.5
         )
-        func_label.bind(width=lambda *x, l=func_label: setattr(l, 'text_size', (l.width - dp(30), None)),
-                        texture_size=lambda *x, l=func_label: setattr(l, 'height', l.texture_size[1] + dp(5)))
-        content_layout.add_widget(func_label)
+        func_label.bind(
+            width=lambda *x, l=func_label: setattr(l, 'text_size', (l.width, None)),
+            texture_size=lambda *x, l=func_label: setattr(l, 'height', l.texture_size[1] + dp(5))
+        )
+        # 内容增加左边距
+        func_label_container = BoxLayout(padding=[dp(25), 0, 0, 0], size_hint_y=None)
+        func_label_container.add_widget(func_label)
+        func_label_container.bind(height=func_label.setter('height'))
+        content_layout.add_widget(func_label_container)
 
-        # ---- 关于信息 ----
-        content_layout.add_widget(self.create_section_title('关于信息'))
+        # ---- 关于信息版块 ----
+        content_layout.add_widget(self.create_section('ℹ️', '关于信息'))
         about_texts = [
             f'应用名称：马年送祝福',
             f'应用版本：{APP_VERSION}',
@@ -445,7 +459,7 @@ class InfoScreen(Screen):
         for line in about_texts:
             lbl = Label(
                 text=line,
-                color=(0,0,0,1),
+                color=(0,0,0,0.9),
                 halign='left',
                 valign='middle',
                 size_hint_y=None,
@@ -453,15 +467,19 @@ class InfoScreen(Screen):
                 font_name='Chinese'
             )
             lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
-            content_layout.add_widget(lbl)
+            # 增加左边距
+            container = BoxLayout(padding=[dp(25), 0, 0, 0], size_hint_y=None)
+            container.add_widget(lbl)
+            container.bind(height=lbl.setter('height'))
+            content_layout.add_widget(container)
 
-        # ---- 反馈建议 ----
-        content_layout.add_widget(self.create_section_title('反馈建议'))
+        # ---- 反馈建议版块 ----
+        content_layout.add_widget(self.create_section('💬', '反馈建议'))
 
         # 姓名
         name_label = Label(
-            text='您的姓名（称呼）：',
-            color=(0,0,0,1),
+            text='您的姓名（称呼）',
+            color=(0,0,0,0.8),
             halign='left',
             size_hint_y=None,
             height=dp(25),
@@ -475,15 +493,17 @@ class InfoScreen(Screen):
             size_hint_y=None,
             height=dp(40),
             font_name='Chinese',
-            background_color=(1,1,1,1),
-            foreground_color=(0,0,0,1)
+            background_color=(0.96, 0.96, 0.96, 1),  # 浅灰背景
+            foreground_color=(0,0,0,0.9),
+            hint_text_color=(0.7,0.7,0.7,1),
+            border=(0,0,0,0)  # 无边框
         )
         content_layout.add_widget(self.name_input)
 
         # 邮箱
         email_label = Label(
-            text='联系方式（电邮）：',
-            color=(0,0,0,1),
+            text='联系方式（电邮）',
+            color=(0,0,0,0.8),
             halign='left',
             size_hint_y=None,
             height=dp(25),
@@ -497,15 +517,17 @@ class InfoScreen(Screen):
             size_hint_y=None,
             height=dp(40),
             font_name='Chinese',
-            background_color=(1,1,1,1),
-            foreground_color=(0,0,0,1)
+            background_color=(0.96, 0.96, 0.96, 1),
+            foreground_color=(0,0,0,0.9),
+            hint_text_color=(0.7,0.7,0.7,1),
+            border=(0,0,0,0)
         )
         content_layout.add_widget(self.email_input)
 
         # 反馈内容
         feedback_label = Label(
-            text='反馈与建议：',
-            color=(0,0,0,1),
+            text='反馈与建议',
+            color=(0,0,0,0.8),
             halign='left',
             size_hint_y=None,
             height=dp(25),
@@ -519,15 +541,16 @@ class InfoScreen(Screen):
             size_hint_y=None,
             height=dp(100),
             font_name='Chinese',
-            background_color=(1,1,1,1),
-            foreground_color=(0.5,0.5,0.5,1),
+            background_color=(0.96, 0.96, 0.96, 1),
+            foreground_color=(0.7,0.7,0.7,1),  # 初始灰色
+            border=(0,0,0,0),
             multiline=True
         )
         self.feedback_input.bind(focus=self.on_feedback_focus)
         content_layout.add_widget(self.feedback_input)
 
         # 按钮水平居中
-        btn_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(20), padding=(dp(20),0))
+        btn_layout = BoxLayout(size_hint=(1, None), height=dp(40), spacing=dp(20))
         submit_btn = Button(
             text='提交',
             size_hint=(0.5, 1),
@@ -548,6 +571,9 @@ class InfoScreen(Screen):
         btn_layout.add_widget(cancel_btn)
         content_layout.add_widget(btn_layout)
 
+        # 底部额外留白
+        content_layout.add_widget(Label(size_hint_y=None, height=dp(20)))
+
         scroll_view.add_widget(content_layout)
         main_layout.add_widget(scroll_view)
 
@@ -557,26 +583,49 @@ class InfoScreen(Screen):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
 
-    def create_section_title(self, text):
-        lbl = Label(
-            text=text,
+    def create_section(self, icon, title):
+        """创建带图标、标题和分隔线的版块标题"""
+        section = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(40), spacing=dp(5))
+        title_layout = BoxLayout(size_hint_y=None, height=dp(30))
+        icon_label = Label(
+            text=icon,
+            color=get_color_from_hex('#006064'),
+            font_size=sp(20),
+            size_hint=(None, 1),
+            width=dp(30),
+            halign='center',
+            valign='middle'
+        )
+        title_label = Label(
+            text=title,
             color=get_color_from_hex('#006064'),
             bold=True,
             font_size=sp(18),
-            size_hint_y=None,
-            height=dp(40),
+            size_hint_x=0.5,
             halign='left',
             valign='middle',
             font_name='Chinese'
         )
-        lbl.bind(width=lambda *x, l=lbl: setattr(l, 'text_size', (l.width, None)))
-        return lbl
+        title_label.bind(width=lambda *x, l=title_label: setattr(l, 'text_size', (l.width, None)))
+        # 右侧分隔线
+        line = Label(
+            size_hint_x=0.5,
+            height=dp(2),
+            color=(0.8,0.8,0.8,1),
+            background_color=(0.8,0.8,0.8,1)
+        )
+        title_layout.add_widget(icon_label)
+        title_layout.add_widget(title_label)
+        title_layout.add_widget(line)
+        section.add_widget(title_layout)
+        return section
 
     def create_guide_item(self, num, text):
-        item = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5))
+        """创建带序号的操作指南条目"""
+        item = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(5), padding=[dp(25), 0, 0, 0])
         num_label = Label(
             text=num,
-            color=(0,0,0,1),
+            color=(0,0,0,0.9),
             halign='right',
             valign='top',
             size_hint=(None, None),
@@ -587,13 +636,14 @@ class InfoScreen(Screen):
         )
         content_label = Label(
             text=text,
-            color=(0,0,0,1),
+            color=(0,0,0,0.9),
             halign='left',
             valign='top',
             size_hint_y=None,
             height=dp(40),
-            text_size=(self.width - dp(45), None),
-            font_name='Chinese'
+            text_size=(self.width - dp(55), None),  # 减去左边距和序号宽度
+            font_name='Chinese',
+            line_height=1.4
         )
         content_label.bind(
             width=lambda *x, l=content_label: setattr(l, 'text_size', (l.width, None)),
@@ -610,11 +660,11 @@ class InfoScreen(Screen):
         if value:
             if instance.text == '请将您的反馈与建议写在这里':
                 instance.text = ''
-                instance.foreground_color = (0,0,0,1)
+                instance.foreground_color = (0,0,0,0.9)
         else:
             if not instance.text.strip():
                 instance.text = '请将您的反馈与建议写在这里'
-                instance.foreground_color = (0.5,0.5,0.5,1)
+                instance.foreground_color = (0.7,0.7,0.7,1)
 
     def validate_email(self, email):
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -1277,20 +1327,57 @@ class BlessApp(App):
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             WindowManager = autoclass('android.view.WindowManager')
+            View = autoclass('android.view.View')
             activity = PythonActivity.mActivity
             if activity:
+                # 添加全屏标志
                 activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                # 隐藏导航栏并启用沉浸模式
+                decor_view = activity.getWindow().getDecorView()
+                ui_options = (
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                )
+                decor_view.setSystemUiVisibility(ui_options)
         except Exception as e:
             print("设置全屏标志失败:", e)
 
         Window.borderless = True
         Window.fullscreen = True
         Window.size = Window.system_size
+        # 强制窗口位置归零（确保贴顶）
+        Window.top = 0
+        Window.left = 0
+
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         sm.add_widget(InfoScreen(name='info'))
         return sm
+
+    def on_start(self):
+        """应用启动后再次确保全屏"""
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            WindowManager = autoclass('android.view.WindowManager')
+            View = autoclass('android.view.View')
+            activity = PythonActivity.mActivity
+            if activity:
+                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                decor_view = activity.getWindow().getDecorView()
+                ui_options = (
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                )
+                decor_view.setSystemUiVisibility(ui_options)
+        except Exception as e:
+            print("on_start 全屏设置失败:", e)
+
+        # 打印窗口位置用于调试
+        print(f"Window position: top={Window.top}, left={Window.left}, size={Window.size}")
 
 if __name__ == '__main__':
     BlessApp().run()
