@@ -10,18 +10,19 @@ source.dir = .
 source.include_exts = py,png,jpg,txt,json
 source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
-requirements = python3,kivy==2.1.0
+requirements = python3==3.9.9,kivy==2.1.0
 
 
 android.api = 30
 android.minapi = 21
-android.ndk = 25b
+android.ndk = 23b
 android.sdk = 33
 
 
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 android.archs = arm64-v8a
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
+android.add_src_patterns = lib/arm64-v8a/libc++_shared.so
 
 
 fullscreen = 1
