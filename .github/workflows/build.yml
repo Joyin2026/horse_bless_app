@@ -1,14 +1,12 @@
-name: Build Android APK
+name: Build APK (Docker) - 最终版
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
     inputs:
       build_type:
         description: '构建类型 (debug/release)'
         required: true
-        default: 'debug'
+        default: 'release'
         type: choice
         options:
           - debug
@@ -17,30 +15,81 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: kivy/buildozer:latest
-      options: --user root
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: /root/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-
-      - name: Build with buildozer
+      - name: Extract version
+        id: version
         run: |
+          VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
+          echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
+          VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Decode keystore (if release)
+        if: github.event.inputs.build_type == 'release'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+
+      - name: Build in Docker (with entrypoint override)
+        run: |
+          set -x
+          mkdir -p "${HOME}/.buildozer"
+          BUILD_DIR="${HOME}/.buildozer"
+          
+          # 基础 Docker 参数
+          DOCKER_BASE="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
+          
+          # 添加 release 构建所需的挂载和变量
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-            printf 'y\n' | buildozer android release
-          else
-            printf 'y\n' | buildozer android debug
+            DOCKER_BASE="${DOCKER_BASE} -v $PWD/keystore.jks:/app/keystore.jks"
+            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYSTORE=/app/keystore.jks"
+            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYSTORE_PASSWD=${{ secrets.KEY_PASSWORD }}"
+            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYALIAS=${{ secrets.KEY_ALIAS }}"
+            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYALIAS_PASSWD=${{ secrets.KEY_PASSWORD }}"
           fi
 
-      - name: Upload APK artifact
+          # 发送单个 'y' 回答 root 警告
+          printf 'y\n' | docker run ${DOCKER_BASE} \
+            -e BUILDOZER_FORCE_ROOT=1 \
+            -e P4A_DOWNLOAD_RETRIES=10 \
+            -e P4A_DOWNLOAD_TIMEOUT=120 \
+            --entrypoint /bin/sh \
+            kivy/buildozer:latest \
+            -c "
+              if [ '${{ github.event.inputs.build_type }}' = 'release' ]; then
+                export P4A_RELEASE_KEYSTORE=/app/keystore.jks
+                export P4A_RELEASE_KEYALIAS='${{ secrets.KEY_ALIAS }}'
+                export P4A_RELEASE_KEYSTORE_PASSWD='${{ secrets.KEY_PASSWORD }}'
+                export P4A_RELEASE_KEYALIAS_PASSWD='${{ secrets.KEY_PASSWORD }}'
+              fi
+              buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 &&
+              cd bin &&
+              file=\$(ls blessapp-* | head -n1) &&
+              mv \"\$file\" \"horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.\${file##*.}\"
+            " 2>&1 | tee build_full.log
+
+          # 检查包是否生成（支持 .apk 或 .aab）
+          if ls bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.* 1> /dev/null 2>&1; then
+            echo "Package generated and renamed successfully."
+          else
+            echo "ERROR: No package file found in bin directory"
+            tail -n 200 build_full.log
+            exit 1
+          fi
+        shell: bash
+
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: blessapp-${{ github.event.inputs.build_type || 'debug' }}
-          path: bin/*.apk
+          name: build-log
+          path: build_full.log
+
+      - name: Upload APK/AAB
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
+          path: bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.*
