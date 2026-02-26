@@ -27,6 +27,9 @@ orientation = portrait
 icon.filename = %(source.dir)s/images/icon.png
 presplash.filename = %(source.dir)s/images/presplash.png
 
+# 强制 release 构建生成 APK 文件（而非 AAB）
+android.release_artifact = apk
+
 # 签名配置（release 时通过环境变量传入）
 android.keystore = $(KEYSTORE_FILE)
 android.keystore.alias = $(KEYSTORE_ALIAS)
