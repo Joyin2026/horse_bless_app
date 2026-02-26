@@ -1,0 +1,29 @@
+{
+  "version": "v2.6.110",
+  "default_festival_fallback": "春节",
+  "urls": {
+    "ads": "https://www.sjinyu.com/tools/bless/data/ads.json",
+    "update": "https://www.sjinyu.com/tools/bless/data/update.json",
+    "feedback": "https://www.sjinyu.com/tools/bless/data/feedback.php"
+  },
+  "festival_dates": {
+    "春节": [2, 17],
+    "开工大吉": [2, 24],
+    "元宵节": [3, 3],
+    "女神节": [3, 8],
+    "端午节": [6, 19],
+    "中秋节": [9, 25],
+    "护士节": [5, 12],
+    "母亲节": [5, 10],
+    "父亲节": [6, 21],
+    "建军节": [8, 1],
+    "教师节": [9, 10],
+    "国庆节": [10, 1],
+    "记者节": [11, 8]
+  },
+  "splash_images": [
+    "images/splash1.png",
+    "images/splash2.png",
+    "images/splash3.png"
+  ]
+}
