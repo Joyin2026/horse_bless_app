@@ -26,10 +26,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Build with Buildozer
+      uses: kivy/buildozer-action@v3
       with:
-        python-version: '3.11'
+        python-version: '3.9'
+        requirements: python3==3.9.18,kivy==2.1.0,pyjnius,urllib3
+    # ... 其他参数
 
     - name: Install system dependencies
       run: |
