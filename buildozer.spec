@@ -12,10 +12,10 @@ source.include_patterns = images/*.png, images/*.jpg, data/bless.json
 
 requirements = python3, kivy==2.1.0, pyjnius==1.6.0, urllib3
 
-android.api = 30
+android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.sdk = 30
+android.sdk = 33
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
 
 android.archs = arm64-v8a
