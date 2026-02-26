@@ -1,6 +1,10 @@
-name: Build APK (Docker) - v2.6.111
+name: Build Android APK
 
 on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       build_type:
@@ -15,79 +19,61 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Extract version
-        id: version
-        run: |
-          VERSION_FULL=$(sed -n 's/^APP_VERSION[[:space:]]*=[[:space:]]*["'\'']\(.*\)["'\''].*/\1/p' main.py)
-          echo "VERSION_FULL=$VERSION_FULL" >> $GITHUB_ENV
-          VERSION=$(echo "$VERSION_FULL" | sed 's/^v//')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
-      - name: Decode keystore (if release)
-        if: github.event.inputs.build_type == 'release'
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git \
+          wget \
+          unzip \
+          python3-pip \
+          python3-setuptools \
+          python3-dev \
+          libltdl-dev \
+          libffi-dev \
+          libssl-dev \
+          autoconf \
+          automake \
+          cmake \
+          gcc \
+          g++ \
+          make \
+          pkg-config \
+          zlib1g-dev \
+          openjdk-17-jdk \
+          && sudo apt clean
 
-      - name: Build in Docker (with entrypoint override)
-        run: |
-          set -x
-          mkdir -p "${HOME}/.buildozer"
-          BUILD_DIR="${HOME}/.buildozer"
-          
-          DOCKER_BASE="--rm -i -w /app -v $PWD:/app -v ${BUILD_DIR}:/home/user/.buildozer"
-          # 👇 添加 JNIUS_PLATFORM 环境变量，解决 pyjnius 编译问题
-          DOCKER_BASE="${DOCKER_BASE} -e JNIUS_PLATFORM=android"
-          
-          if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-            DOCKER_BASE="${DOCKER_BASE} -v $PWD/keystore.jks:/app/keystore.jks"
-            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYSTORE=/app/keystore.jks"
-            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYSTORE_PASSWD=${{ secrets.KEY_PASSWORD }}"
-            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYALIAS=${{ secrets.KEY_ALIAS }}"
-            DOCKER_BASE="${DOCKER_BASE} -e P4A_RELEASE_KEYALIAS_PASSWD=${{ secrets.KEY_PASSWORD }}"
-          fi
+    - name: Cache buildozer global directory
+      uses: actions/cache@v4
+      with:
+        path: ~/.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-          printf 'y\n' | docker run ${DOCKER_BASE} \
-            -e BUILDOZER_FORCE_ROOT=1 \
-            -e P4A_DOWNLOAD_RETRIES=10 \
-            -e P4A_DOWNLOAD_TIMEOUT=120 \
-            --entrypoint /bin/sh \
-            kivy/buildozer:latest \
-            -c "
-              if [ '${{ github.event.inputs.build_type }}' = 'release' ]; then
-                export P4A_RELEASE_KEYSTORE=/app/keystore.jks
-                export P4A_RELEASE_KEYALIAS='${{ secrets.KEY_ALIAS }}'
-                export P4A_RELEASE_KEYSTORE_PASSWD='${{ secrets.KEY_PASSWORD }}'
-                export P4A_RELEASE_KEYALIAS_PASSWD='${{ secrets.KEY_PASSWORD }}'
-              fi
-              buildozer android ${{ github.event.inputs.build_type }} --verbose --log_level=2 &&
-              cd bin &&
-              file=\$(ls blessapp-* | head -n1) &&
-              mv \"\$file\" \"horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.\${file##*.}\"
-            " 2>&1 | tee build_full.log
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython
 
-          if ls bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.* 1> /dev/null 2>&1; then
-            echo "Package generated and renamed successfully."
-          else
-            echo "ERROR: No package file found in bin directory"
-            tail -n 200 build_full.log
-            exit 1
-          fi
-        shell: bash
+    - name: Build with buildozer
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          buildozer android release
+        else
+          buildozer android debug
+        fi
 
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build_full.log
-
-      - name: Upload APK/AAB
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}
-          path: bin/horse-bless-v${{ env.VERSION }}-${{ github.event.inputs.build_type }}.*
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: blessapp-${{ github.event.inputs.build_type || 'debug' }}
+        path: bin/*.apk
