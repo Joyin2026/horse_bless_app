@@ -6,7 +6,7 @@ on:
     paths-ignore:
       - '.github/workflows/**'  # 忽略工作流文件本身的变更
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       build_type:
