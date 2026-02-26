@@ -7,27 +7,31 @@ version.regex = APP_VERSION = ["']v(.*?)["']
 version.filename = %(source.dir)s/main.py
 
 source.dir = .
-source.include_exts = py,png,jpg,txt,json,ttf
-source.include_patterns = images/*.png, images/*.jpg, data/bless.json
+source.include_exts = py,png,jpg,txt,json
+source.include_patterns = images/*.png, images/*.jpg, data/*.json
 
-requirements = python3, kivy==2.1.0, pyjnius==1.6.0, urllib3
+requirements = python3,kivy==2.2.1,pyjnius==1.4.0
 
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
+
+android.extra_env = PYJNIUS_CYTHONIZE=1
 android.ndk_path = ~/.buildozer/android/platform/android-ndk-r25b
-
 android.archs = arm64-v8a
-
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE
 
-android.debug = True
 fullscreen = 1
 orientation = portrait
-
 icon.filename = %(source.dir)s/images/icon.png
 presplash.filename = %(source.dir)s/images/presplash.png
+
+# 签名配置（release 时通过环境变量传入）
+android.keystore = $(KEYSTORE_FILE)
+android.keystore.alias = $(KEYSTORE_ALIAS)
+android.keystore.password = $(KEYSTORE_PASS)
+android.keystore.alias.password = $(KEYALIAS_PASS)
 
 android.accept_sdk_license = True
 android.private_storage = True
