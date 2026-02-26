@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, master ]
     paths-ignore:
-      - '.github/workflows/**'  # 忽略工作流文件本身的变更
+      - '.github/workflows/**'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
       build_type:
         description: '构建类型 (debug/release)'
         required: true
-        default: 'release'
+        default: 'debug'
         type: choice
         options:
           - debug
@@ -23,65 +23,53 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      # 1. 检出代码（关键！）
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install buildozer cython
+      # 2. 设置 Python 3.9
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Build with buildozer
-      run: |
-        buildozer android debug
+      # 3. 安装系统依赖（JDK、构建工具等）
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            git wget unzip \
+            python3-pip python3-setuptools python3-dev \
+            libltdl-dev libffi-dev libssl-dev \
+            autoconf automake cmake gcc g++ make pkg-config zlib1g-dev \
+            openjdk-17-jdk \
+            && sudo apt clean
 
-    - name: Install system dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          git \
-          wget \
-          unzip \
-          python3-pip \
-          python3-setuptools \
-          python3-dev \
-          libltdl-dev \
-          libffi-dev \
-          libssl-dev \
-          autoconf \
-          automake \
-          cmake \
-          gcc \
-          g++ \
-          make \
-          pkg-config \
-          zlib1g-dev \
-          openjdk-17-jdk \
-          && sudo apt clean
+      # 4. 安装 Python 构建工具
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
 
-    - name: Cache buildozer global directory
-      uses: actions/cache@v4
-      with:
-        path: ~/.buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+      # 5. 缓存 buildozer 全局目录（加速构建）
+      - name: Cache buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-    - name: Install Python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install buildozer cython
+      # 6. 执行构建
+      - name: Build with buildozer
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+            buildozer android release
+          else
+            buildozer android debug
+          fi
 
-    - name: Build with buildozer
-      run: |
-        if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
-          buildozer android release
-        else
-          buildozer android debug
-        fi
-
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: blessapp-${{ github.event.inputs.build_type || 'debug' }}
-        path: bin/*.apk
+      # 7. 上传生成的 APK
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blessapp-${{ github.event.inputs.build_type || 'debug' }}
+          path: bin/*.apk
