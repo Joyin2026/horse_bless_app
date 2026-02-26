@@ -34,13 +34,16 @@ jobs:
       - name: Build with buildozer
         run: |
           if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-            buildozer --accept-root android release
+            export BUILDOZER_ACCEPT_ROOT=1
+            buildozer android release
           else
-            buildozer --accept-root android debug
+            export BUILDOZER_ACCEPT_ROOT=1
+            buildozer android debug
           fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
+          # 手动触发时使用 build_type，push 时默认为 'debug'
           name: blessapp-${{ github.event.inputs.build_type || 'debug' }}
           path: bin/*.apk
