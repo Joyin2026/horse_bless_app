@@ -787,7 +787,7 @@ class MainScreen(Screen):
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：jinyu@sjinyu.com',
-            '版权所有，侵权必究！'
+            '2026，节节过，节节高！'
         ]
         for line in info_texts:
             lbl = Label(
@@ -1080,4 +1080,5 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
