@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.112
+版本：v2.6.035
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播
@@ -479,7 +479,7 @@ class MainScreen(Screen):
 
         icon_layout = BoxLayout(
             size_hint=(None, None),
-            size=(dp(240), dp(40)),
+            size=(dp(160), dp(40)),  # 调整宽度适应三个按钮
             pos_hint={'center_x': 0.5},
             spacing=dp(20)
         )
@@ -507,19 +507,11 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         about_btn.bind(on_press=self.show_about_popup)
-        update_btn = Button(
-            background_normal='images/icon_update.png',
-            background_down='images/icon_update.png',
-            size_hint=(None, 1),
-            width=dp(40),
-            border=(0,0,0,0)
-        )
-        update_btn.bind(on_press=self.check_update)
+        # update_btn 已移除
 
         icon_layout.add_widget(web_btn)
         icon_layout.add_widget(email_btn)
         icon_layout.add_widget(about_btn)
-        icon_layout.add_widget(update_btn)
 
         copyright_label = Label(
             text='Copyright Reserved © Sjinyu.com 2025-2026',
@@ -541,6 +533,12 @@ class MainScreen(Screen):
         self.update_category_buttons()
         self.show_current_page()
         self.update_spinner_colors()
+
+    # ========== 进入主界面时主动检查更新 ==========
+    def on_enter(self, *args):
+        """进入主界面时延迟1秒自动检查更新"""
+        Clock.schedule_once(lambda dt: self.check_update(None), 1)
+        super().on_enter(*args)
 
     # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
@@ -831,7 +829,7 @@ class MainScreen(Screen):
 
     def check_update(self, instance):
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
-        show_toast('正在检查更新...')
+        # 静默检查，不显示“正在检查更新” Toast
 
         def on_success(req, result):
             try:
@@ -841,12 +839,10 @@ class MainScreen(Screen):
                 message = result.get('message', '无更新说明')
                 download_url = result.get('url', None)
 
-                if not self.is_newer_version(latest_version, APP_VERSION):
-                    # 已是最新版
-                    self.show_update_popup(latest_version, message, None, is_latest=True)
-                else:
-                    # 有更新
+                if self.is_newer_version(latest_version, APP_VERSION):
+                    # 有新版本，弹窗提示
                     self.show_update_popup(latest_version, message, download_url, is_latest=False)
+                # 无新版本则静默，不弹任何提示
             except Exception as e:
                 show_toast('解析更新信息失败')
                 print('Update parse error:', e)
@@ -1084,4 +1080,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
