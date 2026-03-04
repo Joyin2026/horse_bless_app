@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.112"
+APP_VERSION = "v2.6.035"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -1080,3 +1080,4 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
