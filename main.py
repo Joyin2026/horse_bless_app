@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0312"  # 更新版本号
+APP_VERSION = "v2.6.0312"  # 修正版本号
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -379,12 +379,18 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部标题栏（新增） =====
+        # ===== 顶部标题栏（新增，带画布背景） =====
         title_bar = BoxLayout(
             size_hint=(1, None),
-            height=dp(50),
-            background_color=get_color_from_hex('#8B0000')  # 暗红色
+            height=dp(50)
         )
+        # 添加暗红色背景
+        with title_bar.canvas.before:
+            Color(*get_color_from_hex('#8B0000'))  # 暗红
+            self.title_bar_bg = Rectangle(pos=title_bar.pos, size=title_bar.size)
+        title_bar.bind(pos=lambda instance, value: setattr(self.title_bar_bg, 'pos', value),
+                       size=lambda instance, value: setattr(self.title_bar_bg, 'size', value))
+
         title_label = Label(
             text='马年送祝福',
             color=get_color_from_hex('#FFFF00'),  # 亮黄
@@ -493,8 +499,8 @@ class MainScreen(Screen):
         with self.footer.canvas.before:
             Color(*self.FOOTER_BG)
             self.footer_bg = Rectangle(pos=self.footer.pos, size=self.footer.size)
-        self.footer.bind(pos=lambda instance, value: setattr(self.footer_bg, 'pos', value))
-        self.footer.bind(size=lambda instance, value: setattr(self.footer_bg, 'size', value))
+        self.footer.bind(pos=lambda instance, value: setattr(self.footer_bg, 'pos', value),
+                         size=lambda instance, value: setattr(self.footer_bg, 'size', value))
 
         icon_layout = BoxLayout(
             size_hint=(None, None),
@@ -836,7 +842,7 @@ class MainScreen(Screen):
 
     # ========== 版本更新 ==========
     def parse_version(self, version_str):
-        """将版本字符串 'v2.2.0312' 转换为整数列表 [2,2,312]"""
+        """将版本字符串 'v2.6.0312' 转换为整数列表 [2,6,312]"""
         if version_str.startswith('v'):
             version_str = version_str[1:]
         parts = version_str.split('.')
@@ -1131,4 +1137,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
