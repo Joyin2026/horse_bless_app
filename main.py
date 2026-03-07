@@ -292,7 +292,7 @@ class StartScreen(Screen):
         self._stop_enter_countdown()
         self.countdown = 6
         self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 2)
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 3)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -383,7 +383,7 @@ class MainScreen(Screen):
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
-        Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 2)
+        Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
 
         # 加载轮播广告（网络优先）
         self.load_top_ads()
@@ -787,7 +787,7 @@ class MainScreen(Screen):
             '应用版本：' + APP_VERSION,
             '应用开发：瑾 煜',
             '反馈建议：jinyu@sjinyu.com',
-            '2026，节节过，节节高！'
+            '版权所有，侵权必究！'
         ]
         for line in info_texts:
             lbl = Label(
@@ -1076,14 +1076,39 @@ class BlessApp(App):
         sm = ScreenManager()
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
+        
+        # 设置沉浸式全屏和挖孔区域适配
+        try:
+            self._set_immersive_mode()
+        except Exception as e:
+            print('Failed to set immersive mode:', e)
+        
         return sm
+    
+    def _set_immersive_mode(self):
+        """通过Android原生API设置沉浸式全屏，允许内容延伸到挖孔区域"""
+        from jnius import autoclass
+        PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        View = autoclass('android.view.View')
+        WindowManager = autoclass('android.view.WindowManager$LayoutParams')
+        
+        activity = PythonActivity.mActivity
+        decor_view = activity.getWindow().getDecorView()
+        
+        # 设置系统UI标志：隐藏状态栏和导航栏，启用粘性沉浸
+        ui_options = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        decor_view.setSystemUiVisibility(ui_options)
+        
+        # 允许内容延伸到挖孔区域（适配挖孔屏）
+        lp = activity.getWindow().getAttributes()
+        lp.layoutInDisplayCutoutMode = WindowManager.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        activity.getWindow().setAttributes(lp)
+
 
 if __name__ == '__main__':
     BlessApp().run()
-
-
-
-
-
-
-
