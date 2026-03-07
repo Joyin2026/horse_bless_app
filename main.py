@@ -5,7 +5,7 @@ main.py - 马年送祝福（最终版）
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（全屏显示）
-- 顶部标题栏 + 轮播图（高度320dp，标题栏暗红亮黄）
+- 顶部标题栏（高度80dp，文字14sp） + 轮播图（高度260dp）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0312"  # 修正版本号
+APP_VERSION = "v2.6.0312"  # 版本号
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -379,10 +379,10 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部标题栏（新增，带画布背景） =====
+        # ===== 顶部标题栏（高度80dp，文字14sp） =====
         title_bar = BoxLayout(
             size_hint=(1, None),
-            height=dp(50)
+            height=dp(80)
         )
         # 添加暗红色背景
         with title_bar.canvas.before:
@@ -396,15 +396,15 @@ class MainScreen(Screen):
             color=get_color_from_hex('#FFFF00'),  # 亮黄
             font_name='Chinese',
             bold=True,
-            font_size=sp(12),
+            font_size=sp(14),  # 增大到14sp
             halign='center',
             valign='middle'
         )
         title_bar.add_widget(title_label)
         main_layout.add_widget(title_bar)
 
-        # ===== 顶部轮播图（高度调整为320dp） =====
-        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(320))
+        # ===== 顶部轮播图（高度260dp） =====
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(260))
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
