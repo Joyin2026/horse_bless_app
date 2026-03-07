@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.1024
+版本：v2.6.0312
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（全屏显示）
-- 顶部标题栏（图片） + 轮播图（高度74dp）
+- 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
@@ -42,7 +42,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.1024"  # 版本号
+APP_VERSION = "v2.6.0312"  # 版本号
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -390,8 +390,8 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(title_image)
 
-        # ===== 顶部轮播图（高度74dp） =====
-        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(74))
+        # ===== 顶部轮播图（高度123dp，适应1440x400图片） =====
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(123))
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
@@ -1124,4 +1124,3 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
-
