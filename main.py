@@ -5,7 +5,7 @@ main.py - 马年送祝福（最终版）
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（全屏显示）
-- 顶部标题栏（图片） + 轮播图（高度260dp）
+- 顶部标题栏（图片） + 轮播图（高度74dp）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
@@ -390,8 +390,8 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(title_image)
 
-        # ===== 顶部轮播图（高度260dp） =====
-        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(260))
+        # ===== 顶部轮播图（高度74dp） =====
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(74))
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
