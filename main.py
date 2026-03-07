@@ -5,7 +5,7 @@ main.py - 马年送祝福（最终版）
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（全屏显示）
-- 顶部标题栏（高度80dp，文字14sp） + 轮播图（高度260dp）
+- 顶部标题栏（图片） + 轮播图（高度260dp）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
@@ -379,29 +379,16 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部标题栏（高度80dp，文字14sp） =====
-        title_bar = BoxLayout(
+        # ===== 顶部标题栏（图片） =====
+        # 使用用户提供的图片 title.jpg，高度固定 80dp，拉伸填满宽度
+        title_image = Image(
+            source='images/title.jpg',
             size_hint=(1, None),
-            height=dp(80)
+            height=dp(80),
+            allow_stretch=True,
+            keep_ratio=False
         )
-        # 添加暗红色背景
-        with title_bar.canvas.before:
-            Color(*get_color_from_hex('#8B0000'))  # 暗红
-            self.title_bar_bg = Rectangle(pos=title_bar.pos, size=title_bar.size)
-        title_bar.bind(pos=lambda instance, value: setattr(self.title_bar_bg, 'pos', value),
-                       size=lambda instance, value: setattr(self.title_bar_bg, 'size', value))
-
-        title_label = Label(
-            text='马年送祝福',
-            color=get_color_from_hex('#FFFF00'),  # 亮黄
-            font_name='Chinese',
-            bold=True,
-            font_size=sp(14),  # 增大到14sp
-            halign='center',
-            valign='middle'
-        )
-        title_bar.add_widget(title_label)
-        main_layout.add_widget(title_bar)
+        main_layout.add_widget(title_image)
 
         # ===== 顶部轮播图（高度260dp） =====
         self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(260))
