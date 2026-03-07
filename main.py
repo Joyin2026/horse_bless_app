@@ -4,14 +4,14 @@ main.py - 马年送祝福（最终版）
 版本：v2.6.0308
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播
-- 顶部轮播图（从网络加载，支持 active 控制，自动切换）
+- 开屏广告轮播（全屏显示）
+- 顶部轮播图（从网络加载，支持 active 控制，自动切换，高度增加）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
-- 版本更新检查（从网络获取，正确判断有无更新，弹窗优化）
+- 版本更新检查（从网络获取，正确判断有无更新，静默提示）
 """
 
 import kivy
@@ -218,7 +218,8 @@ class StartScreen(Screen):
         super().__init__(**kwargs)
         layout = FloatLayout()
         splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
-        self.carousel = Carousel(direction='right', loop=True)
+        # 全屏轮播
+        self.carousel = Carousel(direction='right', loop=True, size_hint=(1, 1))
         for img_path in splash_images:
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
             self.carousel.add_widget(img)
@@ -378,8 +379,8 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部轮播图 =====
-        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(150))
+        # ===== 顶部轮播图（高度增加60dp） =====
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(210))
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
