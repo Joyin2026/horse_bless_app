@@ -292,7 +292,7 @@ class StartScreen(Screen):
         self._stop_enter_countdown()
         self.countdown = 6
         self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 2)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -383,7 +383,7 @@ class MainScreen(Screen):
         main_layout.add_widget(self.top_carousel)
 
         # 启动自动轮播（每3秒切换）
-        Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
+        Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 2)
 
         # 加载轮播广告（网络优先）
         self.load_top_ads()
@@ -1080,6 +1080,7 @@ class BlessApp(App):
 
 if __name__ == '__main__':
     BlessApp().run()
+
 
 
 
