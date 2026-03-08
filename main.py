@@ -13,7 +13,7 @@ main.py - 马年送祝福（最终版）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
 - 版本更新检查（从网络获取，正确判断有无更新，静默提示）
 - 分享前可编辑祝福语（美化版弹窗，居中，无外框）
-- 状态栏常显，内容全屏无黑边（透明状态栏模式）
+- 沉浸模式：手动下滑显示状态栏，3秒后自动隐藏，应用内容全屏无黑边
 """
 
 import kivy
@@ -1170,32 +1170,34 @@ class BlessApp(App):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         
+        # 恢复沉浸模式（手动下滑显示状态栏，3秒后自动隐藏）
         try:
-            self._set_transparent_status_bar()
+            self._set_immersive_mode()
         except Exception as e:
-            print('Failed to set transparent status bar:', e)
+            print('Failed to set immersive mode:', e)
         
         return sm
     
-    def _set_transparent_status_bar(self):
-        """透明状态栏和导航栏，内容延伸至其下方，系统图标可见"""
+    def _set_immersive_mode(self):
+        """通过Android原生API设置沉浸式全屏，允许内容延伸到挖孔区域"""
         from jnius import autoclass
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
         View = autoclass('android.view.View')
         WindowManager = autoclass('android.view.WindowManager$LayoutParams')
-        Color = autoclass('android.graphics.Color')
         
         activity = PythonActivity.mActivity
         decor_view = activity.getWindow().getDecorView()
         
+        # 设置系统UI标志：隐藏状态栏和导航栏，启用粘性沉浸
         ui_options = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                       | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         decor_view.setSystemUiVisibility(ui_options)
         
-        activity.getWindow().setStatusBarColor(Color.TRANSPARENT)
-        activity.getWindow().setNavigationBarColor(Color.TRANSPARENT)
-        
+        # 允许内容延伸到挖孔区域（适配挖孔屏）
         lp = activity.getWindow().getAttributes()
         lp.layoutInDisplayCutoutMode = WindowManager.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         activity.getWindow().setAttributes(lp)
