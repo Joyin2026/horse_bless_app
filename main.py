@@ -12,7 +12,8 @@ main.py - 马年送祝福（最终版）
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
 - 版本更新检查（从网络获取，正确判断有无更新，静默提示）
-- 分享前可编辑祝福语（美化版弹窗）
+- 分享前可编辑祝福语（美化版弹窗，居中，无外框）
+- 状态栏常显，内容全屏无黑边（透明状态栏模式）
 """
 
 import kivy
@@ -33,7 +34,7 @@ from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
-from kivy.uix.textinput import TextInput   # 导入 TextInput
+from kivy.uix.textinput import TextInput
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
@@ -44,7 +45,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0312"  # 版本号
+APP_VERSION = "v2.6.0312"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -126,30 +127,28 @@ def send_email(recipient):
 class CustomDropDown(DropDown):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 背景色设为棕色，通过spacing=1显示为分隔线
         self.background_normal = ''
         self.background_down = ''
-        self.background_color = get_color_from_hex('#8B4513')  # 棕色
+        self.background_color = get_color_from_hex('#8B4513')
         self.border = (0, 0, 0, 0)
         self.border_radius = [dp(5), dp(5), dp(5), dp(5)]
         self.padding = 0
-        self.spacing = 1  # 1像素间隙，背景色透出作为分隔线
+        self.spacing = 1
 
-# ==================== 自定义 Spinner 选项（解决乱码+美化）====================
+# ==================== 自定义 Spinner 选项 ====================
 class ChineseSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.font_name = 'Chinese'
-        # 清除默认背景图片，使用纯色背景
         self.background_normal = ''
         self.background_down = ''
-        self.background_color = get_color_from_hex('#FFF8DC')  # 玉米色
-        self.background_color_down = get_color_from_hex('#FFD700')  # 金色按下反馈
-        self.color = get_color_from_hex('#8B4513')  # 深棕色文字
-        self.border = (0, 0, 0, 0)                  # 无边框
+        self.background_color = get_color_from_hex('#FFF8DC')
+        self.background_color_down = get_color_from_hex('#FFD700')
+        self.color = get_color_from_hex('#8B4513')
+        self.border = (0, 0, 0, 0)
         self.padding = [dp(15), dp(5)]
         self.size_hint_y = None
-        self.height = dp(40)                         # 固定高度
+        self.height = dp(40)
 
 Spinner.option_cls = ChineseSpinnerOption
 
@@ -177,11 +176,9 @@ def load_blessings():
 
 ALL_BLESSINGS, load_error = load_blessings()
 
-# 节日分组
 TRADITIONAL = ['春节', '开工大吉','元宵节', '母亲节', '端午节', '父亲节','中秋节']
 PROFESSIONAL = ["女神节", '护士节', '建军节', '教师节', '国庆节', '记者节']
 
-# 2026年节日日期
 FESTIVAL_DATES_2026 = {
     '春节': (2, 17),
     '开工大吉': (2, 24),
@@ -220,7 +217,6 @@ class StartScreen(Screen):
         super().__init__(**kwargs)
         layout = FloatLayout()
         splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
-        # 全屏轮播
         self.carousel = Carousel(direction='right', loop=True, size_hint=(1, 1))
         for img_path in splash_images:
             img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
@@ -371,9 +367,8 @@ class MainScreen(Screen):
         self.has_selected = False
         self.footer_visible = False
         self.last_scroll_y = 1
-        self._footer_timer = None  # 用于自动隐藏的定时器
+        self._footer_timer = None
 
-        # 颜色定义
         self.DEFAULT_BTN = get_color_from_hex('#CCCC99')
         self.ACTIVE_BTN = get_color_from_hex('#FFCC99')
         self.FOOTER_BG = get_color_from_hex('#333300')
@@ -381,8 +376,7 @@ class MainScreen(Screen):
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
 
-        # ===== 顶部标题栏（图片） =====
-        # 使用用户提供的图片 title.jpg，高度固定 80dp，拉伸填满宽度
+        # 顶部标题栏（图片）
         title_image = Image(
             source='images/title.jpg',
             size_hint=(1, None),
@@ -392,17 +386,14 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(title_image)
 
-        # ===== 顶部轮播图（高度123dp，适应1440x400图片） =====
+        # 顶部轮播图（高度123dp）
         self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(123))
         main_layout.add_widget(self.top_carousel)
 
-        # 启动自动轮播（每3秒切换）
         Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
-
-        # 加载轮播广告（网络优先）
         self.load_top_ads()
 
-        # ===== 两个并排的下拉菜单 =====
+        # 下拉菜单
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
             text='传统佳节',
@@ -423,7 +414,6 @@ class MainScreen(Screen):
         )
         self.professional_spinner.bind(text=self.on_professional_spinner_select)
 
-        # 设置自定义下拉列表容器
         self.traditional_spinner.dropdown_cls = CustomDropDown
         self.professional_spinner.dropdown_cls = CustomDropDown
 
@@ -431,14 +421,14 @@ class MainScreen(Screen):
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
 
-        # ===== 分类切换按钮（横向滚动）=====
+        # 分类按钮
         self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
         self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
         self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # ===== 当前节日标签（移至分类按钮下方，加粗）=====
+        # 当前节日标签
         self.current_festival_label = Label(
             text=f"当前节日：{self.current_festival}",
             size_hint=(1, None),
@@ -450,7 +440,7 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(self.current_festival_label)
 
-        # ===== 祝福语列表 =====
+        # 祝福语列表
         self.scroll_view = ScrollView()
         self.scroll_view.size_hint_y = 1
         self.scroll_view.bind(scroll_y=self.on_scroll)
@@ -459,10 +449,9 @@ class MainScreen(Screen):
         self.scroll_view.add_widget(self.list_layout)
         main_layout.add_widget(self.scroll_view)
 
-        # ===== 底部区域 =====
+        # 底部区域
         bottom_container = FloatLayout(size_hint=(1, None), height=dp(80))
         
-        # 分享按钮
         self.share_btn = Button(
             text='通过微信/QQ/短信祝福好友',
             size_hint=(1, None),
@@ -493,7 +482,7 @@ class MainScreen(Screen):
 
         icon_layout = BoxLayout(
             size_hint=(None, None),
-            size=(dp(160), dp(40)),  # 调整宽度适应三个按钮
+            size=(dp(160), dp(40)),
             pos_hint={'center_x': 0.5},
             spacing=dp(20)
         )
@@ -521,7 +510,6 @@ class MainScreen(Screen):
             border=(0,0,0,0)
         )
         about_btn.bind(on_press=self.show_about_popup)
-        # update_btn 已移除
 
         icon_layout.add_widget(web_btn)
         icon_layout.add_widget(email_btn)
@@ -548,13 +536,10 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
-    # ========== 进入主界面时主动检查更新 ==========
     def on_enter(self, *args):
-        """进入主界面时延迟1秒自动检查更新"""
         Clock.schedule_once(lambda dt: self.check_update(None), 1)
         super().on_enter(*args)
 
-    # ========== 滚动控制 ==========
     def on_scroll(self, instance, value):
         try:
             if not self.footer:
@@ -571,15 +556,12 @@ class MainScreen(Screen):
         if not self.footer or self.footer_visible:
             return
         try:
-            # 取消之前的自动隐藏定时器
             if self._footer_timer:
                 self._footer_timer.cancel()
                 self._footer_timer = None
-            # 显示图标栏
             anim = Animation(y=0, duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = True
-            # 设置3秒后自动隐藏
             self._footer_timer = Clock.schedule_once(lambda dt: self.hide_footer_animated(), 3)
         except Exception as e:
             print("show_footer_animated error:", e)
@@ -588,18 +570,15 @@ class MainScreen(Screen):
         if not self.footer or not self.footer_visible:
             return
         try:
-            # 取消自动隐藏定时器
             if self._footer_timer:
                 self._footer_timer.cancel()
                 self._footer_timer = None
-            # 隐藏图标栏
             anim = Animation(y=-dp(80), duration=0.3, t='out_quad')
             anim.start(self.footer)
             self.footer_visible = False
         except Exception as e:
             print("hide_footer_animated error:", e)
 
-    # ========== 下拉菜单 ==========
     def update_spinner_colors(self):
         if self.current_festival in TRADITIONAL:
             self.traditional_spinner.background_color = self.ACTIVE_BTN
@@ -629,7 +608,6 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
-    # ========== 分类按钮 ==========
     def update_category_buttons(self):
         self.category_layout.clear_widgets()
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
@@ -653,7 +631,6 @@ class MainScreen(Screen):
         self.update_category_buttons()
         self.show_current_page()
 
-    # ========== 祝福语列表 ==========
     def show_current_page(self):
         self.list_layout.clear_widgets()
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
@@ -700,7 +677,6 @@ class MainScreen(Screen):
             btn.default_bg_color = (1, 1, 1, 0.9)
             self.list_layout.add_widget(btn)
 
-    # ========== 复制与分享 ==========
     def on_copy(self, instance):
         try:
             print("on_copy triggered")
@@ -740,12 +716,10 @@ class MainScreen(Screen):
             print("on_copy 发生异常:", e)
 
     def share_blessings(self, instance):
-        """点击分享按钮：弹出美化编辑对话框，确认后分享"""
         if not self.last_copied_text:
             show_toast('请先选择一条祝福')
             return
 
-        # 创建弹窗内容（模仿关于弹窗样式）
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(340), dp(280)))
         with content.canvas.before:
@@ -754,10 +728,9 @@ class MainScreen(Screen):
         content.bind(pos=lambda *x: setattr(self.popup_bg, 'pos', content.pos),
                      size=lambda *x: setattr(self.popup_bg, 'size', content.size))
 
-        # 标题栏（暗红）
         title_bar = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(10), 0))
         with title_bar.canvas.before:
-            Color(0.5, 0.1, 0.1, 1)  # 暗红
+            Color(0.5, 0.1, 0.1, 1)
             self.popup_title_rect = Rectangle(pos=title_bar.pos, size=title_bar.size)
         title_bar.bind(pos=lambda *x: setattr(self.popup_title_rect, 'pos', title_bar.pos),
                        size=lambda *x: setattr(self.popup_title_rect, 'size', title_bar.size))
@@ -776,7 +749,10 @@ class MainScreen(Screen):
             size_hint=(None, None),
             size=(dp(30), dp(30)),
             pos_hint={'right':1, 'center_y':0.5},
-            background_color=(0,0,0,0),
+            background_normal='',      # 移除默认背景图片
+            background_down='',        # 移除按下背景图片
+            border=(0,0,0,0),          # 无边框
+            background_color=(0,0,0,0),# 完全透明
             color=(1,1,1,1),
             bold=True,
             font_name='Chinese'
@@ -785,7 +761,6 @@ class MainScreen(Screen):
         title_bar.add_widget(title_label)
         title_bar.add_widget(close_btn)
 
-        # 内容区域（白色背景）
         content_area = BoxLayout(orientation='vertical', padding=(dp(15), dp(15), dp(15), dp(10)), spacing=dp(10))
         with content_area.canvas.before:
             Color(1, 1, 1, 1)
@@ -793,7 +768,6 @@ class MainScreen(Screen):
         content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
-        # 提示文字
         hint_label = Label(
             text='可在祝福语前添加称谓，或结尾加上落款：',
             color=(0.3,0.3,0.3,1),
@@ -806,7 +780,6 @@ class MainScreen(Screen):
         hint_label.bind(width=lambda *x: setattr(hint_label, 'text_size', (hint_label.width, None)))
         content_area.add_widget(hint_label)
 
-        # 多行文本输入框
         text_input = TextInput(
             text=self.last_copied_text,
             multiline=True,
@@ -819,7 +792,6 @@ class MainScreen(Screen):
         )
         content_area.add_widget(text_input)
 
-        # 按钮布局
         button_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10))
         cancel_btn = Button(
             text='取消',
@@ -848,8 +820,8 @@ class MainScreen(Screen):
             background_color=(0,0,0,0),
             auto_dismiss=False
         )
+        popup.center = Window.center  # 强制居中
 
-        # 分享按钮回调
         def on_share(btn):
             new_text = text_input.text.strip()
             popup.dismiss()
@@ -867,7 +839,6 @@ class MainScreen(Screen):
 
         popup.open()
 
-    # ========== 关于弹窗 ==========
     def show_about_popup(self, instance):
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(220)))
@@ -892,19 +863,21 @@ class MainScreen(Screen):
             size_hint_x=0.8,
             font_name='Chinese'
         )
-        title_bar.add_widget(title_label)
-
         close_btn = Button(
             text='X',
             size_hint=(None, None),
             size=(dp(30), dp(30)),
             pos_hint={'right':1, 'center_y':0.5},
+            background_normal='',
+            background_down='',
+            border=(0,0,0,0),
             background_color=(0,0,0,0),
             color=(1,1,1,1),
             bold=True,
             font_name='Chinese'
         )
         close_btn.bind(on_press=lambda x: popup.dismiss())
+        title_bar.add_widget(title_label)
         title_bar.add_widget(close_btn)
 
         content_area = BoxLayout(orientation='vertical', padding=(dp(20), dp(15), dp(15), dp(15)), spacing=dp(5))
@@ -947,21 +920,17 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ========== 版本更新 ==========
     def parse_version(self, version_str):
-        """将版本字符串 'v2.6.0312' 转换为整数列表 [2,6,312]"""
         if version_str.startswith('v'):
             version_str = version_str[1:]
         parts = version_str.split('.')
         return [int(p) for p in parts]
 
     def is_newer_version(self, latest, current):
-        """比较两个版本号，如果 latest > current 返回 True"""
         return self.parse_version(latest) > self.parse_version(current)
 
     def check_update(self, instance):
         url = 'https://www.sjinyu.com/tools/bless/data/update.json'
-        # 静默检查，不显示“正在检查更新” Toast
 
         def on_success(req, result):
             try:
@@ -972,9 +941,7 @@ class MainScreen(Screen):
                 download_url = result.get('url', None)
 
                 if self.is_newer_version(latest_version, APP_VERSION):
-                    # 有新版本，弹窗提示
                     self.show_update_popup(latest_version, message, download_url, is_latest=False)
-                # 无新版本则静默，不弹任何提示
             except Exception as e:
                 show_toast('解析更新信息失败')
                 print('Update parse error:', e)
@@ -996,8 +963,7 @@ class MainScreen(Screen):
         from kivy.uix.popup import Popup
         from kivy.graphics import Color, RoundedRectangle, Rectangle
 
-        # 根据是否最新版调整弹窗高度
-        popup_height = 220 if is_latest else 250  # 最新版更紧凑
+        popup_height = 220 if is_latest else 250
         content = BoxLayout(orientation='vertical', spacing=0, padding=0,
                             size_hint=(None, None), size=(dp(320), dp(popup_height)))
         with content.canvas.before:
@@ -1031,6 +997,9 @@ class MainScreen(Screen):
             size_hint=(None, None),
             size=(dp(30), dp(30)),
             pos_hint={'right':1, 'center_y':0.5},
+            background_normal='',
+            background_down='',
+            border=(0,0,0,0),
             background_color=(0,0,0,0),
             color=(1,1,1,1),
             bold=True,
@@ -1040,7 +1009,6 @@ class MainScreen(Screen):
         title_bar.add_widget(title_label)
         title_bar.add_widget(close_btn)
 
-        # 内容区域内边距微调，最新版可适当减少上边距
         content_area_padding = (dp(10), dp(8)) if is_latest else (dp(15), dp(10))
         content_area = BoxLayout(orientation='vertical', padding=content_area_padding, spacing=dp(5))
         with content_area.canvas.before:
@@ -1049,7 +1017,6 @@ class MainScreen(Screen):
         content_area.bind(pos=lambda *x: setattr(self.popup_content_rect, 'pos', content_area.pos),
                           size=lambda *x: setattr(self.popup_content_rect, 'size', content_area.size))
 
-        # 如果不是最新版，显示版本号
         if not is_latest:
             version_label = Label(
                 text=f'最新版本：{latest_version}',
@@ -1098,7 +1065,6 @@ class MainScreen(Screen):
             cancel_btn.bind(on_press=lambda x: popup.dismiss())
             button_layout.add_widget(cancel_btn)
         else:
-            # 已是最新版，只显示一个“确定”按钮
             ok_btn = Button(
                 text='确定',
                 size_hint=(1, 1),
@@ -1124,9 +1090,7 @@ class MainScreen(Screen):
         )
         popup.open()
 
-    # ========== 轮播广告相关 ==========
     def load_top_ads(self):
-        """从网络加载顶部轮播图，仅显示 active 为 true 的广告并按顺序显示"""
         url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
         
         def on_success(req, result):
@@ -1169,7 +1133,6 @@ class MainScreen(Screen):
             self.load_fallback_ads()
 
     def load_fallback_ads(self):
-        """备用加载本地图片，文件名与服务器一致：top01.jpg ~ top05.jpg"""
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
             img_path = f'images/top{i:02d}.jpg'
@@ -1184,7 +1147,6 @@ class MainScreen(Screen):
                 print(f"加载备用图片 {img_path} 失败: {e}")
 
     def on_fallback_ad_click(self, instance, touch):
-        """备用广告点击事件"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website('https://www.sjinyu.com')
@@ -1192,7 +1154,6 @@ class MainScreen(Screen):
             print("on_fallback_ad_click 异常:", e)
 
     def on_ad_click(self, instance, touch, url):
-        """点击轮播图时打开链接"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website(url)
@@ -1209,34 +1170,32 @@ class BlessApp(App):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         
-        # 设置沉浸式全屏和挖孔区域适配
         try:
-            self._set_immersive_mode()
+            self._set_transparent_status_bar()
         except Exception as e:
-            print('Failed to set immersive mode:', e)
+            print('Failed to set transparent status bar:', e)
         
         return sm
     
-    def _set_immersive_mode(self):
-        """通过Android原生API设置沉浸式全屏，允许内容延伸到挖孔区域"""
+    def _set_transparent_status_bar(self):
+        """透明状态栏和导航栏，内容延伸至其下方，系统图标可见"""
         from jnius import autoclass
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
         View = autoclass('android.view.View')
         WindowManager = autoclass('android.view.WindowManager$LayoutParams')
+        Color = autoclass('android.graphics.Color')
         
         activity = PythonActivity.mActivity
         decor_view = activity.getWindow().getDecorView()
         
-        # 设置系统UI标志：隐藏状态栏和导航栏，启用粘性沉浸
         ui_options = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                       | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         decor_view.setSystemUiVisibility(ui_options)
         
-        # 允许内容延伸到挖孔区域（适配挖孔屏）
+        activity.getWindow().setStatusBarColor(Color.TRANSPARENT)
+        activity.getWindow().setNavigationBarColor(Color.TRANSPARENT)
+        
         lp = activity.getWindow().getAttributes()
         lp.layoutInDisplayCutoutMode = WindowManager.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         activity.getWindow().setAttributes(lp)
