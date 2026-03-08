@@ -4,7 +4,7 @@ main.py - 马年送祝福（最终版）
 版本：v2.6.0312
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播（全屏显示）
+- 开屏广告轮播（全屏显示，状态栏透明可见）
 - 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断默认节日（元宵节提前8天，其他5天）
@@ -12,6 +12,7 @@ main.py - 马年送祝福（最终版）
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
 - 版本更新检查（从网络获取，正确判断有无更新，静默提示）
+- 分享前可编辑祝福语（新增功能）
 """
 
 import kivy
@@ -32,6 +33,7 @@ from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image, AsyncImage
 from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput   # 新增导入
 from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
@@ -738,14 +740,77 @@ class MainScreen(Screen):
             print("on_copy 发生异常:", e)
 
     def share_blessings(self, instance):
-        if self.last_copied_text:
-            if share_text(self.last_copied_text):
+        """点击分享按钮：先弹出编辑对话框，用户确认后再分享"""
+        if not self.last_copied_text:
+            show_toast('请先选择一条祝福')
+            return
+
+        # 创建编辑弹窗内容
+        content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(10))
+        content.add_widget(Label(
+            text='编辑祝福语（可添加称谓/落款）：',
+            size_hint_y=None,
+            height=dp(30),
+            color=(0,0,0,1),
+            font_name='Chinese'
+        ))
+
+        # 多行文本输入框，预填充当前选中的祝福语
+        text_input = TextInput(
+            text=self.last_copied_text,
+            multiline=True,
+            size_hint_y=None,
+            height=dp(150),
+            font_name='Chinese',
+            background_color=(1,1,1,1),
+            foreground_color=(0,0,0,1)
+        )
+        content.add_widget(text_input)
+
+        # 按钮布局
+        btn_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10))
+        cancel_btn = Button(
+            text='取消',
+            background_color=get_color_from_hex('#9E9E9E'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
+        share_btn = Button(
+            text='分享',
+            background_color=get_color_from_hex('#4CAF50'),
+            color=(1,1,1,1),
+            font_name='Chinese'
+        )
+        btn_layout.add_widget(cancel_btn)
+        btn_layout.add_widget(share_btn)
+        content.add_widget(btn_layout)
+
+        # 创建弹窗
+        popup = Popup(
+            title='编辑祝福语',
+            content=content,
+            size_hint=(0.8, 0.6),
+            background_color=(0,0,0,0.8),
+            auto_dismiss=False
+        )
+
+        # 分享按钮回调
+        def on_share(btn):
+            new_text = text_input.text.strip()
+            popup.dismiss()
+            if not new_text:
+                show_toast('内容不能为空')
+                return
+            if share_text(new_text):
                 show_toast('分享已启动')
             else:
-                Clipboard.copy(self.last_copied_text)
+                Clipboard.copy(new_text)
                 show_toast('分享失败，已复制到剪贴板')
-        else:
-            show_toast('请先选择一条祝福')
+
+        share_btn.bind(on_press=on_share)
+        cancel_btn.bind(on_press=popup.dismiss)
+
+        popup.open()
 
     # ========== 关于弹窗 ==========
     def show_about_popup(self, instance):
@@ -1089,34 +1154,36 @@ class BlessApp(App):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         
-        # 设置沉浸式全屏和挖孔区域适配
+        # 设置沉浸式全屏（透明状态栏，内容延伸至状态栏区域）
         try:
-            self._set_immersive_mode()
+            self._set_transparent_status_bar()
         except Exception as e:
-            print('Failed to set immersive mode:', e)
+            print('Failed to set transparent status bar:', e)
         
         return sm
     
-    def _set_immersive_mode(self):
-        """通过Android原生API设置沉浸式全屏，允许内容延伸到挖孔区域"""
+    def _set_transparent_status_bar(self):
+        """设置透明状态栏和导航栏，使内容延伸至其下方，同时系统图标可见"""
         from jnius import autoclass
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
         View = autoclass('android.view.View')
         WindowManager = autoclass('android.view.WindowManager$LayoutParams')
+        Color = autoclass('android.graphics.Color')
         
         activity = PythonActivity.mActivity
         decor_view = activity.getWindow().getDecorView()
         
-        # 设置系统UI标志：隐藏状态栏和导航栏，启用粘性沉浸
+        # 设置布局延伸至状态栏和导航栏区域
         ui_options = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                       | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         decor_view.setSystemUiVisibility(ui_options)
         
-        # 允许内容延伸到挖孔区域（适配挖孔屏）
+        # 设置状态栏和导航栏透明
+        activity.getWindow().setStatusBarColor(Color.TRANSPARENT)
+        activity.getWindow().setNavigationBarColor(Color.TRANSPARENT)
+        
+        # 允许内容延伸到挖孔区域
         lp = activity.getWindow().getAttributes()
         lp.layoutInDisplayCutoutMode = WindowManager.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         activity.getWindow().setAttributes(lp)
