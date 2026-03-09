@@ -4,7 +4,7 @@ main.py - 马年送祝福（最终版）
 版本：v2.6.0316
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播（从网络加载，支持 active 控制和点击跳转）
+- 开屏广告轮播（从网络加载，支持 active 控制和点击跳转，带磁盘缓存）
 - 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断下一个节日（今天或未来最近），显示“n天后节日”或直接节日名
@@ -21,6 +21,7 @@ import sys
 import os
 import json
 import traceback
+import hashlib
 from datetime import datetime
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -46,6 +47,14 @@ from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
 APP_VERSION = "v2.6.0316"
+
+# ---------- 缓存目录 ----------
+CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
+if not os.path.exists(CACHE_DIR):
+    try:
+        os.makedirs(CACHE_DIR)
+    except:
+        pass
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -213,29 +222,25 @@ def get_next_festival():
         min_days = (festival_date - today).days
     return best, min_days
 
-# ==================== 开屏页面（动态加载版） ====================
+# ==================== 开屏页面（动态加载+磁盘缓存） ====================
 class StartScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 初始化基本布局，但轮播图内容将在 on_enter 中动态加载
         layout = FloatLayout()
 
-        # 创建空的轮播图容器，稍后填充
         self.carousel = Carousel(direction='right', loop=True, size_hint=(1, 1))
         self.carousel.bind(on_touch_down=self.on_carousel_touch_down)
         layout.add_widget(self.carousel)
 
-        # 指示器布局（初始为空，稍后动态添加）
         self.indicator_layout = BoxLayout(
             size_hint=(None, None),
-            size=(dp(90), dp(30)),  # 初始宽度，稍后根据图片数量调整
+            size=(dp(90), dp(30)),
             pos_hint={'center_x': 0.5, 'y': 0.05},
             spacing=dp(5)
         )
-        self.indicators = []  # 存储指示器Label的列表
+        self.indicators = []
         layout.add_widget(self.indicator_layout)
 
-        # 右上角倒计时和跳过按钮
         top_right = BoxLayout(size_hint=(None, None), size=(dp(160), dp(40)),
                               pos_hint={'right': 1, 'top': 1}, spacing=dp(5))
         self.countdown_label = Label(
@@ -262,16 +267,15 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-        # 定时器相关
         self._auto_slide_trigger = None
         self._enter_timer = None
         self._idle_timer = None
         self.countdown = 9
-        self.total_images = 0  # 当前加载的图片总数
+        self.total_images = 0
 
     def _start_auto_slide(self):
         self._stop_auto_slide()
-        if self.total_images > 1:  # 多于一张才自动轮播
+        if self.total_images > 1:
             self._auto_slide_trigger = Clock.schedule_interval(self._next_slide, 3)
 
     def _stop_auto_slide(self):
@@ -283,7 +287,7 @@ class StartScreen(Screen):
         self._stop_enter_countdown()
         self.countdown = 6
         self.countdown_label.text = '6 秒'
-        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)  # 每秒更新
+        self._enter_timer = Clock.schedule_interval(self._tick_countdown, 1)
 
     def _stop_enter_countdown(self):
         if self._enter_timer:
@@ -318,7 +322,6 @@ class StartScreen(Screen):
             self._reset_idle_timer()
 
     def update_indicators(self, count):
-        """根据图片数量创建或更新指示器"""
         self.indicator_layout.clear_widgets()
         self.indicators = []
         self.indicator_layout.size = (dp(count * 30), dp(30))
@@ -337,14 +340,11 @@ class StartScreen(Screen):
             self.indicators[self.carousel.index].text = '●'
 
     def on_carousel_index_changed(self, carousel, index):
-        """当轮播图切换时更新指示器"""
         for i, lbl in enumerate(self.indicators):
             lbl.text = '●' if i == index else '○'
 
     def on_enter(self):
-        """进入开屏页面时从服务器加载广告"""
         self.load_splash_from_server()
-        # 重置定时器和倒计时
         self._start_enter_countdown()
         if self._idle_timer:
             self._idle_timer.cancel()
@@ -365,7 +365,7 @@ class StartScreen(Screen):
         self.manager.current = 'main'
 
     def load_splash_from_server(self):
-        """从服务器加载开屏广告"""
+        """从服务器加载开屏广告，带磁盘缓存"""
         url = 'https://www.sjinyu.com/tools/bless/data/splash.json'
 
         def on_success(req, result):
@@ -373,48 +373,54 @@ class StartScreen(Screen):
                 if isinstance(result, str):
                     result = json.loads(result)
                 ads_list = result.get('ads', [])
-                # 只保留 active 为 true 的广告，并按 display_order 排序
                 active_ads = [ad for ad in ads_list if ad.get('active') is True]
                 active_ads.sort(key=lambda ad: ad.get('display_order', 999))
 
                 if not active_ads:
-                    # 无有效广告，使用本地备用
                     self.load_fallback_splash()
                     return
 
-                # 清空轮播图
                 self.carousel.clear_widgets()
                 self.carousel.unbind(index=self.on_carousel_index_changed)
 
-                # 动态添加图片
                 for ad in active_ads:
                     img_url = ad.get('image_url')
                     redirect_url = ad.get('redirect_url')
-                    if img_url:
-                        try:
-                            img = AsyncImage(
-                                source=img_url,
-                                allow_stretch=True,
-                                keep_ratio=False
-                            )
-                            # 绑定点击事件
-                            if redirect_url:
-                                img.bind(on_touch_down=lambda instance, touch, url=redirect_url: self.on_ad_click(instance, touch, url))
-                            self.carousel.add_widget(img)
-                        except Exception as e:
-                            print(f"加载开屏图片 {img_url} 失败: {e}")
+                    if not img_url:
+                        continue
+
+                    # 生成缓存文件名（基于URL的MD5）
+                    cache_filename = hashlib.md5(img_url.encode()).hexdigest() + '.jpg'
+                    cache_path = os.path.join(CACHE_DIR, cache_filename)
+
+                    if os.path.exists(cache_path):
+                        # 缓存存在，直接使用本地图片
+                        img = Image(source=cache_path, allow_stretch=True, keep_ratio=False)
+                    else:
+                        # 需要下载，使用AsyncImage（可能短暂显示加载动画）
+                        img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
+                        # 同时后台下载图片到缓存
+                        def save_to_cache(req, result):
+                            try:
+                                with open(cache_path, 'wb') as f:
+                                    f.write(result)
+                                print(f"开屏图片已缓存: {cache_path}")
+                            except Exception as e:
+                                print(f"缓存图片失败: {e}")
+                        # 发起下载请求（不阻塞UI）
+                        UrlRequest(img_url, on_success=save_to_cache, on_error=lambda req, err: print(f"下载失败: {err}"))
+
+                    if redirect_url:
+                        img.bind(on_touch_down=lambda instance, touch, url=redirect_url: self.on_ad_click(instance, touch, url))
+                    self.carousel.add_widget(img)
 
                 self.total_images = len(self.carousel.slides)
                 if self.total_images == 0:
-                    # 没有成功加载任何图片，使用备用
                     self.load_fallback_splash()
                     return
 
-                # 更新指示器
                 self.update_indicators(self.total_images)
                 self.carousel.bind(index=self.on_carousel_index_changed)
-
-                # 如果有图片，开始自动轮播
                 if self.total_images > 1:
                     self._start_auto_slide()
 
@@ -445,7 +451,6 @@ class StartScreen(Screen):
             if os.path.exists(img_path):
                 try:
                     img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
-                    # 为本地图片绑定默认跳转链接（可选）
                     img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                     self.carousel.add_widget(img)
                 except Exception as e:
@@ -458,33 +463,30 @@ class StartScreen(Screen):
             if self.total_images > 1:
                 self._start_auto_slide()
         else:
-            # 极端情况：连备用图片都没有，显示一个提示标签
             self.carousel.add_widget(Label(text='暂无开屏图片', color=(1,1,1,1)))
             self.total_images = 1
             self.update_indicators(1)
             self.carousel.bind(index=self.on_carousel_index_changed)
 
     def on_fallback_ad_click(self, instance, touch):
-        """备用广告点击事件（可自定义跳转）"""
         try:
             if instance.collide_point(*touch.pos):
-                open_website('https://www.sjinyu.com')  # 默认跳转官网
+                open_website('https://www.sjinyu.com')
         except Exception as e:
             print("on_fallback_ad_click 异常:", e)
 
     def on_ad_click(self, instance, touch, url):
-        """点击轮播图时打开链接"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website(url)
         except Exception as e:
             print("on_ad_click 异常:", e)
 
+
 # ==================== 主页面 ====================
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 获取下一个节日及天数
         festival_name, days_until = get_next_festival()
         self.current_festival = festival_name
         self.days_until = days_until
@@ -556,7 +558,7 @@ class MainScreen(Screen):
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # 当前节日标签（初始按天数显示）
+        # 当前节日标签
         self.current_festival_label = Label(
             text=self._get_festival_display_text(),
             size_hint=(1, None),
@@ -665,7 +667,6 @@ class MainScreen(Screen):
         self.update_spinner_colors()
 
     def _get_festival_display_text(self):
-        """根据天数生成标签文本"""
         if self.days_until == 0:
             return self.current_festival
         else:
@@ -727,7 +728,7 @@ class MainScreen(Screen):
 
     def on_traditional_spinner_select(self, spinner, text):
         self.current_festival = text
-        self.days_until = None  # 手动选择后不再显示天数
+        self.days_until = None
         self.current_festival_label.text = f"当前节日：{self.current_festival}"
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
@@ -816,39 +817,25 @@ class MainScreen(Screen):
 
     def on_copy(self, instance):
         try:
-            print("on_copy triggered")
             text = instance.blessing_text
             if not text:
-                print("错误：按钮没有 blessing_text 属性")
                 return
-
             Clipboard.copy(text)
-            print("剪贴板已复制")
-
             self.last_copied_text = text
-
             try:
                 show_toast('祝福语已复制')
-            except Exception as e:
-                print("Toast 失败:", e)
-
+            except:
+                pass
             if self.selected_item and self.selected_item != instance:
                 self.selected_item.background_color = (1, 1, 1, 0.9)
                 self.selected_item.color = (0.1, 0.1, 0.1, 1)
-                self.selected_item.canvas.ask_update()
-
             instance.background_color = (0.5, 0.1, 0.1, 1)
             instance.color = (1, 1, 0, 1)
-            instance.canvas.ask_update()
-
             self.selected_item = instance
-
             if not self.has_selected:
                 self.has_selected = True
                 self.share_btn.background_color = get_color_from_hex('#4CAF50')
                 self.share_btn.disabled = False
-
-            print("视觉反馈已应用")
         except Exception as e:
             print("on_copy 发生异常:", e)
 
@@ -882,14 +869,14 @@ class MainScreen(Screen):
             bold=True
         )
         close_btn = Button(
-            text='✕',
+            text='X',
             size_hint=(None, None),
             size=(dp(30), dp(30)),
             pos_hint={'right':1, 'center_y':0.5},
-            background_normal='',      # 移除默认背景图片
-            background_down='',        # 移除按下背景图片
-            border=(0,0,0,0),          # 无边框
-            background_color=(0,0,0,0),# 完全透明
+            background_normal='',
+            background_down='',
+            border=(0,0,0,0),
+            background_color=(0,0,0,0),
             color=(1,1,1,1),
             bold=True,
             font_name='Chinese'
@@ -957,7 +944,7 @@ class MainScreen(Screen):
             background_color=(0,0,0,0),
             auto_dismiss=False
         )
-        popup.center = Window.center  # 强制居中
+        popup.center = Window.center
 
         def on_share(btn):
             new_text = text_input.text.strip()
@@ -1228,7 +1215,6 @@ class MainScreen(Screen):
         popup.open()
 
     def load_top_ads(self):
-        """从网络加载顶部轮播图，仅显示 active 为 true 的广告并按顺序显示"""
         url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
         
         def on_success(req, result):
@@ -1271,7 +1257,6 @@ class MainScreen(Screen):
             self.load_fallback_ads()
 
     def load_fallback_ads(self):
-        """备用加载本地图片，文件名与服务器一致：top01.jpg ~ top05.jpg"""
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
             img_path = f'images/top{i:02d}.jpg'
@@ -1286,7 +1271,6 @@ class MainScreen(Screen):
                 print(f"加载备用图片 {img_path} 失败: {e}")
 
     def on_fallback_ad_click(self, instance, touch):
-        """备用广告点击事件"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website('https://www.sjinyu.com')
@@ -1294,7 +1278,6 @@ class MainScreen(Screen):
             print("on_fallback_ad_click 异常:", e)
 
     def on_ad_click(self, instance, touch, url):
-        """点击轮播图时打开链接"""
         try:
             if instance.collide_point(*touch.pos):
                 open_website(url)
@@ -1311,7 +1294,6 @@ class BlessApp(App):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         
-        # 沉浸模式（手动下滑显示状态栏）
         try:
             self._set_immersive_mode()
         except Exception as e:
@@ -1320,7 +1302,6 @@ class BlessApp(App):
         return sm
     
     def _set_immersive_mode(self):
-        """通过Android原生API设置沉浸式全屏，允许内容延伸到挖孔区域"""
         from jnius import autoclass
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
         View = autoclass('android.view.View')
@@ -1329,7 +1310,6 @@ class BlessApp(App):
         activity = PythonActivity.mActivity
         decor_view = activity.getWindow().getDecorView()
         
-        # 设置系统UI标志：隐藏状态栏和导航栏，启用粘性沉浸
         ui_options = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                       | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                       | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -1338,7 +1318,6 @@ class BlessApp(App):
                       | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         decor_view.setSystemUiVisibility(ui_options)
         
-        # 允许内容延伸到挖孔区域（适配挖孔屏）
         lp = activity.getWindow().getAttributes()
         lp.layoutInDisplayCutoutMode = WindowManager.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         activity.getWindow().setAttributes(lp)
