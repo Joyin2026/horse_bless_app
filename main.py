@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.0312
+版本：v2.6.0316
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（全屏显示）
 - 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
-- 自动判断默认节日（元宵节提前8天，其他5天）
+- 自动判断下一个节日（今天或未来最近），显示“n天后节日”或直接节日名
 - 祝福语数据从 data/bless.json 加载
 - 分享按钮动态启用，底部图标栏自动显示/隐藏（显示后3秒自动隐藏）
 - 下拉菜单颜色跟随激活组变化，下拉列表美观（浅米色选项，棕色分隔线，节日氛围）
@@ -45,7 +45,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0312"
+APP_VERSION = "v2.6.0316"
 
 # ---------- 注册系统字体 ----------
 system_fonts = [
@@ -195,21 +195,23 @@ FESTIVAL_DATES_2026 = {
     '记者节': (11, 8),
 }
 
-def get_default_festival():
+def get_next_festival():
+    """返回下一个最近节日（包括今天）的名称和天数差（0表示今天）"""
     today = datetime.now().date()
-    yuanxiao_date = datetime(2026, 3, 3).date()
-    yuanxiao_delta = (yuanxiao_date - today).days
-    if 0 <= yuanxiao_delta <= 8:
-        return '元宵节'
     best = None
     min_days = float('inf')
     for name, (month, day) in FESTIVAL_DATES_2026.items():
         festival_date = datetime(2026, month, day).date()
         delta = (festival_date - today).days
-        if 0 <= delta <= 5 and delta < min_days:
+        if delta >= 0 and delta < min_days:
             min_days = delta
             best = name
-    return best if best else '春节'
+    # 如果所有节日都已过（2026年还有节日，但以防万一），返回春节
+    if best is None:
+        best = '春节'
+        festival_date = datetime(2026, 2, 17).date()
+        min_days = (festival_date - today).days
+    return best, min_days
 
 # ==================== 开屏页面 ====================
 class StartScreen(Screen):
@@ -355,11 +357,10 @@ class StartScreen(Screen):
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.default_festival = get_default_festival()
-        if self.default_festival in ALL_BLESSINGS:
-            self.current_festival = self.default_festival
-        else:
-            self.current_festival = TRADITIONAL[0] if TRADITIONAL else list(ALL_BLESSINGS.keys())[0]
+        # 获取下一个节日及天数
+        festival_name, days_until = get_next_festival()
+        self.current_festival = festival_name
+        self.days_until = days_until
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
         self.selected_item = None
@@ -393,7 +394,7 @@ class MainScreen(Screen):
         Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
         self.load_top_ads()
 
-        # 下拉菜单
+        # 两个并排的下拉菜单
         spinner_layout = BoxLayout(size_hint=(1, None), height=dp(50), spacing=dp(5))
         self.traditional_spinner = Spinner(
             text='传统佳节',
@@ -421,16 +422,16 @@ class MainScreen(Screen):
         spinner_layout.add_widget(self.professional_spinner)
         main_layout.add_widget(spinner_layout)
 
-        # 分类按钮
+        # 分类切换按钮
         self.category_scroll = ScrollView(size_hint=(1, None), height=dp(50), do_scroll_x=True, do_scroll_y=False)
         self.category_layout = BoxLayout(size_hint_x=None, height=dp(50), spacing=dp(2))
         self.category_layout.bind(minimum_width=self.category_layout.setter('width'))
         self.category_scroll.add_widget(self.category_layout)
         main_layout.add_widget(self.category_scroll)
 
-        # 当前节日标签
+        # 当前节日标签（初始按天数显示）
         self.current_festival_label = Label(
-            text=f"当前节日：{self.current_festival}",
+            text=self._get_festival_display_text(),
             size_hint=(1, None),
             height=dp(30),
             color=(0.5,0.1,0.1,1),
@@ -536,6 +537,13 @@ class MainScreen(Screen):
         self.show_current_page()
         self.update_spinner_colors()
 
+    def _get_festival_display_text(self):
+        """根据天数生成标签文本"""
+        if self.days_until == 0:
+            return self.current_festival
+        else:
+            return f"{self.days_until}天后节日：{self.current_festival}"
+
     def on_enter(self, *args):
         Clock.schedule_once(lambda dt: self.check_update(None), 1)
         super().on_enter(*args)
@@ -592,6 +600,7 @@ class MainScreen(Screen):
 
     def on_traditional_spinner_select(self, spinner, text):
         self.current_festival = text
+        self.days_until = None  # 手动选择后不再显示天数
         self.current_festival_label.text = f"当前节日：{self.current_festival}"
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
@@ -601,6 +610,7 @@ class MainScreen(Screen):
 
     def on_professional_spinner_select(self, spinner, text):
         self.current_festival = text
+        self.days_until = None
         self.current_festival_label.text = f"当前节日：{self.current_festival}"
         festival_data = ALL_BLESSINGS.get(self.current_festival, {})
         self.current_category = list(festival_data.keys())[0] if festival_data else ''
@@ -1170,7 +1180,7 @@ class BlessApp(App):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainScreen(name='main'))
         
-        # 恢复沉浸模式（手动下滑显示状态栏，3秒后自动隐藏）
+        # 沉浸模式（手动下滑显示状态栏）
         try:
             self._set_immersive_mode()
         except Exception as e:
