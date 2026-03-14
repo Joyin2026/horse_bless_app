@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.0320
+版本：v2.6.1024
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（从网络加载，支持 active 控制和点击跳转，带磁盘缓存）
@@ -46,7 +46,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0320"
+APP_VERSION = "v2.6.1024"
 
 # ---------- 缓存目录 ----------
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
@@ -235,7 +235,7 @@ def get_next_festival():
         min_days = (festival_date - today).days
     return best, min_days
 
-# ==================== 开屏页面（动态加载+磁盘缓存） ====================
+# ==================== 开屏页面（本地图片加载） ====================
 class StartScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -308,7 +308,7 @@ class StartScreen(Screen):
             self._enter_timer = None
 
     def _tick_countdown(self, dt):
-        self.countdown -= 5
+        self.countdown -= 1
         self.countdown_label.text = f'{self.countdown} 秒'
         if self.countdown <= 0:
             self._stop_enter_countdown()
@@ -357,7 +357,7 @@ class StartScreen(Screen):
             lbl.text = '●' if i == index else '○'
 
     def on_enter(self):
-        self.load_splash_from_server()
+        self.load_splash_from_server()  # 实际已改为加载本地图片
         self._start_enter_countdown()
         if self._idle_timer:
             self._idle_timer.cancel()
@@ -378,85 +378,37 @@ class StartScreen(Screen):
         self.manager.current = 'main'
 
     def load_splash_from_server(self):
-        """从服务器加载开屏广告，带磁盘缓存"""
-        url = 'https://www.sjinyu.com/tools/bless/data/splash.json'
+        """加载本地开屏图片（两张JPG），每3秒切换"""
+        self.carousel.clear_widgets()
+        self.carousel.unbind(index=self.on_carousel_index_changed)
 
-        def on_success(req, result):
-            try:
-                if isinstance(result, str):
-                    result = json.loads(result)
-                ads_list = result.get('ads', [])
-                active_ads = [ad for ad in ads_list if ad.get('active') is True]
-                active_ads.sort(key=lambda ad: ad.get('display_order', 999))
-
-                if not active_ads:
-                    self.load_fallback_splash()
-                    return
-
-                self.carousel.clear_widgets()
-                self.carousel.unbind(index=self.on_carousel_index_changed)
-
-                for ad in active_ads:
-                    img_url = ad.get('image_url')
-                    redirect_url = ad.get('redirect_url')
-                    if not img_url:
-                        continue
-
-                    # 生成缓存文件名（基于URL的MD5）
-                    cache_filename = hashlib.md5(img_url.encode()).hexdigest() + '.jpg'
-                    cache_path = os.path.join(CACHE_DIR, cache_filename)
-
-                    if os.path.exists(cache_path):
-                        # 缓存存在，直接使用本地图片
-                        img = Image(source=cache_path, allow_stretch=True, keep_ratio=False)
-                    else:
-                        # 需要下载，使用AsyncImage（可能短暂显示加载动画）
-                        img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
-                        # 同时后台下载图片到缓存
-                        def save_to_cache(req, result):
-                            try:
-                                with open(cache_path, 'wb') as f:
-                                    f.write(result)
-                                print(f"开屏图片已缓存: {cache_path}")
-                            except Exception as e:
-                                print(f"缓存图片失败: {e}")
-                        # 发起下载请求（不阻塞UI）
-                        UrlRequest(img_url, on_success=save_to_cache, on_error=lambda req, err: print(f"下载失败: {err}"))
-
-                    if redirect_url:
-                        img.bind(on_touch_down=lambda instance, touch, url=redirect_url: self.on_ad_click(instance, touch, url))
+        splash_images = ['images/splash0.jpg', 'images/splash1.jpg']
+        for img_path in splash_images:
+            if os.path.exists(img_path):
+                try:
+                    img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+                    # 本地图片无跳转链接，不绑定点击事件
                     self.carousel.add_widget(img)
+                except Exception as e:
+                    print(f"加载开屏图片 {img_path} 失败: {e}")
+            else:
+                print(f"开屏图片 {img_path} 不存在")
 
-                self.total_images = len(self.carousel.slides)
-                if self.total_images == 0:
-                    self.load_fallback_splash()
-                    return
-
-                self.update_indicators(self.total_images)
-                self.carousel.bind(index=self.on_carousel_index_changed)
-                if self.total_images > 1:
-                    self._start_auto_slide()
-
-            except Exception as e:
-                print('解析开屏广告数据失败:', e)
-                self.load_fallback_splash()
-
-        def on_failure(req, result):
-            print('开屏广告请求失败:', result)
-            self.load_fallback_splash()
-
-        def on_error(req, error):
-            print('开屏广告请求错误:', error)
-            self.load_fallback_splash()
-
-        try:
-            UrlRequest(url, on_success=on_success, on_failure=on_failure, on_error=on_error)
-        except Exception as e:
-            print('UrlRequest 异常:', e)
-            self.load_fallback_splash()
+        self.total_images = len(self.carousel.slides)
+        if self.total_images > 0:
+            self.update_indicators(self.total_images)
+            self.carousel.bind(index=self.on_carousel_index_changed)
+            if self.total_images > 1:
+                self._start_auto_slide()
+        else:
+            # 如果没有图片，添加一个提示标签
+            self.carousel.add_widget(Label(text='暂无开屏图片', color=(1,1,1,1)))
+            self.total_images = 1
+            self.update_indicators(1)
+            self.carousel.bind(index=self.on_carousel_index_changed)
 
     def load_fallback_splash(self):
-        """加载本地备用开屏图片"""
+        """加载本地备用开屏图片（保留备用）"""
         self.carousel.clear_widgets()
         self.carousel.unbind(index=self.on_carousel_index_changed)
         splash_images = ['images/splash1.png', 'images/splash2.png', 'images/splash3.png']
