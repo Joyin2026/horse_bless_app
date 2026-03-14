@@ -186,7 +186,7 @@ def load_blessings():
 ALL_BLESSINGS, load_error = load_blessings()
 
 TRADITIONAL = ['春节', '开工大吉','元宵节', '母亲节', '端午节', '父亲节','中秋节']
-PROFESSIONAL = ["女神节", '护士节', '建军节', '教师节', '国庆节', '记者节']
+PROFESSIONAL = ["女神节", '劳动节', '青年节', '护士节', '儿童节', '建党节', '建军节', '教师节', '国庆节', '记者节']
 
 FESTIVAL_DATES_2026 = {
     '春节': (2, 17),
