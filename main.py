@@ -177,11 +177,17 @@ def load_blessings():
             return {}, f"节日 '{first_festival}' 的数据不是字典"
         return data, "成功"
     except FileNotFoundError:
-        return {}, f"文件不存在: {json_path}"
+        err_msg = f"文件不存在: {json_path}"
+        print(err_msg)  # 打印到日志
+        return {}, err_msg
     except json.JSONDecodeError as e:
-        return {}, f"JSON 解析错误: {e}"
+        err_msg = f"JSON解析错误: {e}"
+        print(err_msg)
+        return {}, err_msg
     except Exception as e:
-        return {}, f"未知错误: {e}"
+        err_msg = f"未知错误: {e}"
+        print(err_msg)
+        return {}, err_msg
 
 ALL_BLESSINGS, load_error = load_blessings()
 
