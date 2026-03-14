@@ -169,24 +169,27 @@ def load_blessings():
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         if not isinstance(data, dict):
+            show_toast("数据格式错误：根节点不是字典")
             return {}, "数据格式错误：根节点不是字典"
         if len(data) == 0:
+            show_toast("数据为空")
             return {}, "数据为空"
         first_festival = list(data.keys())[0]
         if not isinstance(data[first_festival], dict):
+            show_toast(f"节日 '{first_festival}' 的数据不是字典")
             return {}, f"节日 '{first_festival}' 的数据不是字典"
         return data, "成功"
     except FileNotFoundError:
         err_msg = f"文件不存在: {json_path}"
-        print(err_msg)  # 打印到日志
+        show_toast(err_msg)
         return {}, err_msg
     except json.JSONDecodeError as e:
         err_msg = f"JSON解析错误: {e}"
-        print(err_msg)
+        show_toast(err_msg)
         return {}, err_msg
     except Exception as e:
         err_msg = f"未知错误: {e}"
-        print(err_msg)
+        show_toast(err_msg)
         return {}, err_msg
 
 ALL_BLESSINGS, load_error = load_blessings()
