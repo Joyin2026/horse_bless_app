@@ -671,7 +671,7 @@ class MainScreen(Screen):
         self.update_spinner_colors()
 
     def _get_festival_display_text(self):
-        today_str = datetime.now().strftime("%m-%d")
+        today_str = datetime.now().strftime("%m月%d日")
         if self.days_until == 0:
             return f"今天是{today_str} ，{self.current_festival}"
         else:
