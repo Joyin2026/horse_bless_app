@@ -299,7 +299,7 @@ class StartScreen(Screen):
             self._enter_timer = None
 
     def _tick_countdown(self, dt):
-        self.countdown -= 1
+        self.countdown -= 5
         self.countdown_label.text = f'{self.countdown} 秒'
         if self.countdown <= 0:
             self._stop_enter_countdown()
