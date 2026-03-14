@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.0316
+版本：v2.6.0320
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（从网络加载，支持 active 控制和点击跳转，带磁盘缓存）
@@ -46,7 +46,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0316"
+APP_VERSION = "v2.6.0320"
 
 # ---------- 缓存目录 ----------
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
@@ -671,10 +671,11 @@ class MainScreen(Screen):
         self.update_spinner_colors()
 
     def _get_festival_display_text(self):
+        today_str = datetime.now().strftime("%m-%d")
         if self.days_until == 0:
-            return self.current_festival
+            return f"今天是{today_str} ，{self.current_festival}"
         else:
-            return f"{self.days_until}天后节日：{self.current_festival}"
+            return f"今天是{today_str} 离“{self.current_festival}”还有{self.days_until}天"
 
     def on_enter(self, *args):
         Clock.schedule_once(lambda dt: self.check_update(None), 1)
