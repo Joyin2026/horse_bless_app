@@ -500,6 +500,21 @@ class StartScreen(Screen):
 class MainScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+        # --- 调试：显示加载错误（如果有）---
+        self.error_label = None
+        if not ALL_BLESSINGS:
+            self.error_label = Label(
+                text=f"[color=ff0000]数据加载错误: {load_error}[/color]",
+                markup=True,
+                size_hint=(1, None),
+                height=dp(60),
+                color=(1,0,0,1),
+                font_name='Chinese',
+                halign='center',
+                valign='middle'
+            )
+        
         festival_name, days_until = get_next_festival()
         self.current_festival = festival_name
         self.days_until = days_until
@@ -518,6 +533,10 @@ class MainScreen(Screen):
 
         main_layout = BoxLayout(orientation='vertical', spacing=0, padding=0)
         main_layout.size_hint_y = 1
+
+        # --- 如果有错误，先添加错误标签 ---
+        if self.error_label:
+            main_layout.add_widget(self.error_label)
 
         # 顶部标题栏（图片）
         title_image = Image(
