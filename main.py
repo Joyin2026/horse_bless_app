@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.1024
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（本地图片，每3秒切换，点击跳转官网）
-- 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
+- 顶部标题栏（图片） + 轮播图（高度自适应，保持图片比例不变形）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断下一个节日（今天或未来最近），显示“n天后节日”或直接节日名
 - 祝福语数据从 data/bless.json 加载
@@ -386,7 +385,7 @@ class StartScreen(Screen):
         for img_path in splash_images:
             if os.path.exists(img_path):
                 try:
-                    img = Image(source=img_path, allow_stretch=True, keep_ratio=Flase)
+                    img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
                     # 绑定点击事件，跳转到官网（可在此修改为其他链接）
                     img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                     self.carousel.add_widget(img)
@@ -416,7 +415,7 @@ class StartScreen(Screen):
         for img_path in splash_images:
             if os.path.exists(img_path):
                 try:
-                    img = Image(source=img_path, allow_stretch=True, keep_ratio=True)
+                    img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
                     img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                     self.carousel.add_widget(img)
                 except Exception as e:
@@ -501,8 +500,9 @@ class MainScreen(Screen):
         )
         main_layout.add_widget(title_image)
 
-        # 顶部轮播图（高度123dp）
-        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None, height=dp(123))
+        # 顶部轮播图（高度自适应）
+        self.top_carousel = Carousel(direction='right', loop=True, size_hint_y=None)
+        self.top_carousel.bind(index=self.on_top_carousel_index_changed)  # 监听索引变化
         main_layout.add_widget(self.top_carousel)
 
         Clock.schedule_interval(lambda dt: self.top_carousel.load_next(), 3)
@@ -1200,6 +1200,23 @@ class MainScreen(Screen):
         )
         popup.open()
 
+    # ==================== 顶部轮播图高度自适应相关方法 ====================
+    def on_top_carousel_index_changed(self, carousel, index):
+        """当轮播图切换时，调整高度以适应新图片"""
+        current_slide = carousel.current_slide
+        if current_slide and hasattr(current_slide, 'texture') and current_slide.texture:
+            self.adjust_carousel_height(current_slide)
+
+    def adjust_carousel_height(self, img_instance):
+        """根据图片纹理尺寸调整轮播图高度"""
+        if img_instance.texture:
+            img_w, img_h = img_instance.texture.size
+            screen_w = Window.width
+            # 计算等比例高度（图片宽度占满屏幕时的高度）
+            new_height = screen_w * img_h / img_w
+            # 设置轮播图高度（添加动画平滑过渡）
+            Animation(height=new_height, duration=0.2, t='out_quad').start(self.top_carousel)
+
     def load_top_ads(self):
         url = 'https://www.sjinyu.com/tools/bless/data/ads.json'
         
@@ -1216,7 +1233,9 @@ class MainScreen(Screen):
                     link_url = ad.get('redirect_url')
                     if img_url:
                         try:
-                            img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=False)
+                            # 使用 AsyncImage，保持比例，加载完成后自动调整高度
+                            img = AsyncImage(source=img_url, allow_stretch=True, keep_ratio=True)
+                            img.bind(on_load=self.on_async_image_loaded)  # 监听加载完成
                             if link_url:
                                 img.bind(on_touch_down=lambda instance, touch, url=link_url: self.on_ad_click(instance, touch, url))
                             self.top_carousel.add_widget(img)
@@ -1224,6 +1243,11 @@ class MainScreen(Screen):
                             print(f"加载网络图片 {img_url} 失败: {e}")
                 if not active_ads:
                     self.load_fallback_ads()
+                # 如果至少有一张图片，手动触发一次高度调整（针对第一张）
+                if self.top_carousel.slides:
+                    first_img = self.top_carousel.slides[0]
+                    if first_img.texture:
+                        self.adjust_carousel_height(first_img)
             except Exception as e:
                 print('解析广告数据失败:', e)
                 self.load_fallback_ads()
@@ -1242,6 +1266,12 @@ class MainScreen(Screen):
             print('UrlRequest 异常:', e)
             self.load_fallback_ads()
 
+    def on_async_image_loaded(self, instance):
+        """当异步图片加载完成时调用，调整轮播图高度"""
+        # 只调整当前显示的图片的高度
+        if instance == self.top_carousel.current_slide:
+            self.adjust_carousel_height(instance)
+
     def load_fallback_ads(self):
         self.top_carousel.clear_widgets()
         for i in range(1, 6):
@@ -1250,11 +1280,24 @@ class MainScreen(Screen):
                 print(f"备用图片 {img_path} 不存在，已跳过")
                 continue
             try:
-                img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+                img = Image(source=img_path, allow_stretch=True, keep_ratio=True)
+                # 如果图片已加载，直接调整高度；否则等待加载
+                if img.texture:
+                    # 如果是当前显示的图片，调整高度
+                    if img == self.top_carousel.current_slide:
+                        self.adjust_carousel_height(img)
+                else:
+                    img.bind(on_load=self.on_async_image_loaded)  # 同样监听加载事件
                 img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                 self.top_carousel.add_widget(img)
             except Exception as e:
                 print(f"加载备用图片 {img_path} 失败: {e}")
+
+        # 如果至少有一张图片，尝试调整高度
+        if self.top_carousel.slides:
+            first_img = self.top_carousel.slides[0]
+            if first_img.texture:
+                self.adjust_carousel_height(first_img)
 
     def on_fallback_ad_click(self, instance, touch):
         try:
