@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.1024
+版本：v2.6.0320
 开发团队：卓影工作室 · 瑾 煜
 功能：
-- 开屏广告轮播（从网络加载，支持 active 控制和点击跳转，带磁盘缓存）
+- 开屏广告轮播（本地图片，每3秒切换，点击跳转官网）
 - 顶部标题栏（图片） + 轮播图（高度123dp，适应1440x400图片）
 - 两个固定标题的下拉菜单（传统佳节/行业节日），小标签显示当前选中节日（加粗）
 - 自动判断下一个节日（今天或未来最近），显示“n天后节日”或直接节日名
@@ -46,7 +46,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.1024"
+APP_VERSION = "v2.6.0320"
 
 # ---------- 缓存目录 ----------
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
@@ -235,7 +235,7 @@ def get_next_festival():
         min_days = (festival_date - today).days
     return best, min_days
 
-# ==================== 开屏页面（本地图片加载） ====================
+# ==================== 开屏页面（本地图片加载+点击跳转） ====================
 class StartScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -378,7 +378,7 @@ class StartScreen(Screen):
         self.manager.current = 'main'
 
     def load_splash_from_server(self):
-        """加载本地开屏图片（两张JPG），每3秒切换"""
+        """加载本地开屏图片（两张JPG），每3秒切换，点击跳转官网"""
         self.carousel.clear_widgets()
         self.carousel.unbind(index=self.on_carousel_index_changed)
 
@@ -387,7 +387,8 @@ class StartScreen(Screen):
             if os.path.exists(img_path):
                 try:
                     img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
-                    # 本地图片无跳转链接，不绑定点击事件
+                    # 绑定点击事件，跳转到官网（可在此修改为其他链接）
+                    img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                     self.carousel.add_widget(img)
                 except Exception as e:
                     print(f"加载开屏图片 {img_path} 失败: {e}")
@@ -436,7 +437,7 @@ class StartScreen(Screen):
     def on_fallback_ad_click(self, instance, touch):
         try:
             if instance.collide_point(*touch.pos):
-                open_website('https://www.sjinyu.com')
+                open_website('https://www.sjinyu.com')  # 可在此修改跳转链接
         except Exception as e:
             print("on_fallback_ad_click 异常:", e)
 
