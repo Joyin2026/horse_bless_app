@@ -386,7 +386,7 @@ class StartScreen(Screen):
         for img_path in splash_images:
             if os.path.exists(img_path):
                 try:
-                    img = Image(source=img_path, allow_stretch=True, keep_ratio=False)
+                    img = Image(source=img_path, allow_stretch=True, keep_ratio=true)
                     # 绑定点击事件，跳转到官网（可在此修改为其他链接）
                     img.bind(on_touch_down=lambda instance, touch, path=img_path: self.on_fallback_ad_click(instance, touch))
                     self.carousel.add_widget(img)
