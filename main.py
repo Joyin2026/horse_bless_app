@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py - 马年送祝福（最终版）
-版本：v2.6.0320
+版本：v2.6.1024
 开发团队：卓影工作室 · 瑾 煜
 功能：
 - 开屏广告轮播（本地图片，每3秒切换，点击跳转官网）
@@ -46,7 +46,7 @@ from kivy.core.text import LabelBase
 from kivy.animation import Animation
 from kivy.network.urlrequest import UrlRequest
 
-APP_VERSION = "v2.6.0320"
+APP_VERSION = "v2.6.1024"
 
 # ---------- 缓存目录 ----------
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
